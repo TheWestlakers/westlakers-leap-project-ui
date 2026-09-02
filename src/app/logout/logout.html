@@ -1,0 +1,21 @@
+<main class="flex min-h-screen items-center justify-center bg-[#080B0D] px-4 py-12">
+  <div class="w-full max-w-sm">
+    <div class="rounded-xl bg-[#1E252B] p-8 text-center shadow-md">
+      <h1 class="mb-1 text-2xl font-semibold text-gray-300">You've been signed out</h1>
+      <p class="mb-6 text-sm text-gray-300">Thanks for stopping by. Sign back in whenever you're ready.</p>
+
+      <button
+        type="button"
+        (click)="signInAgain()"
+        class="mt-2 w-full rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+      >
+        Sign in
+      </button>
+
+      <p class="mt-6 text-center text-sm text-gray-300">
+        Don't have an account?
+        <a routerLink="/register" class="font-medium text-blue-600 hover:underline">Sign up</a>
+      </p>
+    </div>
+  </div>
+</main>
