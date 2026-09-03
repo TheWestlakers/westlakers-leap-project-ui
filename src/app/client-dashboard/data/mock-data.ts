@@ -58,3 +58,12 @@ export const portfolioRanges: Record<string, { label: string; data: { date: stri
   "3Y": { label: "3Y", data: generatePortfolioData(365 * 3, 142000, 248512.9) },
   "5Y": { label: "5Y", data: generatePortfolioData(365 * 5, 95000, 248512.9) },
 };
+
+export const aiAssistantReplies: string[] = [
+  "Your portfolio is up 1.42% today, led by gains in NVDA and MSFT.",
+  "AAPL is currently trading at $182.52, up 1.24% on the day.",
+  "Based on your current allocation, tech stocks make up roughly 68% of your holdings.",
+  "You have $94,210.45 in available buying power right now.",
+  "Your largest unrealized gain is on NVDA at +$20,493.00 (108.57%).",
+  "I can help with quotes, portfolio insights, or order status — just ask!",
+];

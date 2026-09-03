@@ -5,13 +5,14 @@ import { WatchlistComponent } from "../../components/watchlist/watchlist.compone
 import { PortfolioChartComponent } from "../../components/portfolio-chart/portfolio-chart.component";
 import { OpenPositionsComponent } from "../../components/open-positions/open-positions.component";
 import { OrderEntryComponent } from "../../components/order-entry/order-entry.component";
+import { AiAssistantComponent } from "../../components/ai-assistant/ai-assistant.component";
 import { initialWatchlist, positions } from "../../data/mock-data";
 import type { WatchlistItem } from "../../data/mock-data";
 
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, TopNavComponent, WatchlistComponent, PortfolioChartComponent, OpenPositionsComponent, OrderEntryComponent],
+  imports: [CommonModule, TopNavComponent, WatchlistComponent, PortfolioChartComponent, OpenPositionsComponent, OrderEntryComponent, AiAssistantComponent],
   styleUrl: '../../client-dashboard.css',
   template: `
     <div class="bg-[#080b0d] flex flex-col min-h-screen">
@@ -70,8 +71,11 @@ import type { WatchlistItem } from "../../data/mock-data";
         </div>
 
         <!-- Right rail -->
-        <div class="shrink-0 w-[300px]">
+        <div class="flex flex-col gap-4 shrink-0 w-[300px] self-stretch">
           <app-order-entry />
+          <div class="h-[420px] min-h-0">
+            <app-ai-assistant />
+          </div>
         </div>
       </div>
     </div>
