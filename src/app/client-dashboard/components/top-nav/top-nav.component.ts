@@ -69,7 +69,7 @@ const assetPathPrefix = "/assets";
           @if (isMenuOpen()) {
             <div class="absolute right-0 top-11 z-10 w-48 rounded-[6px] border border-[#1e252b] bg-[#11161b] py-1 shadow-lg">
               <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans:Regular'] text-[13px] text-white">
-                <span>{{ isDarkMode() ? 'Dark mode' : 'Light mode' }}</span>
+                <span>Dark mode</span>
                 <button
                   type="button"
                   role="switch"
