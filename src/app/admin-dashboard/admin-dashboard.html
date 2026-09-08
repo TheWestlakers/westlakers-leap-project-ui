@@ -1,0 +1,223 @@
+<!-- TOP NAV -->
+<header class="top-nav">
+  <div class="nav-brand">
+    <div class="brand-icon">
+      <span class="material-icons brand-icon-svg">close</span>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">PAYSPRINT</span>
+      <span class="brand-sub">SYSTEM<br>PORTAL</span>
+    </div>
+    <div class="live-badge systems">
+      <span class="live-dot"></span>
+      SYSTEMS LIVE
+    </div>
+  </div>
+
+  <div class="nav-search">
+    <span class="search-icon">⌕</span>
+    <input
+      class="search-input"
+      placeholder="Search accounts, tx hashes, audit records..."
+      [(ngModel)]="searchQuery"
+    />
+    <kbd class="search-kbd">/</kbd>
+  </div>
+
+  <div class="nav-right">
+    <div class="latency-block">
+      <span class="latency-label">DAILY API LATENCY</span>
+      <span class="latency-value">{{ apiLatency }} <span class="latency-nominal">(NOMINAL)</span></span>
+    </div>
+    <button class="icon-btn">
+      <span class="material-icons">notifications_none</span>
+    </button>
+    <div class="nav-divider"></div>
+    <div class="user-profile">
+      <div class="avatar">JD</div>
+      <div class="user-info">
+        <span class="user-name">John Doe</span>
+        <span class="user-role">SUPER ADMIN</span>
+      </div>
+      <span class="material-icons chevron">expand_more</span>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <p class="sidebar-section-label">PLATFORM MANAGEMENT</p>
+    <nav class="sidebar-nav">
+      <button
+        *ngFor="let item of navItems"
+        class="nav-item"
+        [class.active]="item.active"
+        (click)="setActiveNav(item.label)"
+      >
+        <span class="nav-icon material-icons">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+        <span
+          *ngIf="item.badge"
+          class="nav-badge"
+          [class.badge-alert]="item.badgeType === 'alert'"
+        >{{ item.badge }}</span>
+      </button>
+    </nav>
+
+    <div class="broadcast-panel">
+      <div class="broadcast-header">
+        <span class="live-dot green"></span>
+        <span class="broadcast-title">LIVE BROADCAST</span>
+      </div>
+      <p class="broadcast-sub">Listening to WS clusters...</p>
+      <div class="broadcast-feed">
+        <div *ngFor="let entry of broadcastFeed" class="broadcast-entry">
+          <span class="entry-time">[{{ entry.time }}]</span>
+          <span class="entry-msg">{{ entry.message }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER CONTENT -->
+  <main class="center-content">
+
+    <!-- STAT CARDS -->
+    <div class="stat-cards">
+      <div *ngFor="let card of statCards" class="stat-card">
+        <p class="stat-label">{{ card.label }}</p>
+        <p class="stat-value">{{ card.value }}</p>
+        <p class="stat-change" [class.positive]="card.changePositive" [class.nominal]="card.label === 'LATENCY SPREAD'">
+          {{ card.change }}
+        </p>
+        <p class="stat-sub">{{ card.sub }}</p>
+      </div>
+    </div>
+
+    <!-- TRANSACTION VELOCITY CHART -->
+    <div class="chart-widget">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <span class="chart-title">TRANSACTION VELOCITY</span>
+          <span class="chart-desc">System operations &amp; platform processing load</span>
+          <span class="live-pill">LIVE 5M</span>
+        </div>
+        <div class="chart-stats">
+          <span class="chart-rate">{{ txRate }}</span>
+          <span class="chart-workload">{{ txWorkload }}</span>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="y-labels">
+          <span *ngFor="let y of yLabels" class="axis-label">{{ y }}</span>
+        </div>
+        <div class="chart-svg-wrap">
+          <svg [attr.viewBox]="chartViewBox" preserveAspectRatio="none" class="chart-svg">
+            <defs>
+              <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path [attr.d]="chartFill" fill="url(#txGrad)"/>
+            <path [attr.d]="chartPath" fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          <div class="x-labels">
+            <span *ngFor="let x of xLabels" class="axis-label">{{ x }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PENDING ORDER QUEUE -->
+    <div class="queue-widget">
+      <div class="queue-header">
+        <div class="queue-title-group">
+          <span class="queue-icon">▦</span>
+          <span class="queue-title">PENDING ORDER QUEUE &amp; SYSTEM SETTLEMENTS</span>
+        </div>
+        <span class="queue-badge">12 PENDING GATEWAY</span>
+      </div>
+      <table class="queue-table">
+        <thead>
+          <tr>
+            <th>ACCOUNT ID</th>
+            <th>ORDER SYMBOL</th>
+            <th>QTY</th>
+            <th>GATEWAY</th>
+            <th>ORDER EST. VALUE</th>
+            <th>RISK EVALUATION</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of pendingOrders">
+            <td class="account-id">{{ order.accountId }}</td>
+            <td class="symbol">{{ order.symbol }}</td>
+            <td class="qty">{{ order.qty | number }}</td>
+            <td class="gateway">{{ order.gateway }}</td>
+            <td class="est-value">{{ order.estValue }}</td>
+            <td class="risk" [class.risk-ok]="!order.riskAlert" [class.risk-alert]="order.riskAlert">
+              {{ order.risk }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- RIGHT RAIL -->
+  <aside class="right-rail">
+
+    <!-- OPERATOR ACTIONS -->
+    <div class="operator-actions">
+      <div class="section-header">
+        <div class="section-title-group">
+          <span class="zap-icon">⚡</span>
+          <span class="section-title">OPERATOR ACTIONS</span>
+        </div>
+        <span class="sys-ctrl-label">SYS-CTRL</span>
+      </div>
+      <div class="action-buttons">
+        <button
+          class="action-btn halt-btn"
+          [class.halt-active]="haltActive"
+          (click)="toggleHalt()"
+        >
+          HALT TRADING
+        </button>
+        <button class="action-btn rebalance-btn">REBALANCE</button>
+      </div>
+    </div>
+
+    <!-- SYSTEM HEALTH -->
+    <div class="health-panel">
+      <div *ngFor="let h of systemHealth" class="health-row">
+        <span class="health-label">{{ h.label }}</span>
+        <span class="health-status" [ngClass]="healthClass(h.status)">
+          <span class="health-dot"></span>{{ h.status }}
+        </span>
+      </div>
+    </div>
+
+    <!-- RISK TELEMETRY -->
+    <div class="risk-panel">
+      <div class="risk-panel-header">
+        <span class="risk-panel-title">RISK TELEMETRY &amp; ALERTS</span>
+        <span class="risk-review-link">Review all (5)</span>
+      </div>
+      <div *ngFor="let alert of riskAlerts" class="risk-alert-card">
+        <div class="alert-meta">
+          <span class="alert-tag" [ngClass]="tagClass(alert.tagColor)">● {{ alert.tag }}</span>
+          <span class="alert-time">{{ alert.time }}</span>
+        </div>
+        <p class="alert-title">{{ alert.title }}</p>
+        <p class="alert-body">{{ alert.body }}</p>
+      </div>
+    </div>
+
+  </aside>
+</div>
