@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { TopNavComponent } from '../top-nav.component';
 
 export type TransactionSide = 'BUY' | 'SELL' | 'DIVIDEND' | 'TRANSFER';
 export type TransactionType = 'EQUITY' | 'CASH' | 'OPTION';
@@ -47,7 +48,7 @@ const PAGE_SIZE = 8;
 @Component({
   selector: 'app-transaction-history',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TopNavComponent],
   templateUrl: './transaction-history.component.html',
   styleUrls: ['./transaction-history.component.css'],
 })
@@ -59,6 +60,7 @@ export class TransactionHistoryComponent implements OnInit {
   statusFilter = signal<StatusOption>('All Statuses');
   currentPage  = signal(1);
   activeTab    = signal<'Transactions' | 'Open Orders' | 'Statements'>('Transactions');
+  netLiqValue  = 248512.90;
 
   /* ── Filter options ── */
   dateRangeOptions: DateRangeOption[]  = ['Last 30 Days', 'Last 7 Days', 'Last 90 Days', 'This Year', 'All Time'];

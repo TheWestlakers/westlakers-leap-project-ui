@@ -1,37 +1,5 @@
 <!-- ─── TOP NAV ──────────────────────────────────────── -->
-<header class="top-nav">
-  <div class="nav-brand">
-    <div class="brand-icon">✕</div>
-    <div class="brand-text">
-      <span class="brand-name">PAYSPRINT</span>
-      <span class="brand-sub">ACTIVE TRADER</span>
-    </div>
-    <div class="live-badge">
-      <span class="live-dot"></span>
-      LIVE
-    </div>
-  </div>
-
-  <div class="nav-search">
-    <span class="search-icon">⌕</span>
-    <input class="search-input" placeholder="Enter symbol, company, or order hotkey..." />
-    <kbd class="search-kbd">/</kbd>
-  </div>
-
-  <div class="nav-right">
-    <div class="netliq-block">
-      <span class="netliq-label">NET LIQ VALUE</span>
-      <span class="netliq-value">${{ formatCurrency(totalMarketValue) }}</span>
-    </div>
-    <div class="icon-btn">🔔</div>
-    <div class="nav-divider"></div>
-    <div class="user-profile">
-      <div class="avatar">JD</div>
-      <span class="user-name">John Doe</span>
-      <span class="chevron">▾</span>
-    </div>
-  </div>
-</header>
+<app-top-nav [netLiqValue]="totalMarketValue" />
 
 <!-- ─── SUB NAV ───────────────────────────────────────── -->
 <div class="sub-nav">

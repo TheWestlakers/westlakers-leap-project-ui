@@ -1,6 +1,7 @@
 import { Component, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { TopNavComponent } from '../top-nav.component';
 
 /* ─── Types ───────────────────────────────────────────── */
 export interface Position {
@@ -31,7 +32,7 @@ const ALL_POSITIONS: Position[] = [
 @Component({
   selector: 'app-open-positions',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TopNavComponent],
   templateUrl: './open-positions.component.html',
   styleUrls: ['./open-positions.component.css'],
 })
