@@ -1,6 +1,7 @@
-import { Component } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { portfolioRanges } from "../../data/mock-data";
+import { ThemeService } from "../../../services/theme.service";
 
 type RangeKey = "1D" | "5D" | "1Y" | "3Y" | "5Y";
 
@@ -16,15 +17,24 @@ interface ChartPoint {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full">
-      <div class="border-b border-[#1e252b] flex items-center justify-between px-4 py-3">
+    <div 
+      class="flex flex-col rounded-[8px] w-full border transition-colors"
+      [ngStyle]="{
+        'background-color': themeService.isDarkMode() ? '#11161b' : '#f3f4f6',
+        'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db'
+      }"
+    >
+      <div 
+        class="border-b flex items-center justify-between px-4 py-3 transition-colors"
+        [ngStyle]="{ 'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db' }"
+      >
         <div class="flex gap-3 items-center">
-          <p class="font-['Geist_Mono:Bold'] font-bold text-[18px] text-white">PORTFOLIO</p>
-          <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[13px]" style="font-variation-settings: 'wdth' 100">
+          <p class="font-['Geist_Mono:Bold'] font-bold text-[18px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">PORTFOLIO</p>
+          <p class="font-['Instrument_Sans:Regular'] font-normal text-[13px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#94a3b8' : '#6b7280' }" style="font-variation-settings: 'wdth' 100">
             Overall value over time
           </p>
-          <div class="bg-[#1e252b] px-1.5 py-0.5 rounded-[4px]">
-            <p class="font-['Instrument_Sans:Regular'] font-normal text-[#64748b] text-[10px]" style="font-variation-settings: 'wdth' 100">
+          <div [ngStyle]="{ 'background-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb' }" class="px-1.5 py-0.5 rounded-[4px]">
+            <p class="font-['Instrument_Sans:Regular'] font-normal text-[10px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#64748b' : '#6b7280' }" style="font-variation-settings: 'wdth' 100">
               {{ range }}
             </p>
           </div>
@@ -35,7 +45,12 @@ interface ChartPoint {
               <button
                 (click)="setRange(r)"
                 class="px-2 py-1 rounded-[4px] text-[11px] font-['Instrument_Sans:SemiBold'] font-semibold transition-colors cursor-pointer"
-                [ngClass]="range === r ? 'bg-[#1e252b] text-white' : 'text-[#64748b] hover:text-[#94a3b8]'"
+                [ngStyle]="range === r ? {
+                  'background-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb',
+                  'color': themeService.isDarkMode() ? '#ffffff' : '#111827'
+                } : {
+                  'color': themeService.isDarkMode() ? '#64748b' : '#6b7280'
+                }"
                 style="font-variation-settings: 'wdth' 100"
               >
                 {{ r }}
@@ -44,7 +59,7 @@ interface ChartPoint {
           </div>
           <div class="flex gap-4 items-center">
             <div class="flex flex-col gap-0.5 items-end">
-              <p class="font-['Geist_Mono:Bold'] font-bold text-[18px] text-white">{{ '$' + (currentValue | number: '1.2-2') }}</p>
+              <p class="font-['Geist_Mono:Bold'] font-bold text-[18px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">{{ '$' + (currentValue | number: '1.2-2') }}</p>
               <p class="font-['Geist_Mono:SemiBold'] font-semibold text-[11px]" [ngClass]="isPositive ? 'text-[#10b981]' : 'text-[#ef4444]'">
                 {{ isPositive ? "+" : "" }}{{ dayChangePct.toFixed(2) }}%
               </p>
@@ -121,6 +136,7 @@ interface ChartPoint {
   `,
 })
 export class PortfolioChartComponent {
+  protected readonly themeService = inject(ThemeService);
   ranges: RangeKey[] = ["1D", "5D", "1Y", "3Y", "5Y"];
   range: RangeKey = "5D";
 

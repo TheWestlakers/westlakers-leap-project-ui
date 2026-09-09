@@ -1,7 +1,8 @@
-import { Component, Input } from "@angular/core";
+import { Component, Input, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import type { Position } from "../../data/mock-data";
+import { ThemeService } from "../../../services/theme.service";
 
 const assetPathPrefix = "/assets";
 
@@ -10,17 +11,26 @@ const assetPathPrefix = "/assets";
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full">
-      <div class="border-b border-[#1e252b] flex items-center justify-between px-4 py-3">
+    <div 
+      class="flex flex-col rounded-[8px] w-full border transition-colors"
+      [ngStyle]="{
+        'background-color': themeService.isDarkMode() ? '#11161b' : '#f3f4f6',
+        'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db'
+      }"
+    >
+      <div 
+        class="border-b flex items-center justify-between px-4 py-3 transition-colors"
+        [ngStyle]="{ 'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db' }"
+      >
         <div class="flex gap-2 items-center">
           <img alt="" class="size-4" [src]="imgBriefcase" />
-          <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px] text-white whitespace-nowrap" style="font-variation-settings: 'wdth' 100">
+          <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px] whitespace-nowrap" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }" style="font-variation-settings: 'wdth' 100">
             OPEN POSITIONS
           </p>
         </div>
         <div class="flex gap-3 items-center">
-          <div class="bg-[#1e252b] px-2 py-1 rounded-full">
-            <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] text-[11px]">{{ positions.length }} ACTIVE</p>
+          <div [ngStyle]="{ 'background-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb' }" class="px-2 py-1 rounded-full">
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[11px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#94a3b8' : '#6b7280' }">{{ positions.length }} ACTIVE</p>
           </div>
           @if (compact) {
             <button
@@ -34,7 +44,14 @@ const assetPathPrefix = "/assets";
         </div>
       </div>
 
-      <div class="bg-[#11161b] flex items-center px-4 py-2.5 font-['Instrument_Sans:SemiBold'] font-semibold text-[#64748b] text-[11px]" style="font-variation-settings: 'wdth' 100">
+      <div 
+        class="flex items-center px-4 py-2.5 font-['Instrument_Sans:SemiBold'] font-semibold text-[11px] transition-colors" 
+        [ngStyle]="{
+          'background-color': themeService.isDarkMode() ? '#11161b' : '#e5e7eb',
+          'color': themeService.isDarkMode() ? '#64748b' : '#6b7280'
+        }"
+        style="font-variation-settings: 'wdth' 100"
+      >
         <span class="w-[80px]">SYMBOL</span>
         <span class="w-[70px] text-right">SHARES</span>
         <span class="w-[90px] text-right">AVG COST</span>
@@ -46,18 +63,24 @@ const assetPathPrefix = "/assets";
       <div [ngClass]="compact ? 'flex flex-col max-h-[240px] overflow-y-auto' : 'flex flex-col'">
         @for (pos of positions; track pos.id; let idx = $index) {
           <div
-            class="border-b border-[#1e252b] flex items-center px-4 py-3 hover:bg-[#161d24] transition-colors"
-            [ngClass]="idx % 2 === 0 ? 'bg-[#11161b]' : 'bg-[#080b0d]'"
+            class="border-b flex items-center px-4 py-3 transition-colors"
+            [ngStyle]="{
+              'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db',
+              'background-color': idx % 2 === 0 
+                ? (themeService.isDarkMode() ? '#11161b' : '#f9fafb')
+                : (themeService.isDarkMode() ? '#080b0d' : '#ffffff'),
+            }"
+            [ngClass]="{'hover:bg-opacity-80': true}"
           >
-            <p class="font-['Geist_Mono:Bold'] font-bold text-[13px] text-white w-[80px]">{{ pos.symbol }}</p>
-            <p class="font-['Geist_Mono:Regular'] font-normal text-[13px] text-white text-right w-[70px]">{{ pos.shares }}</p>
-            <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] text-[13px] text-right w-[90px]">
+            <p class="font-['Geist_Mono:Bold'] font-bold text-[13px] w-[80px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">{{ pos.symbol }}</p>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[13px] text-right w-[70px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">{{ pos.shares }}</p>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[13px] text-right w-[90px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#94a3b8' : '#6b7280' }">
               {{ '$' + pos.avgCost.toFixed(2) }}
             </p>
-            <p class="font-['Geist_Mono:Regular'] font-normal text-[13px] text-white text-right w-[90px]">
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[13px] text-right w-[90px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">
               {{ '$' + pos.lastPrice.toFixed(2) }}
             </p>
-            <p class="font-['Geist_Mono:Regular'] font-normal text-[13px] text-white text-right w-[110px]">
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[13px] text-right w-[110px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">
               {{ '$' + (pos.marketValue | number: '1.2-2') }}
             </p>
             <div class="flex-1 flex justify-end">
@@ -75,6 +98,7 @@ const assetPathPrefix = "/assets";
   `,
 })
 export class OpenPositionsComponent {
+  protected readonly themeService = inject(ThemeService);
   @Input({ required: true }) positions: Position[] = [];
   @Input() compact = true;
 

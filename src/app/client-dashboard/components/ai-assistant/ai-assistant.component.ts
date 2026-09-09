@@ -1,7 +1,8 @@
-import { Component, ElementRef, afterRenderEffect, signal, viewChild } from "@angular/core";
+import { Component, ElementRef, afterRenderEffect, signal, viewChild, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { aiAssistantReplies } from "../../data/mock-data";
+import { ThemeService } from "../../../services/theme.service";
 
 interface ChatMessage {
   sender: "bot" | "user";
@@ -14,15 +15,24 @@ interface ChatMessage {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full h-full min-h-0 overflow-hidden">
-      <div class="border-b border-[#1e252b] flex items-center gap-2 px-4 py-3 shrink-0">
+    <div 
+      class="border flex flex-col rounded-[8px] w-full h-full min-h-0 overflow-hidden transition-colors"
+      [ngStyle]="{
+        'background-color': themeService.isDarkMode() ? '#11161b' : '#ffffff',
+        'border-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb'
+      }"
+    >
+      <div 
+        class="border-b flex items-center gap-2 px-4 py-3 shrink-0 transition-colors"
+        [ngStyle]="{ 'border-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb' }"
+      >
         <span class="flex items-center justify-center size-6 rounded-full bg-[rgba(62,137,20,0.15)] text-[#3e8914] text-[13px]">✦</span>
-        <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px] text-white" style="font-variation-settings: 'wdth' 100">
+        <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }" style="font-variation-settings: 'wdth' 100">
           AI ASSISTANT
         </p>
         <span class="ml-auto flex items-center gap-1.5">
           <span class="size-1.5 rounded-full bg-[#10b981]"></span>
-          <span class="font-['Instrument_Sans:Regular'] font-normal text-[#64748b] text-[11px]" style="font-variation-settings: 'wdth' 100">Online</span>
+          <span class="font-['Instrument_Sans:Regular'] font-normal text-[11px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#64748b' : '#6b7280' }" style="font-variation-settings: 'wdth' 100">Online</span>
         </span>
       </div>
 
@@ -30,29 +40,51 @@ interface ChatMessage {
         @for (msg of messages(); track $index) {
           <div class="flex flex-col gap-1" [ngClass]="msg.sender === 'user' ? 'items-end' : 'items-start'">
             <div
-              class="px-3 py-2 rounded-[10px] max-w-[85%] font-['Instrument_Sans:Regular'] font-normal text-[12px] leading-snug"
-              [ngClass]="msg.sender === 'user' ? 'bg-[#3e8914] text-white rounded-br-[2px]' : 'bg-[#080b0d] border border-[#1e252b] text-[#e2e8f0] rounded-bl-[2px]'"
+              class="px-3 py-2 rounded-[10px] max-w-[85%] font-['Instrument_Sans:Regular'] font-normal text-[12px] leading-snug border transition-colors"
+              [ngStyle]="msg.sender === 'user' ? 
+                {
+                  'background-color': '#3e8914',
+                  'color': '#ffffff',
+                  'border-color': '#3e8914'
+                } 
+                : {
+                  'background-color': themeService.isDarkMode() ? '#080b0d' : '#f3f4f6',
+                  'border-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb',
+                  'color': themeService.isDarkMode() ? '#e2e8f0' : '#111827'
+                }"
+              [ngClass]="msg.sender === 'user' ? 'rounded-br-[2px]' : 'rounded-bl-[2px]'"
               style="font-variation-settings: 'wdth' 100"
             >
               {{ msg.text }}
             </div>
-            <span class="font-['Geist_Mono:Regular'] font-normal text-[#64748b] text-[10px] px-1">{{ msg.time }}</span>
+            <span class="font-['Geist_Mono:Regular'] font-normal text-[10px] px-1" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#64748b' : '#9ca3af' }">{{ msg.time }}</span>
           </div>
         }
         @if (isTyping()) {
           <div class="flex items-start">
-            <div class="bg-[#080b0d] border border-[#1e252b] rounded-[10px] rounded-bl-[2px] px-3 py-2 flex gap-1 items-center">
-              <span class="size-1.5 rounded-full bg-[#64748b] animate-bounce" style="animation-delay: 0ms"></span>
-              <span class="size-1.5 rounded-full bg-[#64748b] animate-bounce" style="animation-delay: 120ms"></span>
-              <span class="size-1.5 rounded-full bg-[#64748b] animate-bounce" style="animation-delay: 240ms"></span>
+            <div class="border rounded-[10px] rounded-bl-[2px] px-3 py-2 flex gap-1 items-center transition-colors" [ngStyle]="{
+              'background-color': themeService.isDarkMode() ? '#080b0d' : '#f3f4f6',
+              'border-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb'
+            }">
+              <span class="size-1.5 rounded-full animate-bounce" [ngStyle]="{ 'background-color': themeService.isDarkMode() ? '#64748b' : '#d1d5db' }" style="animation-delay: 0ms"></span>
+              <span class="size-1.5 rounded-full animate-bounce" [ngStyle]="{ 'background-color': themeService.isDarkMode() ? '#64748b' : '#d1d5db' }" style="animation-delay: 120ms"></span>
+              <span class="size-1.5 rounded-full animate-bounce" [ngStyle]="{ 'background-color': themeService.isDarkMode() ? '#64748b' : '#d1d5db' }" style="animation-delay: 240ms"></span>
             </div>
           </div>
         }
       </div>
 
-      <div class="border-t border-[#1e252b] flex gap-2 items-center p-3 shrink-0">
+      <div 
+        class="border-t flex gap-2 items-center p-3 shrink-0 transition-colors"
+        [ngStyle]="{ 'border-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb' }"
+      >
         <input
-          class="bg-[#080b0d] border border-[#1e252b] flex-1 rounded-[6px] px-3 py-2 font-['Instrument_Sans:Regular'] font-normal text-[12px] text-white outline-none focus:border-[#3e8914] transition-colors"
+          class="border flex-1 rounded-[6px] px-3 py-2 font-['Instrument_Sans:Regular'] font-normal text-[12px] outline-none focus:border-[#3e8914] transition-colors"
+          [ngStyle]="{
+            'background-color': themeService.isDarkMode() ? '#080b0d' : '#f9fafb',
+            'border-color': themeService.isDarkMode() ? '#1e252b' : '#e5e7eb',
+            'color': themeService.isDarkMode() ? '#ffffff' : '#111827'
+          }"
           placeholder="Ask about your portfolio..."
           [ngModel]="draft()"
           (ngModelChange)="draft.set($event)"
@@ -69,6 +101,8 @@ interface ChatMessage {
   `,
 })
 export class AiAssistantComponent {
+  protected readonly themeService = inject(ThemeService);
+  
   draft = signal("");
   isTyping = signal(false);
   private replyIndex = 0;

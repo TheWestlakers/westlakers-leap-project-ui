@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import { Component, EventEmitter, Input, Output, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import type { WatchlistItem } from "../../data/mock-data";
+import { ThemeService } from "../../../services/theme.service";
 
 const assetPathPrefix = "/assets";
 const sparklineMap: Record<string, string> = {
@@ -17,17 +18,27 @@ const sparklineMap: Record<string, string> = {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full">
-      <div class="border-b border-[#1e252b] flex items-center justify-between px-4 py-3">
+    <div 
+      class="flex flex-col rounded-[8px] w-full border transition-colors"
+      [ngStyle]="{
+        'background-color': themeService.isDarkMode() ? '#11161b' : '#f3f4f6',
+        'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db'
+      }"
+    >
+      <div 
+        class="border-b flex items-center justify-between px-4 py-3 transition-colors"
+        [ngStyle]="{ 'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db' }"
+      >
         <div class="flex gap-2 items-center">
           <img alt="" class="size-4" [src]="imgListTodo" />
-          <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px] text-white" style="font-variation-settings: 'wdth' 100">
+          <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }" style="font-variation-settings: 'wdth' 100">
             WATCHLIST
           </p>
         </div>
         <button
           (click)="isEditing = !isEditing"
-          class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[12px] hover:text-white transition-colors cursor-pointer"
+          class="font-['Instrument_Sans:Regular'] font-normal text-[12px] transition-colors cursor-pointer"
+          [ngStyle]="{ 'color': themeService.isDarkMode() ? '#94a3b8' : '#6b7280' }"
           style="font-variation-settings: 'wdth' 100"
         >
           {{ isEditing ? "Done" : "Edit (" + items.length + ")" }}
@@ -37,12 +48,17 @@ const sparklineMap: Record<string, string> = {
       <div class="flex flex-col">
         @for (item of items; track item.symbol + $index; let idx = $index) {
           <div
-            class="border-b border-[#1e252b] flex items-center justify-between px-4 py-3 group"
-            [ngClass]="idx === 0 ? 'bg-[#161d24]' : ''"
+            class="border-b flex items-center justify-between px-4 py-3 group transition-colors"
+            [ngStyle]="{
+              'border-color': themeService.isDarkMode() ? '#1e252b' : '#d1d5db',
+              'background-color': idx === 0 
+                ? (themeService.isDarkMode() ? '#161d24' : '#f9fafb')
+                : (themeService.isDarkMode() ? '' : '')
+            }"
           >
             <div class="flex flex-col gap-0.5 items-start w-[70px]">
-              <p class="font-['Geist_Mono:Bold'] font-bold text-[13px] text-white">{{ item.symbol }}</p>
-              <p class="font-['Instrument_Sans:Regular'] font-normal text-[#64748b] text-[11px] truncate w-full overflow-hidden text-ellipsis" style="font-variation-settings: 'wdth' 100">
+              <p class="font-['Geist_Mono:Bold'] font-bold text-[13px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">{{ item.symbol }}</p>
+              <p class="font-['Instrument_Sans:Regular'] font-normal text-[11px] truncate w-full overflow-hidden text-ellipsis" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#64748b' : '#374151' }" style="font-variation-settings: 'wdth' 100">
                 {{ item.name }}
               </p>
             </div>
@@ -50,7 +66,7 @@ const sparklineMap: Record<string, string> = {
               <img alt="" class="absolute inset-0 size-full object-contain" [src]="sparklineMap[item.sparklineKey] ?? sparklineMap['c7672']" />
             </div>
             <div class="flex flex-col gap-0.5 items-end">
-              <p class="font-['Geist_Mono:SemiBold'] font-semibold text-[13px] text-white">{{ item.price.toFixed(2) }}</p>
+              <p class="font-['Geist_Mono:SemiBold'] font-semibold text-[13px]" [ngStyle]="{ 'color': themeService.isDarkMode() ? '#ffffff' : '#111827' }">{{ item.price.toFixed(2) }}</p>
               <p
                 class="font-['Geist_Mono:SemiBold'] font-semibold text-[11px]"
                 [ngClass]="item.change >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'"
@@ -99,6 +115,7 @@ const sparklineMap: Record<string, string> = {
   `,
 })
 export class WatchlistComponent {
+  protected readonly themeService = inject(ThemeService);
   @Input({ required: true }) items: WatchlistItem[] = [];
   @Output() itemsChange = new EventEmitter<WatchlistItem[]>();
 
