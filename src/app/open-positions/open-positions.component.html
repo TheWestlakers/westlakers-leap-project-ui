@@ -1,0 +1,158 @@
+<!-- ─── TOP NAV ──────────────────────────────────────── -->
+<header class="top-nav">
+  <div class="nav-brand">
+    <div class="brand-icon">✕</div>
+    <div class="brand-text">
+      <span class="brand-name">PAYSPRINT</span>
+      <span class="brand-sub">ACTIVE TRADER</span>
+    </div>
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      LIVE
+    </div>
+  </div>
+
+  <div class="nav-search">
+    <span class="search-icon">⌕</span>
+    <input class="search-input" placeholder="Enter symbol, company, or order hotkey..." />
+    <kbd class="search-kbd">/</kbd>
+  </div>
+
+  <div class="nav-right">
+    <div class="netliq-block">
+      <span class="netliq-label">NET LIQ VALUE</span>
+      <span class="netliq-value">${{ formatCurrency(totalMarketValue) }}</span>
+    </div>
+    <div class="icon-btn">🔔</div>
+    <div class="nav-divider"></div>
+    <div class="user-profile">
+      <div class="avatar">JD</div>
+      <span class="user-name">John Doe</span>
+      <span class="chevron">▾</span>
+    </div>
+  </div>
+</header>
+
+<!-- ─── SUB NAV ───────────────────────────────────────── -->
+<div class="sub-nav">
+  <a class="sub-nav-back" routerLink="/">← DASHBOARD</a>
+  <div class="sub-nav-divider"></div>
+  <span class="sub-nav-title">OPEN POSITIONS — EXTENDED VIEW</span>
+</div>
+
+<!-- ─── PAGE CONTENT ──────────────────────────────────── -->
+<div class="page-content">
+
+  <!-- SUMMARY CARDS -->
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <p class="summary-label">TOTAL MARKET VALUE</p>
+      <p class="summary-value">${{ formatCurrency(totalMarketValue) }}</p>
+    </div>
+
+    <div class="summary-card">
+      <p class="summary-label">TOTAL UNREALIZED P&amp;L</p>
+      <div class="summary-value-row">
+        <span class="summary-value" [ngClass]="pnlClass(totalUnrealizedPnl)">
+          {{ pnlPrefix(totalUnrealizedPnl) }}${{ formatCurrency(Math.abs(totalUnrealizedPnl)) }}
+        </span>
+        <span class="summary-pct" [ngClass]="pnlClass(totalUnrealizedPct)">
+          ({{ pnlPrefix(totalUnrealizedPct) }}{{ totalUnrealizedPct.toFixed(2) }}%)
+        </span>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <p class="summary-label">ACTIVE POSITIONS</p>
+      <p class="summary-value">{{ activeCount }}</p>
+    </div>
+
+    <div class="summary-card performer-card">
+      <p class="summary-label">BEST PERFORMER</p>
+      <div class="performer-row">
+        <span class="performer-symbol">{{ bestPerformer.symbol }}</span>
+        <span class="performer-pct positive">+{{ bestPerformer.unrealizedPct.toFixed(2) }}%</span>
+      </div>
+    </div>
+
+    <div class="summary-card performer-card">
+      <p class="summary-label">WORST PERFORMER</p>
+      <div class="performer-row">
+        <span class="performer-symbol">{{ worstPerformer.symbol }}</span>
+        <span class="performer-pct" [ngClass]="pnlClass(worstPerformer.unrealizedPnl)">
+          {{ pnlPrefix(worstPerformer.unrealizedPnl) }}{{ worstPerformer.unrealizedPct.toFixed(2) }}%
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ALLOCATION BAR CHART -->
+  <div class="allocation-widget">
+    <div class="widget-header">
+      <span class="widget-title">PORTFOLIO ALLOCATION BY MARKET VALUE</span>
+    </div>
+    <div class="allocation-bars">
+      <div *ngFor="let pos of positions" class="alloc-row">
+        <span class="alloc-symbol">{{ pos.symbol }}</span>
+        <div class="alloc-bar-track">
+          <div
+            class="alloc-bar"
+            [style.width.%]="barWidth(pos)"
+            [class.bar-positive]="pos.unrealizedPnl >= 0"
+            [class.bar-negative]="pos.unrealizedPnl < 0"
+          ></div>
+        </div>
+        <span class="alloc-value">${{ formatCurrency(pos.marketValue) }}</span>
+        <span class="alloc-pct" [ngClass]="pnlClass(pos.unrealizedPnl)">
+          {{ pnlPrefix(pos.unrealizedPnl) }}{{ pos.unrealizedPct.toFixed(2) }}%
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- POSITIONS TABLE -->
+  <div class="table-widget">
+    <div class="table-header">
+      <span class="table-title">💼 ALL POSITIONS</span>
+      <span class="active-pill">{{ activeCount }} ACTIVE</span>
+    </div>
+
+    <table class="pos-table">
+      <thead>
+        <tr>
+          <th
+            *ngFor="let col of sortableColumns"
+            (click)="sort(col.field)"
+            class="sortable-th"
+          >
+            {{ col.label }}
+            <span [ngClass]="sortIconClass(col.field)" class="sort-icon">
+              {{ sortIcon(col.field) }}
+            </span>
+          </th>
+          <th>SECTOR</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let pos of positions; let i = index"
+          class="pos-row"
+          [ngClass]="rowBg(i)"
+        >
+          <td class="td-symbol">{{ pos.symbol }}</td>
+          <td class="td-mono td-right">{{ pos.shares }}</td>
+          <td class="td-mono td-right td-muted">${{ pos.avgCost.toFixed(2) }}</td>
+          <td class="td-mono td-right">${{ pos.lastPrice.toFixed(2) }}</td>
+          <td class="td-mono td-right">${{ formatCurrency(pos.marketValue) }}</td>
+          <td class="td-mono td-right td-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">
+            {{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}
+          </td>
+          <td class="td-sector">{{ pos.sector }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
