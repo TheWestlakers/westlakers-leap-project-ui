@@ -13,16 +13,22 @@ interface ChatMessage {
   selector: "app-ai-assistant",
   standalone: true,
   imports: [CommonModule, FormsModule],
+  styles: `
+    :host {
+      --font-mono:   'Geist Mono', 'Courier New', monospace;
+      --font-sans:   'Instrument Sans', system-ui, sans-serif;
+    }
+  `,
   template: `
     <div class="bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full h-full min-h-0 overflow-hidden">
       <div class="border-b border-[#1e252b] flex items-center gap-2 px-4 py-3 shrink-0">
         <span class="flex items-center justify-center size-6 rounded-full bg-[rgba(62,137,20,0.15)] text-[#3e8914] text-[13px]">✦</span>
-        <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px] text-white" style="font-variation-settings: 'wdth' 100">
+        <p class="font-semibold text-[14px] text-white" style="font-family: var(--font-sans); font-weight: 600">
           AI ASSISTANT
         </p>
         <span class="ml-auto flex items-center gap-1.5">
           <span class="size-1.5 rounded-full bg-[#10b981]"></span>
-          <span class="font-['Instrument_Sans:Regular'] font-normal text-[#64748b] text-[11px]" style="font-variation-settings: 'wdth' 100">Online</span>
+          <span class="font-normal text-[#64748b] text-[11px]" style="font-family: var(--font-sans)">Online</span>
         </span>
       </div>
 
@@ -30,13 +36,13 @@ interface ChatMessage {
         @for (msg of messages(); track $index) {
           <div class="flex flex-col gap-1" [ngClass]="msg.sender === 'user' ? 'items-end' : 'items-start'">
             <div
-              class="px-3 py-2 rounded-[10px] max-w-[85%] font-['Instrument_Sans:Regular'] font-normal text-[12px] leading-snug"
+              class="px-3 py-2 rounded-[10px] max-w-[85%] font-normal text-[12px] leading-snug"
               [ngClass]="msg.sender === 'user' ? 'bg-[#3e8914] text-white rounded-br-[2px]' : 'bg-[#080b0d] border border-[#1e252b] text-[#e2e8f0] rounded-bl-[2px]'"
-              style="font-variation-settings: 'wdth' 100"
+              style="font-family: var(--font-sans)"
             >
               {{ msg.text }}
             </div>
-            <span class="font-['Geist_Mono:Regular'] font-normal text-[#64748b] text-[10px] px-1">{{ msg.time }}</span>
+            <span class="font-normal text-[#64748b] text-[10px] px-1" style="font-family: var(--font-mono)">{{ msg.time }}</span>
           </div>
         }
         @if (isTyping()) {
@@ -52,8 +58,9 @@ interface ChatMessage {
 
       <div class="border-t border-[#1e252b] flex gap-2 items-center p-3 shrink-0">
         <input
-          class="bg-[#080b0d] border border-[#1e252b] flex-1 rounded-[6px] px-3 py-2 font-['Instrument_Sans:Regular'] font-normal text-[12px] text-white outline-none focus:border-[#3e8914] transition-colors"
+          class="bg-[#080b0d] border border-[#1e252b] flex-1 rounded-[6px] px-3 py-2 font-normal text-[12px] text-white outline-none focus:border-[#3e8914] transition-colors"
           placeholder="Ask about your portfolio..."
+          style="font-family: var(--font-sans)"
           [ngModel]="draft()"
           (ngModelChange)="draft.set($event)"
           (keydown.enter)="sendMessage()"

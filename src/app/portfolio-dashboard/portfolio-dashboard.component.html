@@ -1,0 +1,340 @@
+<!-- ─── TOP NAV ──────────────────────────────────────── -->
+<app-top-nav [netLiqValue]="totalAccountValue" />
+
+<!-- ─── MAIN WORKSPACE ───────────────────────────────── -->
+<div class="workspace">
+
+  <!-- LEFT RAIL -->
+  <aside class="left-rail">
+
+    <!-- Total account value -->
+    <div class="stat-card">
+      <p class="stat-label">TOTAL ACCOUNT VALUE</p>
+      <div class="stat-row">
+        <span class="stat-value">${{ formatCurrency(totalAccountValue) }}</span>
+        <span class="stat-change positive">+{{ dayChangePct }}%</span>
+      </div>
+    </div>
+
+    <!-- Buying power -->
+    <div class="stat-card">
+      <p class="stat-label">AVAILABLE BUYING POWER</p>
+      <div class="stat-row">
+        <span class="stat-value">${{ formatCurrency(buyingPower) }}</span>
+        <span class="stat-margin">MARGIN x2.0</span>
+      </div>
+    </div>
+
+    <!-- Day change -->
+    <div class="stat-card">
+      <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
+      <div class="stat-row">
+        <span class="stat-value positive">+${{ formatCurrency(dayChange) }}</span>
+        <span class="change-pill">▲ UP</span>
+      </div>
+    </div>
+
+    <!-- WATCHLIST -->
+    <div class="watchlist-card">
+      <div class="watchlist-header">
+        <div class="wl-title-group">
+          <span class="wl-icon">☰</span>
+          <span class="wl-title">WATCHLIST</span>
+        </div>
+        <button class="wl-edit-btn" (click)="toggleWatchlistEdit()">
+          {{ isEditingWatchlist() ? 'Done' : 'Edit (' + watchlist().length + ')' }}
+        </button>
+      </div>
+
+      <div class="wl-items">
+        <div
+          *ngFor="let item of watchlist(); let i = index"
+          class="wl-item"
+          [class.wl-item-highlight]="i === 0"
+        >
+          <div class="wl-left">
+            <span class="wl-symbol">{{ item.symbol }}</span>
+            <span class="wl-name">{{ item.name }}</span>
+          </div>
+
+          <!-- Inline SVG sparkline -->
+          <svg class="wl-sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
+            <path
+              [attr.d]="sparklinePaths[item.sparkKey]"
+              fill="none"
+              [attr.stroke]="item.positive ? '#10b981' : '#ef4444'"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+          </svg>
+
+          <div class="wl-right">
+            <span class="wl-price">{{ item.price.toFixed(2) }}</span>
+            <span class="wl-change" [class.positive]="item.positive" [class.negative]="!item.positive">
+              {{ item.positive ? '+' : '' }}{{ item.change.toFixed(2) }}%
+            </span>
+          </div>
+
+          <button
+            *ngIf="isEditingWatchlist()"
+            class="wl-remove-btn"
+            (click)="removeWatchlistItem(item.symbol)"
+          >×</button>
+        </div>
+      </div>
+
+      <!-- Add form -->
+      <div *ngIf="isEditingWatchlist()" class="wl-add-form">
+        <input
+          class="wl-input"
+          placeholder="SYMBOL"
+          [(ngModel)]="newSymbol"
+          (keydown.enter)="addWatchlistItem()"
+        />
+        <input
+          class="wl-input"
+          placeholder="Company name (optional)"
+          [(ngModel)]="newName"
+          (keydown.enter)="addWatchlistItem()"
+        />
+        <button class="wl-add-btn" (click)="addWatchlistItem()">+ ADD TO WATCHLIST</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CENTER COLUMN -->
+  <main class="center-col">
+
+    <!-- PORTFOLIO CHART -->
+    <div class="chart-widget">
+      <div class="chart-header">
+        <div class="chart-left">
+          <span class="chart-title">PORTFOLIO</span>
+          <span class="chart-desc">Overall value over time</span>
+          <span class="chart-range-pill">{{ activeRange() }}</span>
+        </div>
+        <div class="chart-right">
+          <!-- Range filters -->
+          <div class="range-tabs">
+            <button
+              *ngFor="let r of RANGES"
+              class="range-tab"
+              [ngClass]="rangeTabClass(r)"
+              (click)="activeRange.set(r)"
+            >{{ r }}</button>
+          </div>
+          <!-- Values -->
+          <div class="chart-vals">
+            <div class="chart-primary-val">
+              <span class="chart-price">${{ formatCurrency(currentValue) }}</span>
+              <span class="chart-pct" [class.positive]="isPositive" [class.negative]="!isPositive">
+                {{ pnlPrefix(rangeData.deltaValue) }}{{ rangeData.deltaPct.toFixed(2) }}%
+              </span>
+            </div>
+            <div class="chart-secondary-val">
+              <span class="chart-delta" [class.positive]="isPositive" [class.negative]="!isPositive">
+                {{ pnlPrefix(rangeData.deltaValue) }}${{ formatCurrency(Math.abs(rangeData.deltaValue)) }}
+              </span>
+              <span class="chart-period">{{ activeRange() === '1D' ? 'TODAY' : 'OVER ' + activeRange() }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-body">
+        <div class="chart-y-labels">
+          <span *ngFor="let y of rangeData.yLabels" class="axis-label">{{ y }}</span>
+        </div>
+        <div class="chart-svg-wrap">
+          <svg viewBox="0 0 680 200" preserveAspectRatio="none" class="chart-svg">
+            <defs>
+              <linearGradient id="pgGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   [attr.stop-color]="chartColor" stop-opacity="0.18"/>
+                <stop offset="100%" [attr.stop-color]="chartColor" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path [attr.d]="rangeData.fillPath" fill="url(#pgGrad)"/>
+            <path
+              [attr.d]="rangeData.linePath"
+              fill="none"
+              [attr.stroke]="chartColor"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
+          </svg>
+          <div class="chart-x-labels">
+            <span *ngFor="let x of rangeData.xLabels" class="axis-label">{{ x }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPEN POSITIONS (compact) -->
+    <div class="positions-widget">
+      <div class="positions-header">
+        <div class="pos-title-group">
+          <span class="pos-icon">💼</span>
+          <span class="pos-title">OPEN POSITIONS</span>
+        </div>
+        <div class="pos-header-right">
+          <span class="active-pill">{{ positions.length }} ACTIVE</span>
+          <a class="view-all-link" routerLink="/open-positions">VIEW ALL →</a>
+        </div>
+      </div>
+
+      <!-- Table header -->
+      <div class="pos-table-header">
+        <span class="col-symbol">SYMBOL</span>
+        <span class="col-shares">SHARES</span>
+        <span class="col-avg">AVG COST</span>
+        <span class="col-last">LAST PRICE</span>
+        <span class="col-mkt">MKT VALUE</span>
+        <span class="col-pnl">UNREALIZED P&amp;L</span>
+      </div>
+
+      <!-- Rows — show first 3 in compact mode, scrollable -->
+      <div class="pos-rows compact-scroll">
+        <div
+          *ngFor="let pos of positions; let i = index"
+          class="pos-row"
+          [ngClass]="rowBg(i)"
+        >
+          <span class="col-symbol pos-symbol">{{ pos.symbol }}</span>
+          <span class="col-shares pos-mono">{{ pos.shares }}</span>
+          <span class="col-avg pos-mono muted">${{ pos.avgCost.toFixed(2) }}</span>
+          <span class="col-last pos-mono">${{ pos.lastPrice.toFixed(2) }}</span>
+          <span class="col-mkt pos-mono">${{ formatCurrency(pos.marketValue) }}</span>
+          <span class="col-pnl pos-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">
+            {{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT RAIL — ORDER ENTRY -->
+  <aside class="right-rail">
+    <div class="order-widget">
+
+      <div class="order-header">
+        <div class="order-title-group">
+          <span class="order-zap">⚡</span>
+          <span class="order-title">ORDER ENTRY</span>
+        </div>
+        <span class="order-ref">MAR-9801</span>
+      </div>
+
+      <!-- BUY / SELL tabs -->
+      <div class="side-tabs">
+        <button
+          *ngFor="let side of ['BUY', 'SELL']"
+          class="side-tab"
+          [ngClass]="sideTabClass(side)"
+          (click)="setSide($any(side))"
+        >{{ side }}</button>
+      </div>
+
+      <div class="order-body">
+
+        <!-- Symbol -->
+        <div class="order-field-row">
+          <span class="field-label">SYMBOL</span>
+          <input
+            class="symbol-input"
+            [value]="orderSymbol()"
+            (input)="orderSymbol.set($any($event.target).value.toUpperCase())"
+          />
+        </div>
+
+        <!-- Order type -->
+        <div class="order-field">
+          <p class="field-label">ORDER TYPE</p>
+          <div class="otype-tabs">
+            <button
+              *ngFor="let t of ['LIMIT', 'MARKET']"
+              class="otype-tab"
+              [ngClass]="orderTypeTabClass($any(t))"
+              (click)="setOrderType($any(t))"
+            >{{ t }}</button>
+          </div>
+        </div>
+
+        <!-- Shares + Price -->
+        <div class="qty-row">
+          <div class="qty-field">
+            <p class="field-label">SHARES</p>
+            <div class="qty-input-wrap">
+              <input
+                type="number"
+                class="qty-input"
+                [value]="orderShares()"
+                (input)="orderShares.set(+$any($event.target).value || 1)"
+                min="1"
+              />
+              <div class="qty-stepper">
+                <button class="step-btn" (click)="incrementShares()">▲</button>
+                <button class="step-btn" (click)="decrementShares()">▼</button>
+              </div>
+            </div>
+          </div>
+          <div class="qty-field">
+            <p class="field-label">{{ orderType() === 'LIMIT' ? 'LIMIT PRICE' : 'MKT PRICE' }}</p>
+            <div class="qty-input-wrap">
+              <input
+                type="number"
+                class="qty-input"
+                [value]="orderPrice()"
+                (input)="orderPrice.set(+$any($event.target).value || 0)"
+                step="0.01"
+                [disabled]="orderType() === 'MARKET'"
+              />
+              <span class="price-suffix">$</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Extended hours -->
+        <button class="ext-hours-row" (click)="toggleExtHours()">
+          <div class="checkbox" [class.checkbox-checked]="orderExtHours()">
+            <span *ngIf="orderExtHours()" class="check-mark">✓</span>
+          </div>
+          <span class="ext-label">Allow Extended Hours trading (EXT)</span>
+        </button>
+
+        <!-- Calculator -->
+        <div class="calc-panel">
+          <div class="calc-row">
+            <span class="calc-label">EST. VALUE</span>
+            <span class="calc-value">${{ formatCurrency(estValue) }}</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">EST. FEES</span>
+            <span class="calc-dim">$0.00 (COMMISSION-FREE)</span>
+          </div>
+          <div class="calc-divider"></div>
+          <div class="calc-row">
+            <span class="calc-label-muted">TOTAL COST</span>
+            <span class="calc-total">${{ formatCurrency(estValue) }}</span>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button
+          class="submit-btn"
+          [ngClass]="submitClass"
+          (click)="submitOrder()"
+        >{{ submitLabel }}</button>
+
+      </div>
+    </div>
+
+    <!-- AI ASSISTANT -->
+    <div class="ai-assistant-widget">
+      <app-ai-assistant></app-ai-assistant>
+    </div>
+  </aside>
+
+</div>
