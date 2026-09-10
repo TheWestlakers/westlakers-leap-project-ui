@@ -35,7 +35,7 @@ export class Login {
 
     //ADD A ROUTE TO THE LANDING PAGE
     //this.router.navigateByUrl('/dummy/dummy');
-    this.router.navigateByUrl('/dashboard');
+    this.router.navigateByUrl('/portfolio');
 
     // PLACEHOLDER for real auth setup (Nest + JWT).
     // Below is an example of generated login flow:

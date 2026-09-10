@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
+import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 
 /* ─── Shared types ────────────────────────────────────── */
 export interface WatchlistItem {
@@ -116,7 +117,7 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
 @Component({
   selector: 'app-portfolio-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent],
   templateUrl: './portfolio-dashboard.component.html',
   styleUrls: ['./portfolio-dashboard.component.css'],
 })
