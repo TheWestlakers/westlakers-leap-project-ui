@@ -106,12 +106,12 @@
   <!-- CENTER COLUMN -->
   <main class="center-col">
 
-    <!-- PORTFOLIO CHART -->
+    <!-- STOCK PRICE CHART -->
     <div class="chart-widget">
       <div class="chart-header">
         <div class="chart-left">
-          <span class="chart-title">PORTFOLIO</span>
-          <span class="chart-desc">Overall value over time</span>
+          <span class="chart-title">{{ stockSymbol }}</span>
+          <span class="chart-desc">{{ stockName }} — Stock price over time</span>
           <span class="chart-range-pill">{{ activeRange() }}</span>
         </div>
         <div class="chart-right">
@@ -149,12 +149,12 @@
         <div class="chart-svg-wrap">
           <svg viewBox="0 0 680 200" preserveAspectRatio="none" class="chart-svg">
             <defs>
-              <linearGradient id="pgGrad" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="stGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   [attr.stop-color]="chartColor" stop-opacity="0.18"/>
                 <stop offset="100%" [attr.stop-color]="chartColor" stop-opacity="0"/>
               </linearGradient>
             </defs>
-            <path [attr.d]="rangeData.fillPath" fill="url(#pgGrad)"/>
+            <path [attr.d]="rangeData.fillPath" fill="url(#stGrad)"/>
             <path
               [attr.d]="rangeData.linePath"
               fill="none"
@@ -171,55 +171,122 @@
       </div>
     </div>
 
-    <!-- OPEN POSITIONS (compact) -->
-    <div class="positions-widget">
-      <div class="positions-header">
-        <div class="pos-title-group">
-          <span class="pos-icon">💼</span>
-          <span class="pos-title">OPEN POSITIONS</span>
-        </div>
-        <div class="pos-header-right">
-          <span class="active-pill">{{ positions.length }} ACTIVE</span>
-          <a class="view-all-link" routerLink="/open-positions">VIEW ALL →</a>
-        </div>
-      </div>
-
-      <!-- Table header -->
-      <div class="pos-table-header">
-        <span class="col-symbol">SYMBOL</span>
-        <span class="col-shares">SHARES</span>
-        <span class="col-avg">AVG COST</span>
-        <span class="col-last">LAST PRICE</span>
-        <span class="col-mkt">MKT VALUE</span>
-        <span class="col-pnl">UNREALIZED P&amp;L</span>
-      </div>
-
-      <!-- Rows — show first 3 in compact mode, scrollable -->
-      <div class="pos-rows compact-scroll">
-        <div
-          *ngFor="let pos of positions; let i = index"
-          class="pos-row"
-          [ngClass]="rowBg(i)"
-        >
-          <span class="col-symbol pos-symbol">{{ pos.symbol }}</span>
-          <span class="col-shares pos-mono">{{ pos.shares }}</span>
-          <span class="col-avg pos-mono muted">${{ pos.avgCost.toFixed(2) }}</span>
-          <span class="col-last pos-mono">${{ pos.lastPrice.toFixed(2) }}</span>
-          <span class="col-mkt pos-mono">${{ formatCurrency(pos.marketValue) }}</span>
-          <span class="col-pnl pos-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">
-            {{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}
-          </span>
-        </div>
-      </div>
-    </div>
-
   </main>
 
-  <!-- RIGHT RAIL — AI ASSISTANT -->
+  <!-- RIGHT RAIL — ORDER ENTRY -->
   <aside class="right-rail">
-    <!-- TRADE HERE WIDGET -->
-    <div class="trade-here-widget-container">
-      <app-trade-here></app-trade-here>
+    <div class="order-widget">
+
+      <div class="order-header">
+        <div class="order-title-group">
+          <span class="order-zap">⚡</span>
+          <span class="order-title">ORDER ENTRY</span>
+        </div>
+        <span class="order-ref">{{ stockSymbol }}</span>
+      </div>
+
+      <!-- BUY / SELL tabs -->
+      <div class="side-tabs">
+        <button
+          *ngFor="let side of ['BUY', 'SELL']"
+          class="side-tab"
+          [ngClass]="sideTabClass(side)"
+          (click)="setSide($any(side))"
+        >{{ side }}</button>
+      </div>
+
+      <div class="order-body">
+
+        <!-- Symbol -->
+        <div class="order-field-row">
+          <span class="field-label">SYMBOL</span>
+          <input
+            class="symbol-input"
+            [value]="orderSymbol()"
+            (input)="orderSymbol.set($any($event.target).value.toUpperCase())"
+          />
+        </div>
+
+        <!-- Order type -->
+        <div class="order-field">
+          <p class="field-label">ORDER TYPE</p>
+          <div class="otype-tabs">
+            <button
+              *ngFor="let t of ['LIMIT', 'MARKET']"
+              class="otype-tab"
+              [ngClass]="orderTypeTabClass($any(t))"
+              (click)="setOrderType($any(t))"
+            >{{ t }}</button>
+          </div>
+        </div>
+
+        <!-- Shares + Price -->
+        <div class="qty-row">
+          <div class="qty-field">
+            <p class="field-label">SHARES</p>
+            <div class="qty-input-wrap">
+              <input
+                type="number"
+                class="qty-input"
+                [value]="orderShares()"
+                (input)="orderShares.set(+$any($event.target).value || 1)"
+                min="1"
+              />
+              <div class="qty-stepper">
+                <button class="step-btn" (click)="incrementShares()">▲</button>
+                <button class="step-btn" (click)="decrementShares()">▼</button>
+              </div>
+            </div>
+          </div>
+          <div class="qty-field">
+            <p class="field-label">{{ orderType() === 'LIMIT' ? 'LIMIT PRICE' : 'MKT PRICE' }}</p>
+            <div class="qty-input-wrap">
+              <input
+                type="number"
+                class="qty-input"
+                [value]="orderPrice()"
+                (input)="orderPrice.set(+$any($event.target).value || 0)"
+                step="0.01"
+                [disabled]="orderType() === 'MARKET'"
+              />
+              <span class="price-suffix">$</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Extended hours -->
+        <button class="ext-hours-row" (click)="toggleExtHours()">
+          <div class="checkbox" [class.checkbox-checked]="orderExtHours()">
+            <span *ngIf="orderExtHours()" class="check-mark">✓</span>
+          </div>
+          <span class="ext-label">Allow Extended Hours trading (EXT)</span>
+        </button>
+
+        <!-- Calculator -->
+        <div class="calc-panel">
+          <div class="calc-row">
+            <span class="calc-label">EST. VALUE</span>
+            <span class="calc-value">${{ formatCurrency(estValue) }}</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">EST. FEES</span>
+            <span class="calc-dim">$0.00 (COMMISSION-FREE)</span>
+          </div>
+          <div class="calc-divider"></div>
+          <div class="calc-row">
+            <span class="calc-label-muted">TOTAL COST</span>
+            <span class="calc-total">${{ formatCurrency(estValue) }}</span>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button
+          class="submit-btn"
+          [ngClass]="submitClass"
+          (click)="submitOrder()"
+        >{{ submitLabel }}</button>
+
+      </div>
     </div>
 
     <!-- AI ASSISTANT -->

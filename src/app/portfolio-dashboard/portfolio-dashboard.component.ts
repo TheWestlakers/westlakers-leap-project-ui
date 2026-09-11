@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
+import { TradeHereComponent } from './trade-here/trade-here.component';
 
 /* ─── Shared types ────────────────────────────────────── */
 export interface WatchlistItem {
@@ -38,7 +39,7 @@ export interface ChartPoint {
 }
 
 /* ─── Seed data ───────────────────────────────────────── */
-const INITIAL_WATCHLIST: WatchlistItem[] = [
+export const INITIAL_WATCHLIST: WatchlistItem[] = [
   { symbol: 'AAPL',  name: 'Apple Inc.',       price: 182.52, change: 1.24,  positive: true,  sparkKey: 'up1'  },
   { symbol: 'MSFT',  name: 'Microsoft Corp.',  price: 415.60, change: -0.42, positive: false, sparkKey: 'down1' },
   { symbol: 'TSLA',  name: 'Tesla Inc.',        price: 176.54, change: 4.12,  positive: true,  sparkKey: 'up2'  },
@@ -117,7 +118,7 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
 @Component({
   selector: 'app-portfolio-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent, TradeHereComponent],
   templateUrl: './portfolio-dashboard.component.html',
   styleUrls: ['./portfolio-dashboard.component.css'],
 })
@@ -144,6 +145,10 @@ export class PortfolioDashboardComponent implements OnInit {
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
   activeRange = signal<PortfolioRange>('5D');
 
+  /* ── Order form ── */
+  orderSide = signal<OrderSide>('BUY');
+  orderType = signal<OrderType>('LIMIT');
+
   get rangeData(): RangeConfig {
     return RANGE_DATA[this.activeRange()];
   }
@@ -153,28 +158,6 @@ export class PortfolioDashboardComponent implements OnInit {
   get isPositive(): boolean { return this.rangeData.deltaValue >= 0; }
 
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
-
-  /* ── Order entry ── */
-  orderSide      = signal<OrderSide>('BUY');
-  orderType      = signal<OrderType>('LIMIT');
-  orderSymbol    = signal('AAPL');
-  orderShares    = signal(100);
-  orderPrice     = signal(182.50);
-  orderExtHours  = signal(true);
-  orderSubmitted = signal(false);
-
-  get estValue(): number {
-    return this.orderShares() * this.orderPrice();
-  }
-
-  get submitLabel(): string {
-    return this.orderSubmitted() ? '✓ ORDER SUBMITTED' : `PLACE ${this.orderSide()} ORDER`;
-  }
-
-  get submitClass(): string {
-    if (this.orderSubmitted()) return 'btn-submitted';
-    return this.orderSide() === 'BUY' ? 'btn-buy' : 'btn-sell';
-  }
 
   ngOnInit(): void {}
 
@@ -200,18 +183,6 @@ export class PortfolioDashboardComponent implements OnInit {
     ]);
     this.newSymbol = '';
     this.newName   = '';
-  }
-
-  /* ── Order actions ── */
-  setSide(side: OrderSide): void { this.orderSide.set(side); }
-  setOrderType(type: OrderType): void { this.orderType.set(type); }
-  incrementShares(): void { this.orderShares.update(n => n + 1); }
-  decrementShares(): void { this.orderShares.update(n => Math.max(1, n - 1)); }
-  toggleExtHours(): void { this.orderExtHours.update(v => !v); }
-
-  submitOrder(): void {
-    this.orderSubmitted.set(true);
-    setTimeout(() => this.orderSubmitted.set(false), 2500);
   }
 
   /* ── Style helpers ── */
