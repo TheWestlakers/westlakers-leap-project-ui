@@ -1,0 +1,46 @@
+/* Compliance Records Component Styles */
+
+:host {
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+}
+
+/* Optional: Add custom styles here if Tailwind classes need enhancement */
+
+/* Scrollbar styling for the table body */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #11161b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e252b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3035;
+}
+
+/* Truncate with ellipsis utility for order reference */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Audit hash font styling */
+.audit-hash {
+  font-family: "Geist Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* Status badge spacing - increased horizontal padding for better text breathing room */
+.status-badge {
+  padding: 0.25rem 0.625rem !important;
+  display: inline-block;
+  letter-spacing: 0.02em;
+}
