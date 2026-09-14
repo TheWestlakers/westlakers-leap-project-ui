@@ -2,10 +2,12 @@ import { Routes } from '@angular/router';
 import { Settings } from './settings/settings';
 import { PortfolioDashboardComponent } from './portfolio-dashboard/portfolio-dashboard.component';
 import { OpenPositionsComponent } from './open-positions/open-positions.component';
+import { StockTickerComponent } from './stock-ticker/stock-ticker.component';
 
 export const routes: Routes = [
     { path: '', redirectTo: '/portfolio', pathMatch: 'full' },
     { path: 'portfolio', component: PortfolioDashboardComponent },
+    { path: 'stock-ticker', component: StockTickerComponent },
     { path: 'open-positions', component: OpenPositionsComponent },
     { path: 'settings', component: Settings },
     { path: 'register', loadComponent: () => import('./register/register').then((m) => m.Register) },
