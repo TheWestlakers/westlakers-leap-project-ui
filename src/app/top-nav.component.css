@@ -1,0 +1,168 @@
+/* ─── Top Nav Theme Support ─────────────────────────── */
+
+.top-nav-container {
+  /* Dark mode colors (default) */
+  --nav-bg: #11161b;
+  --nav-border: #1e252b;
+  --nav-input-bg: #080b0d;
+  --nav-text: #ffffff;
+  --nav-text-muted: #94a3b8;
+  --nav-dim: #64748b;
+  --nav-menu-bg: #11161b;
+  --nav-menu-hover: #1e252b;
+  --nav-green: #3e8914;
+  --nav-green-light: #10b981;
+}
+
+.top-nav-container.light-theme {
+  /* Light mode colors */
+  --nav-bg: #f5f7fa;
+  --nav-border: #e0e7f1;
+  --nav-input-bg: #ffffff;
+  --nav-text: #1a1a1a;
+  --nav-text-muted: #64748b;
+  --nav-dim: #94a3b8;
+  --nav-menu-bg: #ffffff;
+  --nav-menu-hover: #f0f4f8;
+  --nav-green: #047857;
+  --nav-green-light: #059669;
+}
+
+/* ─── Main container ─── */
+.top-nav-container.light-theme {
+  background-color: var(--nav-bg);
+}
+
+/* ─── All backgrounds ─── */
+.top-nav-container.light-theme .bg-\[\#11161b\] {
+  background-color: var(--nav-bg) !important;
+}
+
+.top-nav-container.light-theme .bg-\[\#080b0d\] {
+  background-color: var(--nav-input-bg) !important;
+}
+
+.top-nav-container.light-theme .bg-\[\#1e252b\] {
+  background-color: var(--nav-border) !important;
+}
+
+.top-nav-container.light-theme .bg-\[\#3e8914\] {
+  background-color: var(--nav-green) !important;
+}
+
+/* ─── All borders ─── */
+.top-nav-container.light-theme .border {
+  border-color: var(--nav-border) !important;
+}
+
+.top-nav-container.light-theme .border-b {
+  border-color: var(--nav-border) !important;
+}
+
+.top-nav-container.light-theme .border-\[\#1e252b\] {
+  border-color: var(--nav-border) !important;
+}
+
+/* ─── All text colors ─── */
+.top-nav-container.light-theme p {
+  color: var(--nav-text) !important;
+}
+
+.top-nav-container.light-theme span {
+  color: var(--nav-text) !important;
+}
+
+.top-nav-container.light-theme .text-white {
+  color: var(--nav-text) !important;
+}
+
+.top-nav-container.light-theme .text-\[\#64748b\] {
+  color: var(--nav-dim) !important;
+}
+
+.top-nav-container.light-theme .text-\[\#94a3b8\] {
+  color: var(--nav-text-muted) !important;
+}
+
+.top-nav-container.light-theme .text-\[\#3e8914\] {
+  color: var(--nav-green) !important;
+}
+
+.top-nav-container.light-theme .text-\[\#10b981\] {
+  color: var(--nav-green-light) !important;
+}
+
+/* ─── Input styling ─── */
+.top-nav-container.light-theme input {
+  background-color: var(--nav-input-bg) !important;
+  color: var(--nav-text) !important;
+  border-color: var(--nav-border) !important;
+}
+
+.top-nav-container.light-theme input::placeholder {
+  color: var(--nav-dim) !important;
+}
+
+.top-nav-container.light-theme input:focus {
+  border-color: var(--nav-green) !important;
+}
+
+/* ─── Button styling ─── */
+.top-nav-container.light-theme button {
+  background-color: var(--nav-input-bg) !important;
+  border-color: var(--nav-border) !important;
+  color: var(--nav-text) !important;
+}
+
+.top-nav-container.light-theme button:hover {
+  border-color: #d0dae6 !important;
+}
+
+/* ─── Menu styling ─── */
+.top-nav-container.light-theme .shadow-lg {
+  background-color: var(--nav-menu-bg) !important;
+  border-color: var(--nav-border) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.top-nav-container.light-theme [class*="hover:bg"]:hover {
+  background-color: var(--nav-menu-hover) !important;
+}
+
+/* ─── Toggle Switch Styling ─── */
+.top-nav-container.light-theme button[role="switch"] {
+  background-color: #cbd5e1 !important;
+  border: none !important;
+}
+
+.top-nav-container.light-theme button[role="switch"][aria-checked="true"] {
+  background-color: var(--nav-green) !important;
+}
+
+.top-nav-container.light-theme button[role="switch"] span {
+  background-color: #ffffff !important;
+}
+
+/* ─── Search/Input Box Styling ─── */
+.top-nav-container.light-theme [class*="bg-\[\#080b0d\]"] {
+  background-color: #ffffff !important;
+  border-color: #e0e7f1 !important;
+}
+
+.top-nav-container.light-theme [class*="bg-\[\#080b0d\]"] input {
+  background-color: transparent !important;
+  color: #1a1a1a !important;
+}
+
+.top-nav-container.light-theme [class*="bg-\[\#080b0d\]"] img {
+  filter: invert(0.3);
+}
+
+/* ─── Logout button ─── */
+.top-nav-container.light-theme .text-red-500 {
+  color: #dc2626 !important;
+}
+
+.top-nav-container.light-theme .text-red-500:hover {
+  background-color: #fee2e2 !important;
+}

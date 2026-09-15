@@ -333,4 +333,6 @@
     <a routerLink="/login">Login</a>
 </nav> -->
 
-<router-outlet />
+<div [class.light-theme]="!themeService.isDarkMode()">
+  <router-outlet />
+</div>

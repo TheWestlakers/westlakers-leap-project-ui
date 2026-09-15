@@ -1,6 +1,7 @@
-import { Component, ElementRef, afterRenderEffect, signal, viewChild } from "@angular/core";
+import { Component, ElementRef, afterRenderEffect, signal, viewChild, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { ThemeService } from "../../services/theme.service";
 import { aiAssistantReplies } from "../../data/mock-data";
 
 interface ChatMessage {
@@ -13,6 +14,8 @@ interface ChatMessage {
   selector: "app-ai-assistant",
   standalone: true,
   imports: [CommonModule, FormsModule],
+  styleUrl: "./ai-assistant.component.css",
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' },
   styles: `
     :host {
       --font-mono:   'Geist Mono', 'Courier New', monospace;
@@ -20,7 +23,7 @@ interface ChatMessage {
     }
   `,
   template: `
-    <div class="bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full h-full min-h-0 overflow-hidden">
+    <div [class.light-theme]="!themeService.isDarkMode()" class="ai-assistant-container bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full h-full min-h-0 overflow-hidden">
       <div class="border-b border-[#1e252b] flex items-center gap-2 px-4 py-3 shrink-0">
         <span class="flex items-center justify-center size-6 rounded-full bg-[rgba(62,137,20,0.15)] text-[#3e8914] text-[13px]">✦</span>
         <p class="font-semibold text-[14px] text-white" style="font-family: var(--font-sans); font-weight: 600">
@@ -76,6 +79,7 @@ interface ChatMessage {
   `,
 })
 export class AiAssistantComponent {
+  protected readonly themeService = inject(ThemeService);
   draft = signal("");
   isTyping = signal(false);
   private replyIndex = 0;

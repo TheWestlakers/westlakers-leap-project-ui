@@ -1,10 +1,11 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
+import { ThemeService } from '../services/theme.service';
 
 /* ─── Shared types ────────────────────────────────────── */
 export interface WatchlistItem {
@@ -121,9 +122,11 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
   imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent, TradeHereComponent],
   templateUrl: './portfolio-dashboard.component.html',
   styleUrls: ['./portfolio-dashboard.component.css'],
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class PortfolioDashboardComponent implements OnInit {
   readonly Math = Math;
+  protected readonly themeService = inject(ThemeService);
   /* ── Account ── */
   readonly totalAccountValue = 248512.90;
   readonly buyingPower       =  94210.45;

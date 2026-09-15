@@ -14,6 +14,16 @@
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
 }
 
+:host.light-theme .trade-here-widget {
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f5f9 100%);
+  border: 1px solid #cbd5e0;
+}
+
+:host.light-theme .trade-here-widget:hover {
+  border-color: #059669;
+  box-shadow: 0 0 12px rgba(5, 150, 105, 0.15);
+}
+
 .trade-header {
   display: flex;
   gap: 12px;
@@ -40,11 +50,19 @@
   line-height: 1.4;
 }
 
+:host.light-theme .trade-title {
+  color: #1a202c;
+}
+
 .trade-description {
   margin: 0;
   font-size: 12px;
   color: #94a3b8;
   line-height: 1.4;
+}
+
+:host.light-theme .trade-description {
+  color: #64748b;
 }
 
 .trade-btn {
@@ -67,6 +85,15 @@
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+:host.light-theme .trade-btn {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+:host.light-theme .trade-btn:hover {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
 }
 
 .trade-btn:active {

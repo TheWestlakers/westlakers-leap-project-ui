@@ -1,15 +1,19 @@
 import { Component, signal, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { ThemeService } from '../services/theme.service';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, CommonModule],
   templateUrl: './register.html',
   styleUrl: './register.css',
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class Register {
     private readonly fb = inject(FormBuilder);
+    protected readonly themeService = inject(ThemeService);
     //private readonly router = inject(Router);
 
   protected readonly form = this.fb.nonNullable.group({

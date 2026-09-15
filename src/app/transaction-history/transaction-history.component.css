@@ -21,6 +21,23 @@
   font-family: var(--font-sans);
 }
 
+/* ─── Light Mode Theme Support ────────────────────────── */
+:host.light-theme {
+  --bg:          #f8fafc;
+  --surface:     #ffffff;
+  --surface-alt: #f1f5f9;
+  --border:      #e0e7f1;
+  --border-mid:  #cbd5e0;
+  --text-primary:   #1a202c;
+  --text-muted:     #64748b;
+  --text-dim:       #94a3b8;
+  --green:    #059669;
+  --green-dk: #047857;
+  --red:      #dc2626;
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
 /* ─── Top Nav ─────────────────────────────────────────── */
 .top-nav {
   display: flex;

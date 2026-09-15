@@ -2,6 +2,19 @@
 
 :host {
   font-family: 'Instrument Sans', system-ui, sans-serif;
+  --bg: #080b0d;
+  --surface: #11161b;
+  --border: #1e252b;
+  --text: #ffffff;
+  --text-muted: #94a3b8;
+}
+
+:host.light-theme {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --border: #e0e7f1;
+  --text: #1a202c;
+  --text-muted: #64748b;
 }
 
 /* Optional: Add custom styles here if Tailwind classes need enhancement */
@@ -12,16 +25,20 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #11161b;
+  background: var(--surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e252b;
+  background: var(--border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #2a3035;
+}
+
+:host.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e0;
 }
 
 /* Truncate with ellipsis utility for order reference */

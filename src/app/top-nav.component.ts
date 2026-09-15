@@ -2,6 +2,7 @@ import { Component, Input, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
+import { ThemeService } from "./services/theme.service";
 
 const assetPathPrefix = "/assets";
 
@@ -9,8 +10,9 @@ const assetPathPrefix = "/assets";
   selector: "app-top-nav",
   standalone: true,
   imports: [CommonModule, FormsModule],
+  styleUrl: "./top-nav.component.css",
   template: `
-    <div class="bg-[#11161b] border-b border-[#1e252b] flex h-16 items-center justify-between px-6 shrink-0 w-full gap-4">
+    <div [class.light-theme]="!isDarkMode()" class="top-nav-container bg-[#11161b] border-b border-[#1e252b] flex h-16 items-center justify-between px-6 shrink-0 w-full gap-4">
       <div class="flex gap-3 items-center flex-shrink-0">
         <div class="bg-[#3e8914] flex items-center justify-center rounded-[6px] size-7">
           <img alt="" class="size-4" [src]="imgCircleX" />
@@ -108,11 +110,12 @@ export class TopNavComponent {
   @Input({ required: true }) netLiqValue!: number;
 
   private readonly router = inject(Router);
+  protected readonly themeService = inject(ThemeService);
 
   searchVal = "";
 
   protected readonly isMenuOpen = signal(false);
-  protected readonly isDarkMode = signal(true);
+  protected readonly isDarkMode = this.themeService.isDarkMode;
 
   imgCircleX = `${assetPathPrefix}/ed609.svg`;
   imgLiveDot = `${assetPathPrefix}/2ea7c.svg`;
@@ -126,7 +129,7 @@ export class TopNavComponent {
   }
 
   protected toggleTheme(): void {
-    this.isDarkMode.update((value) => !value);
+    this.themeService.toggleTheme();
   }
 
   protected logout(): void {

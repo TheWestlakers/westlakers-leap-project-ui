@@ -1,6 +1,7 @@
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, signal, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Location } from "@angular/common";
+import { ThemeService } from "../../services/theme.service";
 
 const assetPathPrefix = "/assets";
 const RECORDS_PER_PAGE = 20;
@@ -45,8 +46,10 @@ export interface ComplianceRecord {
   imports: [CommonModule],
   templateUrl: "./compliance-records.html",
   styleUrl: "./compliance-records.css",
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class ComplianceRecordsComponent implements OnInit {
+  protected readonly themeService = inject(ThemeService);
   allRecords = signal<ComplianceRecord[]>([]);
   paginatedRecords = signal<ComplianceRecord[]>([]);
   currentPage = signal(1);
