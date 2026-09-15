@@ -1,0 +1,181 @@
+<div class="bg-[#080b0d] min-h-screen flex flex-col">
+  <!-- Header -->
+  <div class="bg-[#11161b] border-b border-[#1e252b] flex h-12 items-center px-6 gap-4 shrink-0">
+    <button
+      (click)="goBack()"
+      class="font-['Instrument_Sans:SemiBold'] font-semibold text-[#94a3b8] text-[13px] hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+      style="font-variation-settings: 'wdth' 100"
+    >
+      ← BACK
+    </button>
+    <div class="bg-[#1e252b] h-5 w-px"></div>
+    <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-white text-[14px]" style="font-variation-settings: 'wdth' 100">
+      COMPLIANCE RECORDS — AUDIT TRAIL (BR-14)
+    </p>
+  </div>
+
+  <!-- Content -->
+  <div class="p-6 flex flex-col gap-4 flex-1 min-w-0 overflow-auto">
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-4 gap-4 shrink-0">
+      <div class="bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex flex-col gap-1">
+        <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
+          TOTAL RECORDS
+        </p>
+        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-white">{{ allRecords().length }}</p>
+      </div>
+      <div class="bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex flex-col gap-1">
+        <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
+          ACCEPTED ORDERS
+        </p>
+        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-[#10b981]">{{ getAcceptedCount() }}</p>
+      </div>
+      <div class="bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex flex-col gap-1">
+        <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
+          TOTAL CASH IMPACT
+        </p>
+        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px]" [ngClass]="getTotalCashImpact() >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'">
+          {{ getTotalCashImpact() >= 0 ? "+" : "" }}{{ '$' + (getTotalCashImpact() | number: '1.2-2') }}
+        </p>
+      </div>
+      <div class="bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex flex-col gap-1">
+        <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
+          IMMUTABLE RECORDS
+        </p>
+        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-[#10b981]">✓ {{ allRecords().length }}</p>
+      </div>
+    </div>
+
+    <!-- Records Table -->
+    <div class="bg-[#11161b] border border-[#1e252b] flex flex-col rounded-[8px] w-full flex-1 min-h-0 overflow-hidden">
+      <div class="border-b border-[#1e252b] flex items-center px-4 py-3 gap-3 shrink-0">
+        <img alt="" class="size-4" [src]="imgFileText" />
+        <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px] text-white" style="font-variation-settings: 'wdth' 100">
+          ACCEPTED ORDER RECORDS
+        </p>
+        <div class="bg-[#1e252b] px-2 py-1 rounded-full ml-auto">
+          <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] text-[11px]">
+            PAGE {{ currentPage() }} OF {{ totalPages() }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Table Header -->
+      <div class="bg-[#11161b] flex items-center px-4 py-2.5 font-['Instrument_Sans:SemiBold'] font-semibold text-[#64748b] text-[10px] shrink-0 border-b border-[#1e252b]" style="font-variation-settings: 'wdth' 100">
+        <span class="w-[120px]">ORDER REF</span>
+        <span class="w-[150px]">CLIENT</span>
+        <span class="w-[100px]">TIMESTAMP</span>
+        <span class="w-[80px]">SYMBOL</span>
+        <span class="w-[60px] text-right">SIDE</span>
+        <span class="w-[70px] text-right">QTY</span>
+        <span class="w-[80px] text-right">EXEC PRICE</span>
+        <span class="w-[100px] text-right">CASH IMPACT</span>
+        <span class="w-[120px] text-center">STATUS</span>
+        <span class="flex-1 text-center">AUDIT HASH</span>
+      </div>
+
+      <!-- Table Body -->
+      <div class="overflow-y-auto flex-1">
+        @for (record of paginatedRecords(); track record.orderReference; let idx = $index) {
+          <div
+            class="border-b border-[#1e252b] flex items-center px-4 py-3 hover:bg-[#161d24] transition-colors text-[12px]"
+            [ngClass]="idx % 2 === 0 ? 'bg-[#11161b]' : 'bg-[#080b0d]'"
+          >
+            <p class="font-['Geist_Mono:Bold'] font-bold text-white w-[120px] truncate" title="{{ record.orderReference }}">
+              {{ record.orderReference.substring(0, 12) }}...
+            </p>
+            <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] w-[150px] truncate" style="font-variation-settings: 'wdth' 100">
+              {{ record.clientName }}
+            </p>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] w-[100px]">
+              {{ record.timestamp | date: 'MM/dd HH:mm' }}
+            </p>
+            <p class="font-['Geist_Mono:Bold'] font-bold text-white w-[80px]">
+              {{ record.orderDecision.symbol }}
+            </p>
+            <div class="w-[60px] text-right">
+              <span
+                class="status-badge px-2 py-1 rounded text-[10px] font-semibold inline-block"
+                [ngClass]="
+                  record.orderDecision.side === 'BUY'
+                    ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]'
+                    : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
+                "
+              >
+                {{ record.orderDecision.side }}
+              </span>
+            </div>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-white w-[70px] text-right">
+              {{ record.executionResult.executedQuantity }}
+            </p>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-white w-[80px] text-right">
+              {{ '$' + record.executionResult.executedPrice.toFixed(2) }}
+            </p>
+            <p
+              class="font-['Geist_Mono:SemiBold'] font-semibold w-[100px] text-right"
+              [ngClass]="record.cashAndHoldingChange.cashImpact >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'"
+            >
+              {{ record.cashAndHoldingChange.cashImpact >= 0 ? "+" : "" }}{{ '$' + (record.cashAndHoldingChange.cashImpact | number: '1.2-2') }}
+            </p>
+            <div class="w-[120px] text-center">
+              <span
+                class="status-badge px-2 py-1 rounded text-[10px] font-semibold inline-block"
+                [ngClass]="
+                  record.executionResult.status === 'FILLED'
+                    ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]'
+                    : record.executionResult.status === 'PARTIALLY_FILLED'
+                      ? 'bg-[rgba(245,158,11,0.1)] text-[#fbbf24]'
+                      : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
+                "
+              >
+                {{ record.executionResult.status }}
+              </span>
+            </div>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[#3e8914] flex-1 text-center truncate text-[10px]" title="{{ record.immutableHash }}">
+              {{ record.immutableHash }}
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[12px]" style="font-variation-settings: 'wdth' 100">
+          Showing {{ (currentPage() - 1) * 20 + 1 }} to {{ Math.min(currentPage() * 20, allRecords().length) }} of {{ allRecords().length }} records
+        </p>
+      </div>
+      <div class="flex gap-2 items-center">
+        <button
+          (click)="prevPage()"
+          [disabled]="currentPage() === 1"
+          class="px-3 py-1.5 rounded-[4px] font-['Instrument_Sans:SemiBold'] font-semibold text-[12px] transition-colors"
+          [ngClass]="currentPage() === 1 ? 'bg-[#1e252b] text-[#64748b] cursor-not-allowed' : 'bg-[#3e8914] text-white hover:bg-[#4a9e1a]'"
+          style="font-variation-settings: 'wdth' 100"
+        >
+          ← PREVIOUS
+        </button>
+        <p class="font-['Geist_Mono:Bold'] font-bold text-white text-[12px] px-2">
+          {{ currentPage() }}/{{ totalPages() }}
+        </p>
+        <button
+          (click)="nextPage()"
+          [disabled]="currentPage() === totalPages()"
+          class="px-3 py-1.5 rounded-[4px] font-['Instrument_Sans:SemiBold'] font-semibold text-[12px] transition-colors"
+          [ngClass]="currentPage() === totalPages() ? 'bg-[#1e252b] text-[#64748b] cursor-not-allowed' : 'bg-[#3e8914] text-white hover:bg-[#4a9e1a]'"
+          style="font-variation-settings: 'wdth' 100"
+        >
+          NEXT →
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="bg-[#161d24] border border-[#1e252b] rounded-[8px] p-4 text-center">
+      <p class="font-['Instrument_Sans:Regular'] font-normal text-[#64748b] text-[12px]" style="font-variation-settings: 'wdth' 100">
+        All records are immutable and permanently recorded. Records survive system restart, recovery, and failed deployments per BR-14 compliance requirement.
+      </p>
+    </div>
+  </div>
+</div>

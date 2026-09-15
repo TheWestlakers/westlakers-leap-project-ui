@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 export interface NavItem {
   label: string;
@@ -56,6 +57,7 @@ export interface BroadcastEntry {
 export class AdminDashboardComponent implements OnInit, OnDestroy {
   searchQuery = '';
   activeNav = 'Operator Console';
+  constructor(private router: Router) {}
 
   navItems: NavItem[] = [
     { label: 'Operator Console', icon: 'home', active: true },
@@ -63,6 +65,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     { label: 'Trade Transactions', icon: 'credit_card' },
     { label: 'Revenue Reports', icon: 'schedule' },
     { label: 'Risk & KYC', icon: 'terminal', badge: '5 alert', badgeType: 'alert' },
+    { label: 'Compliance Records', icon: 'assignment', badge: 'BR-14' },
     { label: 'System Controls', icon: 'settings' },
     { label: 'Operator Support', icon: 'help_outline' },
   ];
@@ -160,6 +163,11 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   setActiveNav(label: string): void {
     this.activeNav = label;
     this.navItems = this.navItems.map((n) => ({ ...n, active: n.label === label }));
+    
+    // Navigate to compliance records page if selected
+    if (label === 'Compliance Records') {
+      this.router.navigate(['/compliance-records']);
+    }
   }
 
   toggleHalt(): void {
