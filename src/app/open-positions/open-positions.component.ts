@@ -1,7 +1,8 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
+import { ThemeService } from '../services/theme.service';
 
 /* ─── Types ───────────────────────────────────────────── */
 export interface Position {
@@ -35,9 +36,11 @@ const ALL_POSITIONS: Position[] = [
   imports: [CommonModule, RouterModule, TopNavComponent],
   templateUrl: './open-positions.component.html',
   styleUrls: ['./open-positions.component.css'],
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class OpenPositionsComponent {
   readonly Math = Math;
+  protected readonly themeService = inject(ThemeService);
   /* ── Sort state ── */
   sortField = signal<SortField>('marketValue');
   sortDir   = signal<SortDir>('desc');

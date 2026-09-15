@@ -1,0 +1,127 @@
+/* ─── AI Assistant Theme Support ────────────────────── */
+
+:host {
+  /* Dark mode colors (default) */
+  --ai-bg: #11161b;
+  --ai-border: #1e252b;
+  --ai-input-bg: #080b0d;
+  --ai-text: #ffffff;
+  --ai-text-muted: #e2e8f0;
+  --ai-text-dim: #64748b;
+  --ai-bot-bg: #080b0d;
+  --ai-user-bg: #3e8914;
+  --ai-accent: #10b981;
+  --ai-accent-dark: #3e8914;
+}
+
+:host.light-theme {
+  /* Light mode colors */
+  --ai-bg: #ffffff;
+  --ai-border: #e0e7f1;
+  --ai-input-bg: #f8fafc;
+  --ai-text: #1a202c;
+  --ai-text-muted: #1f2937;
+  --ai-text-dim: #64748b;
+  --ai-bot-bg: #f1f5f9;
+  --ai-user-bg: #047857;
+  --ai-accent: #059669;
+  --ai-accent-dark: #047857;
+}
+
+/* ─── Main container styling ─── */
+.ai-assistant-container {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--ai-bg);
+  border-color: var(--ai-border);
+}
+
+:host.light-theme .ai-assistant-container {
+  background-color: var(--ai-bg);
+  border-color: var(--ai-border);
+}
+
+/* ─── Header section ─── */
+:host.light-theme .border-b {
+  border-color: var(--ai-border);
+}
+
+:host.light-theme p {
+  color: var(--ai-text) !important;
+}
+
+:host.light-theme div[style*="background-color: rgb(62, 137, 20)"] {
+  background-color: var(--ai-accent) !important;
+}
+
+:host.light-theme .text-\[\#64748b\] {
+  color: var(--ai-text-dim) !important;
+}
+
+/* ─── Chat messages styling ─── */
+/* Bot messages */
+:host.light-theme .bg-\[\#080b0d\] {
+  background-color: var(--ai-bot-bg) !important;
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text-muted) !important;
+}
+
+:host.light-theme [class*="bg-\[\#080b0d\]"] {
+  background-color: var(--ai-bot-bg) !important;
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text-muted) !important;
+}
+
+:host.light-theme .text-\[\#e2e8f0\] {
+  color: var(--ai-text-muted) !important;
+}
+
+/* User messages */
+:host.light-theme .bg-\[\#3e8914\] {
+  background-color: var(--ai-user-bg) !important;
+  color: #ffffff !important;
+}
+
+:host.light-theme [class*="bg-\[\#3e8914\]"] {
+  background-color: var(--ai-user-bg) !important;
+  color: #ffffff !important;
+}
+
+/* Message timestamps */
+:host.light-theme .text-\[10px\] {
+  color: var(--ai-text-dim) !important;
+}
+
+/* ─── Input section ─── */
+:host.light-theme .border-t {
+  border-color: var(--ai-border) !important;
+}
+
+:host.light-theme input {
+  background-color: var(--ai-input-bg) !important;
+  border-color: var(--ai-border) !important;
+  color: var(--ai-text) !important;
+}
+
+:host.light-theme input::placeholder {
+  color: var(--ai-text-dim) !important;
+}
+
+:host.light-theme input:focus {
+  border-color: var(--ai-accent-dark) !important;
+}
+
+/* ─── Button styling ─── */
+:host.light-theme button {
+  background-color: var(--ai-accent-dark);
+  color: #ffffff;
+}
+
+:host.light-theme button:hover {
+  background-color: var(--ai-accent);
+}
+
+/* ─── Typing indicator ─── */
+:host.light-theme .animate-bounce {
+  background-color: var(--ai-text-dim);
+}

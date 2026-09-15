@@ -1,10 +1,11 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
 import { WatchlistItem, Position, OrderSide, OrderType, PortfolioRange, ChartPoint, SPARKLINE_PATHS, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
+import { ThemeService } from '../services/theme.service';
 
 interface RangeConfig {
   linePath: string;
@@ -62,9 +63,11 @@ const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
   imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent],
   templateUrl: './stock-ticker.component.html',
   styleUrls: ['./stock-ticker.component.css'],
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class StockTickerComponent implements OnInit {
   readonly Math = Math;
+  protected readonly themeService = inject(ThemeService);
 
   /* ── Account ── */
   readonly totalAccountValue = 248512.90;

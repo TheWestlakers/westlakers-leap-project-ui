@@ -1,7 +1,8 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TopNavComponent } from '../top-nav.component';
+import { ThemeService } from '../services/theme.service';
 
 export type TransactionSide = 'BUY' | 'SELL' | 'DIVIDEND' | 'TRANSFER';
 export type TransactionType = 'EQUITY' | 'CASH' | 'OPTION';
@@ -51,8 +52,10 @@ const PAGE_SIZE = 8;
   imports: [CommonModule, FormsModule, TopNavComponent],
   templateUrl: './transaction-history.component.html',
   styleUrls: ['./transaction-history.component.css'],
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class TransactionHistoryComponent implements OnInit {
+  protected readonly themeService = inject(ThemeService);
   /* ── Signals ── */
   symbolFilter = signal('');
   dateRange    = signal<DateRangeOption>('Last 30 Days');

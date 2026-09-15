@@ -21,6 +21,23 @@
   font-family: var(--font-sans);
 }
 
+/* ─── Light Mode Theme Support ────────────────────────── */
+:host.light-theme {
+  --bg:          #f8fafc;
+  --surface:     #ffffff;
+  --surface-hi:  #f1f5f9;
+  --border:      #e0e7f1;
+  --border-mid:  #cbd5e0;
+  --text:        #1a202c;
+  --muted:       #64748b;
+  --dim:         #94a3b8;
+  --green:       #059669;
+  --green-dk:    #047857;
+  --red:         #dc2626;
+  background: var(--bg);
+  color: var(--text);
+}
+
 /* ─── Top nav ─────────────────────────────────────────── */
 .top-nav {
   display: flex;
@@ -638,6 +655,19 @@
 }
 
 .otype-inactive:hover { border-color: var(--border-mid); }
+
+/* Light mode overrides for order type buttons */
+:host.light-theme .otype-active {
+  background: #e8f5e9 !important;
+  border-color: var(--green-dk) !important;
+  color: var(--green-dk) !important;
+}
+
+:host.light-theme .otype-inactive {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--muted) !important;
+}
 
 /* Qty row */
 .qty-row { display: flex; gap: 10px; }

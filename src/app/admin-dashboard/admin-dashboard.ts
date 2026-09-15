@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ThemeService } from '../services/theme.service';
 
 export interface NavItem {
   label: string;
@@ -53,10 +54,12 @@ export interface BroadcastEntry {
   imports: [CommonModule, FormsModule],
   templateUrl: './admin-dashboard.html',
   styleUrls: ['./admin-dashboard.css'],
+  host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class AdminDashboardComponent implements OnInit, OnDestroy {
   searchQuery = '';
   activeNav = 'Operator Console';
+  protected readonly themeService = inject(ThemeService);
   constructor(private router: Router) {}
 
   navItems: NavItem[] = [
