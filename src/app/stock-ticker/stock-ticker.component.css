@@ -656,6 +656,19 @@
 
 .otype-inactive:hover { border-color: var(--border-mid); }
 
+/* Light mode overrides for order type buttons */
+:host.light-theme .otype-active {
+  background: #e8f5e9 !important;
+  border-color: var(--green-dk) !important;
+  color: var(--green-dk) !important;
+}
+
+:host.light-theme .otype-inactive {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--muted) !important;
+}
+
 /* Qty row */
 .qty-row { display: flex; gap: 10px; }
 .qty-field { flex: 1; }
