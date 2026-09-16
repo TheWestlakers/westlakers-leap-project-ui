@@ -514,10 +514,8 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 .positions-header {
@@ -579,7 +577,9 @@
   overflow-y: auto;
 }
 
-.compact-scroll { max-height: 200px; }
+.compact-scroll {
+  max-height: 200px; 
+}
 
 .pos-row {
   display: flex;

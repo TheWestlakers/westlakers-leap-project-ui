@@ -5,7 +5,7 @@ import { OpenPositionsComponent } from './open-positions/open-positions.componen
 import { StockTickerComponent } from './stock-ticker/stock-ticker.component';
 
 export const routes: Routes = [
-    { path: '', redirectTo: '/portfolio', pathMatch: 'full' },
+    { path: '', redirectTo: '/login', pathMatch: 'full' },
     { path: 'portfolio', component: PortfolioDashboardComponent },
     { path: 'stock-ticker', component: StockTickerComponent },
     { path: 'open-positions', component: OpenPositionsComponent },
@@ -15,5 +15,5 @@ export const routes: Routes = [
     { path: 'logout', loadComponent: () => import('./logout/logout').then((m) => m.Logout) },
     { path: 'transaction-history', loadComponent: () => import('./transaction-history/transaction-history').then((m) => m.TransactionHistoryComponent) },
     { path: 'admin-dashboard', loadComponent: () => import('./admin-dashboard/admin-dashboard').then((m) => m.AdminDashboardComponent) },
-    { path: 'compliance-records', loadComponent: () => import('./admin-dashboard/compliance-records/compliance-records').then((m) => m.ComplianceRecordsComponent) }
+    { path: 'compliance-records', loadComponent: () => import('./compliance-records/compliance-records').then((m) => m.ComplianceRecordsComponent) }
 ];
