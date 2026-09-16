@@ -579,7 +579,9 @@
   overflow-y: auto;
 }
 
-.compact-scroll { max-height: 200px; }
+.compact-scroll {
+  max-height: 200px; 
+}
 
 .pos-row {
   display: flex;
