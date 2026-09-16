@@ -5,7 +5,7 @@ import { OpenPositionsComponent } from './open-positions/open-positions.componen
 import { StockTickerComponent } from './stock-ticker/stock-ticker.component';
 
 export const routes: Routes = [
-    { path: '', redirectTo: '/portfolio', pathMatch: 'full' },
+    { path: '', redirectTo: '/login', pathMatch: 'full' },
     { path: 'portfolio', component: PortfolioDashboardComponent },
     { path: 'stock-ticker', component: StockTickerComponent },
     { path: 'open-positions', component: OpenPositionsComponent },

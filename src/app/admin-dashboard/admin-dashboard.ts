@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
+import { TopNavComponent } from '../top-nav-admin.component';
 
 export interface NavItem {
   label: string;
@@ -51,13 +52,14 @@ export interface BroadcastEntry {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TopNavComponent],
   templateUrl: './admin-dashboard.html',
   styleUrls: ['./admin-dashboard.css'],
   host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
 export class AdminDashboardComponent implements OnInit, OnDestroy {
   searchQuery = '';
+  netLiqValue = 250000;
   activeNav = 'Operator Console';
   protected readonly themeService = inject(ThemeService);
   constructor(private router: Router) {}

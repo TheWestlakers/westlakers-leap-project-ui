@@ -22,13 +22,13 @@ const assetPathPrefix = "/assets";
             PAYSPRINT
           </p>
           <p class="font-['Instrument_Sans'] font-semibold text-[#3e8914] text-[10px] tracking-[0.05em]" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-            ACTIVE TRADER
+            SYSTEM PORTAL
           </p>
         </div>
         <div class="bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.25)] flex gap-1.5 items-center px-2 py-1 rounded-[4px]">
           <img alt="" class="size-1.5" [src]="imgLiveDot" />
           <p class="font-['Instrument_Sans'] font-semibold text-[#10b981] text-[11px] uppercase tracking-[0.05em]" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-            Live
+            Systems Live
           </p>
         </div>
       </div>
@@ -37,7 +37,7 @@ const assetPathPrefix = "/assets";
         <img alt="" class="shrink-0 size-4" [src]="imgSearch" />
         <input
           class="flex-1 bg-transparent font-['Instrument_Sans'] font-normal text-[#94a3b8] text-[13px] outline-none placeholder:text-[#64748b]"
-          placeholder="Enter symbol, company, or order hotkey..."
+          placeholder="Search accounts, tx hashes, audit records..."
           [(ngModel)]="searchVal"
           style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100"
         />
@@ -65,11 +65,11 @@ const assetPathPrefix = "/assets";
           <div class="flex gap-2.5 items-center cursor-pointer" (click)="toggleMenu()">
             <div class="bg-[#3e8914] flex items-center justify-center rounded-full size-8">
               <p class="font-['Instrument_Sans'] font-bold text-[12px] text-white tracking-[0.02em]" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-                JS
+                PK
               </p>
             </div>
             <p class="font-['Instrument_Sans'] font-semibold text-[13px] text-white whitespace-nowrap" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-              Joanna Smith
+              Priya Kumar
             </p>
             <img alt="" class="size-3" [src]="imgChevronDown" />
           </div>
@@ -126,7 +126,6 @@ export class TopNavComponent {
   imgSearch = `${assetPathPrefix}/56f25.svg`;
   imgBadgeAlert = `${assetPathPrefix}/bc443.svg`;
   imgChevronDown = `${assetPathPrefix}/76166.svg`;
-  imgAvatar = `${assetPathPrefix}/5bbdb.png`;
 
   protected toggleMenu(): void {
     this.isMenuOpen.update((value) => !value);
