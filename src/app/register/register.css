@@ -19,7 +19,7 @@
 }
 
 :host.light-theme .text-gray-300 {
-  color: var(--text-muted);
+  color: var(--text);
 }
 
 :host.light-theme .text-gray-500 {
