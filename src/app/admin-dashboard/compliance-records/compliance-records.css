@@ -17,6 +17,69 @@
   --text-muted: #64748b;
 }
 
+/* Light Mode - Main container */
+:host.light-theme .bg-\[\#080b0d\] {
+  background-color: var(--bg) !important;
+}
+
+/* Light Mode - Surface backgrounds */
+:host.light-theme .bg-\[\#11161b\] {
+  background-color: var(--surface) !important;
+}
+
+/* Light Mode - Borders */
+:host.light-theme .border-\[\#1e252b\] {
+  border-color: var(--border) !important;
+}
+
+/* Light Mode - Text colors */
+:host.light-theme .text-white {
+  color: var(--text) !important;
+}
+
+:host.light-theme .text-\[\#94a3b8\] {
+  color: var(--text-muted) !important;
+}
+
+:host.light-theme .text-\[\#64748b\] {
+  color: var(--text-muted) !important;
+}
+
+/* Light Mode - Green status indicators */
+:host.light-theme .text-\[\#10b981\] {
+  color: #059669 !important;
+}
+
+/* Light Mode - Red status indicators */
+:host.light-theme .text-\[\#ef4444\] {
+  color: #dc2626 !important;
+}
+
+/* Light Mode - Header styling */
+:host.light-theme .border-b {
+  border-color: var(--border) !important;
+}
+
+/* Light Mode - Hover states */
+:host.light-theme .hover\:bg-\[\#161d24\]:hover {
+  background-color: #f0f4f8 !important;
+}
+
+/* Light Mode - Alternating row backgrounds */
+:host.light-theme div:nth-child(even) {
+  background-color: #f8fafc !important;
+}
+
+:host.light-theme div:nth-child(odd) {
+  background-color: #ffffff !important;
+}
+
+/* Light Mode - Stat cards */
+:host.light-theme .rounded-\[8px\] {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
 /* Optional: Add custom styles here if Tailwind classes need enhancement */
 
 /* Scrollbar styling for the table body */
@@ -60,4 +123,15 @@
   padding: 0.25rem 0.625rem !important;
   display: inline-block;
   letter-spacing: 0.02em;
+}
+
+/* Light Mode - Status badge styling */
+:host.light-theme .status-badge {
+  background-color: #e8f5e9 !important;
+  color: #047857 !important;
+}
+
+:host.light-theme .status-badge.rejected {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
 }
