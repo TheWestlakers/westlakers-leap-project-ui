@@ -15,5 +15,5 @@ export const routes: Routes = [
     { path: 'logout', loadComponent: () => import('./logout/logout').then((m) => m.Logout) },
     { path: 'transaction-history', loadComponent: () => import('./transaction-history/transaction-history').then((m) => m.TransactionHistoryComponent) },
     { path: 'admin-dashboard', loadComponent: () => import('./admin-dashboard/admin-dashboard').then((m) => m.AdminDashboardComponent) },
-    { path: 'compliance-records', loadComponent: () => import('./admin-dashboard/compliance-records/compliance-records').then((m) => m.ComplianceRecordsComponent) }
+    { path: 'compliance-records', loadComponent: () => import('./compliance-records/compliance-records').then((m) => m.ComplianceRecordsComponent) }
 ];

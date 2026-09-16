@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Location } from "@angular/common";
-import { ThemeService } from "../../services/theme.service";
+import { ThemeService } from "../services/theme.service";
 
 const assetPathPrefix = "/assets";
 const RECORDS_PER_PAGE = 20;

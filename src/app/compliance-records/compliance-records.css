@@ -1,7 +1,9 @@
 /* Compliance Records Component Styles */
 
 :host {
-  font-family: 'Instrument Sans', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Courier New', monospace;
+  --font-sans: 'Instrument Sans', system-ui, sans-serif;
+  font-family: var(--font-sans);
   --bg: #080b0d;
   --surface: #11161b;
   --border: #1e252b;
