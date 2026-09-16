@@ -1,0 +1,21 @@
+sequenceDiagram
+    actor Actor
+    participant UI
+    %% participant Backend_Controller
+    participant Order
+    participant OrderPlacer
+    participant OrderValidator
+    participant MAGIC
+
+    Actor->>UI: Place buy order
+    UI->>Order: Create Order object
+    Order-->>UI: Return Success
+    UI->>OrderValidator: Validate Order
+    OrderValidator-->>UI: Return valid
+    UI->>+OrderPlacer: SubmitOrder(Order)
+    OrderPlacer->>OrderValidator: isValid(Order)
+    OrderValidator-->>OrderPlacer: true
+    OrderPlacer->>MAGIC: Update external details
+    MAGIC-->>OrderPlacer: Updates complete across
+    OrderPlacer-->>-UI: Order status set to "Success"
+    UI-->>Actor: Display confirmation

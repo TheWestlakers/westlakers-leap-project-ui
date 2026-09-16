@@ -1,0 +1,117 @@
+classDiagram
+
+    direction LR
+
+    class User {
+        -int userId
+        -String firstName
+        -String lastName
+        -String phone
+        -String taxId
+        -Date dateOfBirth
+        -Date createDate
+        -String status
+        -String email
+        -String username
+        -bool isActive
+        -String role
+
+        +getProfile()
+        +getFirst()
+        +getLast()
+        +getPhone()
+        +getTaxId()
+        +getDateOfBirth()
+        +getCreateDate()
+        +getStatus()
+        +getEmail()
+        +getUsername()
+        +isActive()
+        +getRole()
+    }
+    
+    class Account {
+        -int accountId
+        -int ownerId
+        -String status
+        -String accountType
+        -Date createDate
+        -float balance
+
+        +getBalance()
+        +getAccountId()
+        +getStatus()
+        +getAccountType()
+        +getCreateDate()
+        +getOwnerId()
+        +setBalance(float balance)
+    }
+
+    class Holding {
+        -int holdingId
+        -int accountId
+        -float quantity
+        -Instrument instrument
+
+        +getHoldingId()
+        +getAccountId()
+        +getQuantity()
+        +getInstrument()
+    }
+
+    class Instrument {
+        -int instrumentId
+        -String market
+        -String ticker
+        -String name
+
+        +getInstrumentId()
+        +getName()
+        +getTicker()
+        +getMarket()
+    }
+
+    class Order {
+        -int orderId
+        -int transactionId //may be null
+        -int accountId
+        -Instrument instrument
+        -String txnType
+        -float quantity
+        -float price
+        -String status
+        -Date createDate
+
+        +getValue()
+        +getOrderId()
+        +getTransactionId()
+        +getAccountId()
+        +getInstrument()
+        +getTxnType()
+        +getQuantity()
+        +getPrice()
+        +getStatus()
+        +setStatus(String status)
+        +getCreateDate()
+    }
+
+    class OrderValidator {
+        +isValid(Order)
+        +hasSufficientBalance(Account account)
+        +hasValidInstrument(Instrument instrument)
+        +hasValidQuantity(float quantity)
+    }
+
+    class OrderPlacer {
+        +submitOrder(Order order)
+        +updateExternalDetails(Order order)
+        +setStatus(Order order, String status)
+    }
+
+    %% Relationships/Associations
+    User "1" --> "*" Account : owns
+    Account "1" --> "*" Holding : contains
+    Account "1" --> "*" Order : executes
+    Holding "*" --> "1" Instrument : tracks
+    Order "*" --> "1" Instrument : trades
+    
