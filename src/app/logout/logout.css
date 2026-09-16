@@ -1,1 +1,48 @@
 /* Styles are handled with Tailwind utility classes in logout.html. */
+
+/* Light mode theme support */
+:host.light-theme {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --border: #e0e7f1;
+  --text: #1a202c;
+  --text-muted: #64748b;
+}
+
+:host.light-theme main {
+  background-color: var(--bg);
+}
+
+:host.light-theme .rounded-xl {
+  background-color: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+:host.light-theme .text-gray-300 {
+  color: var(--text);
+}
+
+:host.light-theme .bg-green-600,
+:host.light-theme .bg-green-600:hover {
+  background-color: #059669;
+}
+
+:host.light-theme .bg-green-600:hover {
+  background-color: #047857;
+}
+
+:host.light-theme .text-white {
+  color: #ffffff;
+}
+
+:host.light-theme .text-blue-600 {
+  color: #2563eb;
+}
+
+:host.light-theme .text-blue-600:hover {
+  color: #1d4ed8;
+}
+
+:host.light-theme .focus\:ring-green-500:focus {
+  --ring-color: #059669;
+}

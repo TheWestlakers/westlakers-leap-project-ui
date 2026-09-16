@@ -64,3 +64,9 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Mermaid Diagrams (Optional)
+
+Some documentation in this project uses Mermaid diagrams.  
+To preview them in VS Code, install the **Mermaid Markdown Preview** extension and create an account using GitHub.  
+Then open any `.md` file and press `Preview Diagram` to view the rendered diagrams.
