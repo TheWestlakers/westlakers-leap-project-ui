@@ -179,6 +179,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.haltActive = !this.haltActive;
   }
 
+  navigateToCompliance(): void {
+    this.router.navigate(['/compliance-records']);
+  }
+
   get alertTagClass(): Record<string, (color: string) => string> {
     return {};
   }

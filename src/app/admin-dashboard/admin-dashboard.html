@@ -4,46 +4,10 @@
 <!-- MAIN LAYOUT -->
 <div class="main-layout">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <p class="sidebar-section-label">PLATFORM MANAGEMENT</p>
-    <nav class="sidebar-nav">
-      <button
-        *ngFor="let item of navItems"
-        class="nav-item"
-        [class.active]="item.active"
-        (click)="setActiveNav(item.label)"
-      >
-        <span class="nav-icon material-icons">{{ item.icon }}</span>
-        <span class="nav-label">{{ item.label }}</span>
-        <span
-          *ngIf="item.badge"
-          class="nav-badge"
-          [class.badge-alert]="item.badgeType === 'alert'"
-        >{{ item.badge }}</span>
-      </button>
-    </nav>
-
-    <div class="broadcast-panel">
-      <div class="broadcast-header">
-        <span class="live-dot green"></span>
-        <span class="broadcast-title">LIVE BROADCAST</span>
-      </div>
-      <p class="broadcast-sub">Listening to WS clusters...</p>
-      <div class="broadcast-feed">
-        <div *ngFor="let entry of broadcastFeed" class="broadcast-entry">
-          <span class="entry-time">[{{ entry.time }}]</span>
-          <span class="entry-msg">{{ entry.message }}</span>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- CENTER CONTENT -->
-  <main class="center-content">
-
+  <!-- LEFT PANEL - ANALYTICS -->
+  <aside class="analytics-panel">
     <!-- STAT CARDS -->
-    <div class="stat-cards">
+    <div class="stat-cards-vertical">
       <div *ngFor="let card of statCards" class="stat-card">
         <p class="stat-label">{{ card.label }}</p>
         <p class="stat-value">{{ card.value }}</p>
@@ -53,6 +17,10 @@
         <p class="stat-sub">{{ card.sub }}</p>
       </div>
     </div>
+  </aside>
+
+  <!-- CENTER CONTENT -->
+  <main class="center-content">
 
     <!-- TRANSACTION VELOCITY CHART -->
     <div class="chart-widget">
@@ -94,9 +62,12 @@
       <div class="queue-header">
         <div class="queue-title-group">
           <span class="queue-icon">▦</span>
-          <span class="queue-title">PENDING ORDER QUEUE &amp; SYSTEM SETTLEMENTS</span>
+          <span class="queue-title">ORDER HISTORY COMPLIANCE RECORDS</span>
         </div>
-        <span class="queue-badge">12 PENDING GATEWAY</span>
+        <button class="view-all-btn" (click)="navigateToCompliance()">
+          VIEW FULL COMPLIANCE RECORDS
+          <span class="arrow-icon">→</span>
+        </button>
       </div>
       <table class="queue-table">
         <thead>
