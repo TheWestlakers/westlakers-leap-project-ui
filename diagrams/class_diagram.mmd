@@ -73,7 +73,6 @@ classDiagram
 
     class Order {
         -int orderId
-        -int transactionId //may be null
         -int accountId
         -Instrument instrument
         -String txnType
@@ -84,7 +83,6 @@ classDiagram
 
         +getValue()
         +getOrderId()
-        +getTransactionId()
         +getAccountId()
         +getInstrument()
         +getTxnType()
