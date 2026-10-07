@@ -193,6 +193,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (prices) => {
           this.allPrices.set(prices);
+          // Initialize order price with current ticker's live price
+          const currentTicker = this.selectedTicker();
+          const tickerPrice = prices[currentTicker];
+          if (tickerPrice && tickerPrice.currentPrice) {
+            this.orderPrice.set(Number(tickerPrice.currentPrice));
+          }
           this.isLoadingPrices.set(false);
         },
         error: (error) => {
@@ -287,6 +293,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   decrementShares(): void { this.orderShares.update(n => Math.max(1, n - 1)); }
   toggleExtHours(): void { this.orderExtHours.update(v => !v); }
 
+  
   submitOrder(): void {
     this.orderSubmitted.set(true);
     setTimeout(() => this.orderSubmitted.set(false), 2500);
