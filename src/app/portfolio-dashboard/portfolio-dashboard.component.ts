@@ -1,11 +1,15 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
+import { WatchlistComponent } from './watchlist/watchlist.component';
 import { ThemeService } from '../services/theme.service';
+import { StockDataService, StockPrice } from '../services/stock-data.service';
+import { Subject, interval } from 'rxjs';
+import { takeUntil, switchMap } from 'rxjs/operators';
 
 /* ─── Shared types ────────────────────────────────────── */
 export interface WatchlistItem {
@@ -46,6 +50,7 @@ export const INITIAL_WATCHLIST: WatchlistItem[] = [
   { symbol: 'TSLA',  name: 'Tesla Inc.',        price: 176.54, change: 4.12,  positive: true,  sparkKey: 'up2'  },
   { symbol: 'AMZN',  name: 'Amazon.com Inc.',  price: 174.42, change: 0.85,  positive: true,  sparkKey: 'up3'  },
   { symbol: 'GOOGL', name: 'Alphabet Inc.',    price: 151.60, change: -1.15, positive: false, sparkKey: 'down2' },
+  { symbol: 'MU',    name: 'Micron Technology',  price: 98.35,  change: 2.41,  positive: true,  sparkKey: 'up1'  },
 ];
 
 const ALL_POSITIONS: Position[] = [
@@ -119,30 +124,29 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
 @Component({
   selector: 'app-portfolio-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent, TradeHereComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent, TradeHereComponent, WatchlistComponent],
   templateUrl: './portfolio-dashboard.component.html',
   styleUrls: ['./portfolio-dashboard.component.css'],
   host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
-export class PortfolioDashboardComponent implements OnInit {
+export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly stockDataService = inject(StockDataService);
+  private readonly destroy$ = new Subject<void>();
+
   /* ── Account ── */
   readonly totalAccountValue = 248512.90;
   readonly buyingPower       =  94210.45;
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
 
-  /* ── Watchlist ── */
-  watchlist = signal<WatchlistItem[]>(INITIAL_WATCHLIST);
-  isEditingWatchlist = signal(false);
-  newSymbol = '';
-  newName   = '';
+  /* ── Stock prices ── */
+  allPrices = signal<{ [symbol: string]: StockPrice }>({});
 
   /* ── Positions ── */
   readonly positions: Position[] = ALL_POSITIONS;
   readonly COMPACT_LIMIT = 3;
-  readonly sparklinePaths = SPARKLINE_PATHS;
 
   /* ── Portfolio chart ── */
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
@@ -162,30 +166,43 @@ export class PortfolioDashboardComponent implements OnInit {
 
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
 
-  ngOnInit(): void {}
-
-  /* ── Watchlist actions ── */
-  toggleWatchlistEdit(): void {
-    this.isEditingWatchlist.update(v => !v);
+  ngOnInit(): void {
+    // Get symbols from open positions
+    const symbols = this.positions.map(p => p.symbol);
+    
+    if (symbols.length > 0) {
+      // Load prices immediately
+      this.stockDataService.getPrices(symbols)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (prices) => {
+            this.allPrices.set(prices);
+          },
+          error: (error) => {
+            console.error('Error loading prices:', error);
+          }
+        });
+      
+      // Then set up polling to refresh prices every 1 second
+      interval(1000)
+        .pipe(
+          switchMap(() => this.stockDataService.getPrices(symbols)),
+          takeUntil(this.destroy$)
+        )
+        .subscribe({
+          next: (prices) => {
+            this.allPrices.set(prices);
+          },
+          error: (error) => {
+            console.error('Error polling prices:', error);
+          }
+        });
+    }
   }
 
-  removeWatchlistItem(symbol: string): void {
-    this.watchlist.update(list => list.filter(i => i.symbol !== symbol));
-  }
-
-  addWatchlistItem(): void {
-    const sym = this.newSymbol.trim().toUpperCase();
-    if (!sym) return;
-    const price   = Math.round((100 + Math.random() * 400) * 100) / 100;
-    const change  = Math.round((Math.random() * 6 - 3) * 100) / 100;
-    const keys    = Object.keys(SPARKLINE_PATHS) as WatchlistItem['sparkKey'][];
-    const sparkKey = keys[Math.floor(Math.random() * keys.length)];
-    this.watchlist.update(list => [
-      ...list,
-      { symbol: sym, name: this.newName.trim() || sym, price, change, positive: change >= 0, sparkKey },
-    ]);
-    this.newSymbol = '';
-    this.newName   = '';
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /* ── Style helpers ── */

@@ -1,11 +1,15 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { HttpClientModule } from '@angular/common/http';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
-import { WatchlistItem, Position, OrderSide, OrderType, PortfolioRange, ChartPoint, SPARKLINE_PATHS, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
+import { Position, OrderSide, OrderType, PortfolioRange, ChartPoint, SPARKLINE_PATHS } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
+import { StockDataService, StockPrice } from '../services/stock-data.service';
+import { Subject, interval } from 'rxjs';
+import { takeUntil, switchMap } from 'rxjs/operators';
 
 interface RangeConfig {
   linePath: string;
@@ -60,14 +64,16 @@ const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
 @Component({
   selector: 'app-stock-ticker',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent],
+  imports: [CommonModule, FormsModule, RouterModule, HttpClientModule, TopNavComponent, AiAssistantComponent],
   templateUrl: './stock-ticker.component.html',
   styleUrls: ['./stock-ticker.component.css'],
   host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
-export class StockTickerComponent implements OnInit {
+export class StockTickerComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly stockDataService = inject(StockDataService);
+  private readonly destroy$ = new Subject<void>();
 
   /* ── Account ── */
   readonly totalAccountValue = 248512.90;
@@ -75,16 +81,43 @@ export class StockTickerComponent implements OnInit {
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
 
-  /* ── Stock symbol ── */
-  readonly stockSymbol = 'AAPL';
-  readonly stockName   = 'Apple Inc.';
-  readonly stockPrice  = 182.52;
+  /* ── Stock symbol and price data ── */
+  // Currently selected ticker for main display
+  selectedTicker = signal('AAPL');
+  
+  // All prices from backend
+  allPrices = signal<{ [symbol: string]: StockPrice }>({});
+  
+  // Selected tickers for multi-display (user can choose which ones to display)
+  displayedTickers = signal<string[]>(['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'MU']);
+  
+  // Loading and error states
+  isLoadingPrices = signal(false);
+  priceError = signal<string | null>(null);
+  
+  // UI state for adding/editing tickers
+  newTickerInput = signal('');
+  isEditingDisplayedTickers = signal(false);
 
-  /* ── Watchlist ── */
-  watchlist = signal<WatchlistItem[]>(INITIAL_WATCHLIST);
-  isEditingWatchlist = signal(false);
-  newSymbol = '';
-  newName   = '';
+  /* ── Computed values for main ticker display ── */
+  currentTickerPrice = computed<StockPrice | null>(() => {
+    const prices = this.allPrices();
+    const ticker = this.selectedTicker();
+    return prices[ticker] || null;
+  });
+
+  currentTickerName = computed(() => {
+    const price = this.currentTickerPrice();
+    return price?.ticker || this.selectedTicker();
+  });
+
+  stockPrice = computed(() => {
+    const price = this.currentTickerPrice();
+    return price ? Number(price.currentPrice) : 182.52;
+  });
+
+  stockSymbol = computed(() => this.selectedTicker());
+  stockName = computed(() => this.currentTickerName());
 
   /* ── Stock chart ── */
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
@@ -94,7 +127,7 @@ export class StockTickerComponent implements OnInit {
     return RANGE_DATA[this.activeRange()];
   }
 
-  get currentValue(): number { return this.stockPrice; }
+  get currentValue(): number { return this.stockPrice(); }
 
   get isPositive(): boolean { return this.rangeData.deltaValue >= 0; }
 
@@ -103,7 +136,7 @@ export class StockTickerComponent implements OnInit {
   /* ── Order entry ── */
   orderSide      = signal<OrderSide>('BUY');
   orderType      = signal<OrderType>('LIMIT');
-  orderSymbol    = signal(this.stockSymbol);
+  orderSymbol    = signal(this.stockSymbol());
   orderShares    = signal(100);
   orderPrice     = signal(182.50);
   orderExtHours  = signal(true);
@@ -123,30 +156,128 @@ export class StockTickerComponent implements OnInit {
     return this.orderSide() === 'BUY' ? 'btn-buy' : 'btn-sell';
   }
 
-  ngOnInit(): void {}
-
-  /* ── Watchlist actions ── */
-  toggleWatchlistEdit(): void {
-    this.isEditingWatchlist.update(v => !v);
+  ngOnInit(): void {
+    // Load prices immediately
+    this.loadPrices();
+    
+    // Then set up polling to refresh prices every 1 second
+    interval(1000)
+      .pipe(
+        switchMap(() => this.stockDataService.getPrices(this.displayedTickers())),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (prices) => {
+          this.allPrices.set(prices);
+        },
+        error: (error) => {
+          console.error('Error polling prices:', error);
+        }
+      });
   }
 
-  removeWatchlistItem(symbol: string): void {
-    this.watchlist.update(list => list.filter(i => i.symbol !== symbol));
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  addWatchlistItem(): void {
-    const sym = this.newSymbol.trim().toUpperCase();
-    if (!sym) return;
-    const price   = Math.round((100 + Math.random() * 400) * 100) / 100;
-    const change  = Math.round((Math.random() * 6 - 3) * 100) / 100;
-    const keys    = Object.keys(SPARKLINE_PATHS) as WatchlistItem['sparkKey'][];
-    const sparkKey = keys[Math.floor(Math.random() * keys.length)];
-    this.watchlist.update(list => [
-      ...list,
-      { symbol: sym, name: this.newName.trim() || sym, price, change, positive: change >= 0, sparkKey },
-    ]);
-    this.newSymbol = '';
-    this.newName   = '';
+  /**
+   * Load prices for the displayed tickers from the backend.
+   */
+  private loadPrices(): void {
+    this.isLoadingPrices.set(true);
+    this.priceError.set(null);
+
+    this.stockDataService.getPrices(this.displayedTickers())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (prices) => {
+          this.allPrices.set(prices);
+          this.isLoadingPrices.set(false);
+        },
+        error: (error) => {
+          console.error('Error loading prices:', error);
+          this.priceError.set('Failed to load prices. Please try again.');
+          this.isLoadingPrices.set(false);
+          // Keep displaying fallback data if available
+        }
+      });
+  }
+
+  /**
+   * Refresh prices for all displayed tickers.
+   */
+  refreshPrices(): void {
+    this.stockDataService.invalidateCache(this.displayedTickers());
+    this.loadPrices();
+  }
+
+  /**
+   * Select a ticker to display in the main chart.
+   * Also updates the order entry form to reflect the selected ticker.
+   */
+  selectTicker(ticker: string): void {
+    const upperTicker = ticker.toUpperCase();
+    this.selectedTicker.set(upperTicker);
+    
+    // Sync order entry form with selected ticker
+    this.orderSymbol.set(upperTicker);
+    
+    // Update order price to the current price of the selected ticker
+    const tickerPrice = this.allPrices()[upperTicker];
+    if (tickerPrice && tickerPrice.currentPrice) {
+      this.orderPrice.set(Number(tickerPrice.currentPrice));
+    }
+  }
+
+  /**
+   * Add a new ticker to the displayed tickers list.
+   */
+  addDisplayedTicker(): void {
+    const newTicker = this.newTickerInput().trim().toUpperCase();
+    if (!newTicker) return;
+
+    const current = this.displayedTickers();
+    if (!current.includes(newTicker)) {
+      this.displayedTickers.set([...current, newTicker]);
+      this.newTickerInput.set('');
+      
+      // Load price for the new ticker
+      this.stockDataService.getPrice(newTicker)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (price) => {
+            this.allPrices.update(prices => ({
+              ...prices,
+              [newTicker]: price
+            }));
+          },
+          error: (error) => {
+            console.error(`Error loading price for ${newTicker}:`, error);
+            this.priceError.set(`Failed to load price for ${newTicker}`);
+          }
+        });
+    }
+  }
+
+  /**
+   * Remove a ticker from the displayed tickers list.
+   */
+  removeDisplayedTicker(ticker: string): void {
+    const current = this.displayedTickers();
+    this.displayedTickers.set(current.filter(t => t !== ticker));
+    
+    // If removed ticker was selected, select the first available ticker
+    if (this.selectedTicker() === ticker) {
+      const newDisplay = this.displayedTickers();
+      if (newDisplay.length > 0) {
+        this.selectTicker(newDisplay[0]);
+      }
+    }
+  }
+
+  toggleDisplayedTickersEdit(): void {
+    this.isEditingDisplayedTickers.update(v => !v);
   }
 
   /* ── Order actions ── */
