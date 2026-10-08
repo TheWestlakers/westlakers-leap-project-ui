@@ -8,8 +8,9 @@ import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-ass
 import { Position, OrderSide, OrderType, PortfolioRange, ChartPoint, SPARKLINE_PATHS } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
+import { PriceWebsocketService } from '../services/price-websocket.service';
 import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
+import { takeUntil, switchMap, filter } from 'rxjs/operators';
 
 interface RangeConfig {
   linePath: string;
@@ -73,6 +74,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
   private readonly stockDataService = inject(StockDataService);
+  private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly destroy$ = new Subject<void>();
 
   /* ── Account ── */
@@ -157,21 +159,46 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Load prices immediately
+    // Load prices immediately via HTTP
     this.loadPrices();
     
-    // Then set up polling to refresh prices every 1 second
-    interval(1000)
+    // Subscribe to WebSocket price updates
+    this.priceWebsocketService
+      .subscribe(this.displayedTickers())
       .pipe(
-        switchMap(() => this.stockDataService.getPrices(this.displayedTickers())),
+        filter(update => update.type === 'price_update'),
         takeUntil(this.destroy$)
       )
       .subscribe({
-        next: (prices) => {
-          this.allPrices.set(prices);
+        next: (update) => {
+          if (update.ticker && update.data) {
+            // Update the allPrices signal with new data
+            const prices = { ...this.allPrices() };
+            prices[update.ticker] = {
+              ticker: update.ticker,
+              symbol: update.ticker,
+              currentPrice: update.data.currentPrice,
+              open: update.data.open,
+              high: update.data.high,
+              low: update.data.low,
+              close: update.data.close,
+              volume: update.data.volume,
+              bid: update.data.bid,
+              ask: update.data.ask,
+              change: update.data.change,
+              changePct: update.data.changePct,
+              timestamp: update.data.timestamp
+            };
+            this.allPrices.set(prices);
+            
+            // Update order price if viewing this ticker
+            if (update.ticker === this.selectedTicker()) {
+              this.orderPrice.set(update.data.currentPrice);
+            }
+          }
         },
         error: (error) => {
-          console.error('Error polling prices:', error);
+          console.error('WebSocket error:', error);
         }
       });
   }
