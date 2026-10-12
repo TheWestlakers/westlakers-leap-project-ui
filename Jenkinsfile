@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs '24.8.0'
+        nodejs 'NodeJS'
     }
 
     options {
