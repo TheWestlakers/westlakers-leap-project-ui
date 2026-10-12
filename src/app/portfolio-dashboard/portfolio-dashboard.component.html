@@ -34,72 +34,8 @@
       </div>
     </div>
 
-    <!-- WATCHLIST -->
-    <div class="watchlist-card">
-      <div class="watchlist-header">
-        <div class="wl-title-group">
-          <span class="wl-icon">☰</span>
-          <span class="wl-title">WATCHLIST</span>
-        </div>
-        <button class="wl-edit-btn" (click)="toggleWatchlistEdit()">
-          {{ isEditingWatchlist() ? 'Done' : 'Edit (' + watchlist().length + ')' }}
-        </button>
-      </div>
-
-      <div class="wl-items">
-        <div
-          *ngFor="let item of watchlist(); let i = index"
-          class="wl-item"
-          [class.wl-item-highlight]="i === 0"
-        >
-          <div class="wl-left">
-            <span class="wl-symbol">{{ item.symbol }}</span>
-            <span class="wl-name">{{ item.name }}</span>
-          </div>
-
-          <!-- Inline SVG sparkline -->
-          <svg class="wl-sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
-            <path
-              [attr.d]="sparklinePaths[item.sparkKey]"
-              fill="none"
-              [attr.stroke]="item.positive ? '#10b981' : '#ef4444'"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
-
-          <div class="wl-right">
-            <span class="wl-price">{{ item.price.toFixed(2) }}</span>
-            <span class="wl-change" [class.positive]="item.positive" [class.negative]="!item.positive">
-              {{ item.positive ? '+' : '' }}{{ item.change.toFixed(2) }}%
-            </span>
-          </div>
-
-          <button
-            *ngIf="isEditingWatchlist()"
-            class="wl-remove-btn"
-            (click)="removeWatchlistItem(item.symbol)"
-          >×</button>
-        </div>
-      </div>
-
-      <!-- Add form -->
-      <div *ngIf="isEditingWatchlist()" class="wl-add-form">
-        <input
-          class="wl-input"
-          placeholder="SYMBOL"
-          [(ngModel)]="newSymbol"
-          (keydown.enter)="addWatchlistItem()"
-        />
-        <input
-          class="wl-input"
-          placeholder="Company name (optional)"
-          [(ngModel)]="newName"
-          (keydown.enter)="addWatchlistItem()"
-        />
-        <button class="wl-add-btn" (click)="addWatchlistItem()">+ ADD TO WATCHLIST</button>
-      </div>
-    </div>
+    <!-- WATCHLIST COMPONENT -->
+    <app-watchlist [allPrices]="allPrices()" [isSelectable]="false" />
 
   </aside>
 
