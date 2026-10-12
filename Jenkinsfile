@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs '24.8.0'
+    }
+
     options {
         timestamps()
     }
@@ -13,6 +17,18 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Verify Node Tooling') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh 'node --version && npm --version && which node && which npm'
+                    } else {
+                        bat 'node --version && npm --version && where node && where npm'
+                    }
+                }
             }
         }
 
