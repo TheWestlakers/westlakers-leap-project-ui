@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -15,6 +16,7 @@ export class Login {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   protected readonly themeService = inject(ThemeService);
+  private readonly auth = inject(AuthService);
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -37,23 +39,17 @@ export class Login {
       return;
     }
 
-    //ADD A ROUTE TO THE LANDING PAGE
-    //this.router.navigateByUrl('/dummy/dummy');
-    this.router.navigateByUrl('/portfolio');
-
-    // PLACEHOLDER for real auth setup (Nest + JWT).
-    // Below is an example of generated login flow:
-    // this.isSubmitting.set(true);
-    // const { email, password } = this.form.getRawValue();
-    // this.auth.login({ email, password }).subscribe({
-    //   next: () => {
-    //     this.isSubmitting.set(false);
-    //     this.router.navigateByUrl('/');
-    //   },
-    //   error: () => {
-    //     this.isSubmitting.set(false);
-    //     this.serverError.set('Incorrect email or password. Please try again.');
-    //   },
-    // });
+    this.isSubmitting.set(true);
+    const { email, password } = this.form.getRawValue();
+    this.auth.login(email, password).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.router.navigateByUrl('/portfolio');
+      },
+      error: () => {
+        this.isSubmitting.set(false);
+        this.serverError.set('Incorrect email or password. Please try again.');
+      },
+    });
   }
 }
