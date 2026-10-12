@@ -146,7 +146,9 @@ export class ComplianceRecordsComponent implements OnInit {
     const endIdx = startIdx + RECORDS_PER_PAGE;
     this.paginatedRecords.set(this.allRecords().slice(startIdx, endIdx));
     this.currentPage.set(page);
-    window.scrollTo(0, 0);
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
   }
 
   nextPage(): void {
