@@ -34,79 +34,27 @@
       </div>
     </div>
 
-    <!-- LIVE TICKER SELECTOR -->
-    <div class="watchlist-card">
-      <div class="watchlist-header">
-        <div class="wl-title-group">
-          <span class="wl-icon">📊</span>
-          <span class="wl-title">WATCHLIST</span>
-        </div>
-        <button class="wl-edit-btn" (click)="toggleDisplayedTickersEdit()">
-          {{ isEditingDisplayedTickers() ? 'Done' : 'Manage (' + displayedTickers().length + ')' }}
-        </button>
-      </div>
-
-      <!-- Loading/Error states -->
-      <div *ngIf="isLoadingPrices()" class="ticker-status">
-        <span class="status-icon">⏳</span>
-        <span class="status-text">Loading prices...</span>
-      </div>
-      <div *ngIf="priceError()" class="ticker-status error">
-        <span class="status-icon">⚠️</span>
-        <span class="status-text">{{ priceError() }}</span>
-      </div>
-
-      <!-- Displayed tickers list -->
-      <div class="wl-items">
-        <div
-          *ngFor="let ticker of displayedTickers()"
-          class="wl-item ticker-item"
-          [class.ticker-selected]="ticker === selectedTicker()"
-          (click)="selectTicker(ticker)"
-        >
-          <div class="wl-left">
-            <span class="wl-symbol">{{ ticker }}</span>
-            <span class="wl-name" *ngIf="allPrices()[ticker]?.ticker">
-              {{ allPrices()[ticker]?.ticker }}
-            </span>
-          </div>
-
-          <div class="wl-right">
-            <span class="wl-price" *ngIf="allPrices()[ticker]?.currentPrice">
-              ${{ (allPrices()[ticker]?.currentPrice | number: '1.2-2') }}
-            </span>
-            <span class="wl-change" 
-              *ngIf="allPrices()[ticker]?.changePct"
-              [class.positive]="(allPrices()[ticker]?.changePct || 0) >= 0" 
-              [class.negative]="(allPrices()[ticker]?.changePct || 0) < 0">
-              {{ (allPrices()[ticker]?.changePct || 0) >= 0 ? '+' : '' }}{{ (allPrices()[ticker]?.changePct | number: '1.2-2') }}%
-            </span>
-          </div>
-
-          <button
-            *ngIf="isEditingDisplayedTickers()"
-            class="wl-remove-btn"
-            (click)="removeDisplayedTicker(ticker); $event.stopPropagation()"
-          >×</button>
-        </div>
-      </div>
-
-      <!-- Add ticker form -->
-      <div *ngIf="isEditingDisplayedTickers()" class="wl-add-form">
-        <input
-          class="wl-input"
-          placeholder="Add ticker (e.g., AAPL, TSLA)"
-          [(ngModel)]="newTickerInput"
-          (keydown.enter)="addDisplayedTicker()"
-        />
-        <button class="wl-add-btn" (click)="addDisplayedTicker()">+ ADD TICKER</button>
-      </div>
-
-      <!-- Refresh button -->
-      <button class="refresh-btn" (click)="refreshPrices()" [disabled]="isLoadingPrices()">
-        {{ isLoadingPrices() ? '⏳ Refreshing...' : '🔄 Refresh Prices' }}
-      </button>
+    <!-- WATCHLIST COMPONENT -->
+    <div *ngIf="isLoadingPrices()" class="ticker-status">
+      <span class="status-icon">⏳</span>
+      <span class="status-text">Loading prices...</span>
     </div>
+    <div *ngIf="priceError()" class="ticker-status error">
+      <span class="status-icon">⚠️</span>
+      <span class="status-text">{{ priceError() }}</span>
+    </div>
+
+    <app-watchlist
+      [allPrices]="allPrices()"
+      [isSelectable]="true"
+      [selectedSymbol]="selectedTicker()"
+      (tickerSelected)="selectTicker($event)"
+      (watchlistSymbolsChange)="onWatchlistSymbolsChange($event)"
+    />
+
+    <button class="refresh-btn" (click)="refreshPrices()" [disabled]="isLoadingPrices()">
+      {{ isLoadingPrices() ? '⏳ Refreshing...' : '🔄 Refresh Prices' }}
+    </button>
 
   </aside>
 

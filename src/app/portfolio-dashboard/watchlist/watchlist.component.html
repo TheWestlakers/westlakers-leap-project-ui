@@ -17,8 +17,11 @@
     <div
       *ngFor="let item of watchlist(); let i = index"
       class="wl-item"
-      [class.wl-item-highlight]="i === 0"
+      [class.wl-item-highlight]="i === 0 && !isSelectable()"
       [class.wl-item-no-hover]="!isSelectable()"
+      [class.wl-item-selectable]="isSelectable()"
+      [class.wl-item-selected]="isSelectable() && item.symbol === selectedSymbol()"
+      (click)="onItemClick(item.symbol)"
     >
       <div class="wl-left">
         <span class="wl-symbol">{{ item.symbol }}</span>
@@ -46,7 +49,7 @@
       <button
         *ngIf="isEditingWatchlist()"
         class="wl-remove-btn"
-        (click)="removeWatchlistItem(item.symbol)"
+        (click)="removeWatchlistItem(item.symbol); $event.stopPropagation()"
       >×</button>
     </div>
   </div>

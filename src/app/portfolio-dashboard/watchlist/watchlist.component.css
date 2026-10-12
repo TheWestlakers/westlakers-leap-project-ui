@@ -49,6 +49,12 @@
 .wl-item:hover { background: var(--surface-hi); }
 .wl-item-highlight { background: var(--surface-hi); }
 .wl-item-no-hover:hover { background: transparent; cursor: default; }
+.wl-item-selectable { cursor: pointer; }
+.wl-item-selected {
+  background: var(--surface-hi);
+  border-left: 3px solid var(--green);
+  padding-left: 13px;
+}
 
 .wl-left {
   display: flex;

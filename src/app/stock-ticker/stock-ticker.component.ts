@@ -2,15 +2,14 @@ import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { HttpClientModule } from '@angular/common/http';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
-import { Position, OrderSide, OrderType, PortfolioRange, ChartPoint, SPARKLINE_PATHS } from '../portfolio-dashboard/portfolio-dashboard.component';
+import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
+import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
-import { PriceWebsocketService } from '../services/price-websocket.service';
 import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap, filter } from 'rxjs/operators';
+import { takeUntil, switchMap } from 'rxjs/operators';
 
 interface RangeConfig {
   linePath: string;
@@ -65,7 +64,7 @@ const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
 @Component({
   selector: 'app-stock-ticker',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, HttpClientModule, TopNavComponent, AiAssistantComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent, WatchlistComponent],
   templateUrl: './stock-ticker.component.html',
   styleUrls: ['./stock-ticker.component.css'],
   host: { '[class.light-theme]': '!themeService.isDarkMode()' }
@@ -74,7 +73,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
   private readonly stockDataService = inject(StockDataService);
-  private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly destroy$ = new Subject<void>();
 
   /* ── Account ── */
@@ -90,16 +88,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   // All prices from backend
   allPrices = signal<{ [symbol: string]: StockPrice }>({});
   
-  // Selected tickers for multi-display (user can choose which ones to display)
-  displayedTickers = signal<string[]>(['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'MU']);
+  // Tickers tracked by the shared watchlist component
+  watchlistSymbols = signal<string[]>(INITIAL_WATCHLIST.map(item => item.symbol));
   
   // Loading and error states
   isLoadingPrices = signal(false);
   priceError = signal<string | null>(null);
-  
-  // UI state for adding/editing tickers
-  newTickerInput = signal('');
-  isEditingDisplayedTickers = signal(false);
 
   /* ── Computed values for main ticker display ── */
   currentTickerPrice = computed<StockPrice | null>(() => {
@@ -143,7 +137,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   orderPrice     = signal(182.50);
   orderExtHours  = signal(true);
   orderSubmitted = signal(false);
-  readonly sparklinePaths = SPARKLINE_PATHS;
 
   get estValue(): number {
     return this.orderShares() * this.orderPrice();
@@ -159,46 +152,26 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Load prices immediately via HTTP
+    // Load prices immediately.
     this.loadPrices();
-    
-    // Subscribe to WebSocket price updates
-    this.priceWebsocketService
-      .subscribe(this.displayedTickers())
+
+    // Keep prices fresh using the same reliable polling pattern as portfolio page.
+    interval(1000)
       .pipe(
-        filter(update => update.type === 'price_update'),
+        switchMap(() => this.stockDataService.getPrices(this.watchlistSymbols())),
         takeUntil(this.destroy$)
       )
       .subscribe({
-        next: (update) => {
-          if (update.ticker && update.data) {
-            // Update the allPrices signal with new data
-            const prices = { ...this.allPrices() };
-            prices[update.ticker] = {
-              ticker: update.ticker,
-              symbol: update.ticker,
-              currentPrice: update.data.currentPrice,
-              open: update.data.open,
-              high: update.data.high,
-              low: update.data.low,
-              close: update.data.close,
-              volume: update.data.volume,
-              bid: update.data.bid,
-              ask: update.data.ask,
-              change: update.data.change,
-              changePct: update.data.changePct,
-              timestamp: update.data.timestamp
-            };
-            this.allPrices.set(prices);
-            
-            // Update order price if viewing this ticker
-            if (update.ticker === this.selectedTicker()) {
-              this.orderPrice.set(update.data.currentPrice);
-            }
+        next: (prices) => {
+          this.allPrices.set(prices);
+          const currentTicker = this.selectedTicker();
+          const tickerPrice = prices[currentTicker];
+          if (tickerPrice && tickerPrice.currentPrice) {
+            this.orderPrice.set(Number(tickerPrice.currentPrice));
           }
         },
         error: (error) => {
-          console.error('WebSocket error:', error);
+          console.error('Error polling prices:', error);
         }
       });
   }
@@ -215,7 +188,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     this.isLoadingPrices.set(true);
     this.priceError.set(null);
 
-    this.stockDataService.getPrices(this.displayedTickers())
+    this.stockDataService.getPrices(this.watchlistSymbols())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (prices) => {
@@ -241,7 +214,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
    * Refresh prices for all displayed tickers.
    */
   refreshPrices(): void {
-    this.stockDataService.invalidateCache(this.displayedTickers());
+    this.stockDataService.invalidateCache(this.watchlistSymbols());
     this.loadPrices();
   }
 
@@ -263,54 +236,16 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Add a new ticker to the displayed tickers list.
-   */
-  addDisplayedTicker(): void {
-    const newTicker = this.newTickerInput().trim().toUpperCase();
-    if (!newTicker) return;
+  onWatchlistSymbolsChange(symbols: string[]): void {
+    const normalized = symbols.map(symbol => symbol.toUpperCase());
+    this.watchlistSymbols.set(normalized);
 
-    const current = this.displayedTickers();
-    if (!current.includes(newTicker)) {
-      this.displayedTickers.set([...current, newTicker]);
-      this.newTickerInput.set('');
-      
-      // Load price for the new ticker
-      this.stockDataService.getPrice(newTicker)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (price) => {
-            this.allPrices.update(prices => ({
-              ...prices,
-              [newTicker]: price
-            }));
-          },
-          error: (error) => {
-            console.error(`Error loading price for ${newTicker}:`, error);
-            this.priceError.set(`Failed to load price for ${newTicker}`);
-          }
-        });
+    if (normalized.length > 0 && !normalized.includes(this.selectedTicker())) {
+      this.selectTicker(normalized[0]);
     }
-  }
 
-  /**
-   * Remove a ticker from the displayed tickers list.
-   */
-  removeDisplayedTicker(ticker: string): void {
-    const current = this.displayedTickers();
-    this.displayedTickers.set(current.filter(t => t !== ticker));
-    
-    // If removed ticker was selected, select the first available ticker
-    if (this.selectedTicker() === ticker) {
-      const newDisplay = this.displayedTickers();
-      if (newDisplay.length > 0) {
-        this.selectTicker(newDisplay[0]);
-      }
-    }
-  }
-
-  toggleDisplayedTickersEdit(): void {
-    this.isEditingDisplayedTickers.update(v => !v);
+    this.stockDataService.invalidateCache(normalized);
+    this.loadPrices();
   }
 
   /* ── Order actions ── */

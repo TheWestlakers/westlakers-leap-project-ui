@@ -1,4 +1,4 @@
-import { Component, signal, input } from '@angular/core';
+import { Component, signal, input, output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WatchlistItem, SPARKLINE_PATHS, INITIAL_WATCHLIST } from '../portfolio-dashboard.component';
@@ -11,10 +11,15 @@ import { StockPrice } from '../../services/stock-data.service';
   templateUrl: './watchlist.component.html',
   styleUrls: ['./watchlist.component.css']
 })
-export class WatchlistComponent {
+export class WatchlistComponent implements OnInit {
   /* ── Inputs ── */
   allPrices = input<{ [symbol: string]: StockPrice }>({});
   isSelectable = input(true); // When false, items can't be clicked to select
+  selectedSymbol = input<string | null>(null);
+
+  /* ── Outputs ── */
+  tickerSelected = output<string>();
+  watchlistSymbolsChange = output<string[]>();
 
   /* ── Watchlist state ── */
   watchlist = signal<WatchlistItem[]>(INITIAL_WATCHLIST);
@@ -22,6 +27,10 @@ export class WatchlistComponent {
   newSymbol = '';
   newName   = '';
   readonly sparklinePaths = SPARKLINE_PATHS;
+
+  ngOnInit(): void {
+    this.emitWatchlistSymbols();
+  }
 
   /* ── Get live price or fallback to static price ── */
   getPrice(symbol: string): string {
@@ -58,6 +67,7 @@ export class WatchlistComponent {
 
   removeWatchlistItem(symbol: string): void {
     this.watchlist.update(list => list.filter(i => i.symbol !== symbol));
+    this.emitWatchlistSymbols();
   }
 
   addWatchlistItem(): void {
@@ -71,7 +81,17 @@ export class WatchlistComponent {
       ...list,
       { symbol: sym, name: this.newName.trim() || sym, price, change, positive: change >= 0, sparkKey },
     ]);
+    this.emitWatchlistSymbols();
     this.newSymbol = '';
     this.newName   = '';
+  }
+
+  onItemClick(symbol: string): void {
+    if (!this.isSelectable()) return;
+    this.tickerSelected.emit(symbol);
+  }
+
+  private emitWatchlistSymbols(): void {
+    this.watchlistSymbolsChange.emit(this.watchlist().map(item => item.symbol));
   }
 }
