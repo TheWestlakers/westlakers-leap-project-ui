@@ -60,9 +60,9 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'npm run test -- --watch=false --no-progress --browsers=ChromeHeadless'
+                        sh 'npm run test -- --watch=false --no-progress'
                     } else {
-                        bat 'npm run test -- --watch=false --no-progress --browsers=ChromeHeadless'
+                        bat 'npm run test -- --watch=false --no-progress'
                     }
                 }
             }
