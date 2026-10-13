@@ -1,16 +1,13 @@
 pipeline {
-    agent any
-
-    tools {
-        nodejs 'NodeJS'
+    agent {
+        docker {
+            image 'node:24-bookworm'
+            reuseNode true
+        }
     }
 
     options {
         timestamps()
-    }
-
-    environment {
-        CI = 'true'
     }
 
     stages {
