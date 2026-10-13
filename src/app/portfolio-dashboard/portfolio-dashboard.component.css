@@ -511,28 +511,28 @@
 }
 
 .simple-view-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 290px;
-  align-items: start;
+  position: relative;
+  display: block;
+  padding-right: 338px;
+  overflow: visible;
 }
 
 .simple-view-layout .left-rail {
-  grid-column: 1;
-  grid-row: 1;
   width: auto;
   min-width: 0;
   overflow: visible;
 }
 
 .simple-view-layout .center-col {
-  grid-column: 1;
-  grid-row: 2;
   width: 100%;
+  margin-top: 12px;
 }
 
 .simple-view-layout .right-rail {
-  grid-column: 2;
-  grid-row: 1 / span 2;
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  align-self: start;
 }
 
 .simple-positions .pos-header-right {
@@ -582,7 +582,7 @@
   .right-rail { display: none; }
 
   .simple-view-layout {
-    grid-template-columns: minmax(0, 1fr);
+    padding-right: 24px;
   }
 
   .simple-view-layout .right-rail {
