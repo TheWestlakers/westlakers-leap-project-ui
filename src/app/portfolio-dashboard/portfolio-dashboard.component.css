@@ -227,6 +227,32 @@
   color: var(--dim);
 }
 
+.simple-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.simple-account-value {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.simple-value {
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.simple-day-change {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
 .change-pill {
   background: rgba(16,185,129,0.1);
   color: var(--green);
@@ -482,6 +508,41 @@
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.simple-view-layout {
+  flex-direction: column;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.simple-view-layout .left-rail {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.simple-view-layout .center-col {
+  width: 100%;
+}
+
+.simple-positions .pos-header-right {
+  display: none;
+}
+
+.simple-positions .compact-scroll {
+  max-height: none;
+}
+
+.simple-positions .col-avg,
+.simple-positions .col-last,
+.simple-positions .col-pnl {
+  display: none;
+}
+
+.simple-positions .col-mkt {
+  flex: 1;
 }
 
 /* ─── Right rail ──────────────────────────────────────── */
