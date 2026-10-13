@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'node:24-bookworm'
-            reuseNode true
+            args '-u root:root'
         }
     }
 
