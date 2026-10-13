@@ -511,15 +511,12 @@
 }
 
 .simple-view-layout {
-  flex-direction: column;
-  max-width: 900px;
-  margin: 0 auto;
-  width: 100%;
+  flex-direction: row;
 }
 
 .simple-view-layout .left-rail {
-  width: 100%;
-  min-width: 0;
+  width: 260px;
+  min-width: 260px;
   overflow: visible;
 }
 
