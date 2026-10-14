@@ -9,7 +9,6 @@ import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.c
 import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
-import { takeUntil } from 'rxjs/operators';
 import { PriceWebsocketService, PriceUpdate } from '../services/price-websocket.service';
 import { TradeService } from '../services/trade.service';
 import { Subject, concatMap, interval, timer } from 'rxjs';
@@ -410,6 +409,11 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     const orderSide = this.orderSide();
     const orderQuantity = this.orderShares();
     const orderPrice = this.orderPrice();
+
+    if (orderPrice === null) {
+      this.orderError.set('Order price is unavailable.');
+      return;
+    }
 
     this.isSubmittingOrder.set(true);
     this.tradeService.getInstrumentByTicker(this.orderSymbol()).pipe(
