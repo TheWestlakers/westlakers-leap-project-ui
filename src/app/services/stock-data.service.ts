@@ -50,7 +50,7 @@ export interface StockPrice {
 })
 export class StockDataService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:8081/api/prices';
+  private readonly apiUrl = '/api/prices';
   
   // Cache for price data
   private priceCache = new Map<string, StockPrice>();

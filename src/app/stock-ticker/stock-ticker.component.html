@@ -200,7 +200,7 @@
                 type="number"
                 class="qty-input"
                 [value]="orderPrice()"
-                (input)="orderPrice.set(+$any($event.target).value || 0)"
+                (input)="setOrderPrice(+$any($event.target).value || 0)"
                 step="0.01"
                 [disabled]="orderType() === 'MARKET'"
               />
@@ -239,7 +239,10 @@
           class="submit-btn"
           [ngClass]="submitClass"
           (click)="submitOrder()"
-        >{{ submitLabel }}</button>
+          [disabled]="isSubmittingOrder()"
+        >{{ isSubmittingOrder() ? 'SUBMITTING...' : submitLabel }}</button>
+
+        <p *ngIf="orderError()" class="order-error">{{ orderError() }}</p>
 
       </div>
     </div>
