@@ -24,6 +24,7 @@ export class Register {
   protected readonly showPassword = signal(false);
   protected readonly isSubmitting = signal(false);
   protected readonly serverError = signal<string | null>(null);
+  protected readonly registrationComplete = signal(false);
 
   protected togglePasswordVisibility(): void {
     this.showPassword.update((value) => !value);
@@ -37,7 +38,6 @@ export class Register {
       return;
     }
 
-    //ADD A ROUTE TO THE LANDING PAGE
-    //this.router.navigateByUrl('/dummy/dummy');
+    this.registrationComplete.set(true);
   }
 }
