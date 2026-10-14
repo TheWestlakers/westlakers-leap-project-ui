@@ -477,6 +477,28 @@
   max-height: 200px; 
 }
 
+:host:not(.light-theme) .pos-rows {
+  scrollbar-color: #252b31 #050607;
+  /* scrollbar-width: thin; */
+}
+
+:host:not(.light-theme) .pos-rows::-webkit-scrollbar {
+  width: 8px;
+}
+
+:host:not(.light-theme) .pos-rows::-webkit-scrollbar-track {
+  background: #050607;
+}
+
+:host:not(.light-theme) .pos-rows::-webkit-scrollbar-thumb {
+  background: #252b31;
+  border-radius: 4px;
+}
+
+:host:not(.light-theme) .pos-rows::-webkit-scrollbar-thumb:hover {
+  background: #343c44;
+}
+
 .pos-row {
   display: flex;
   align-items: center;
