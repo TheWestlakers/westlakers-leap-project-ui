@@ -95,7 +95,8 @@ const assetPathPrefix = "/assets";
                   ></span>
                 </button>
               </div>
-              <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
+              @if (showPowerView) {
+                <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
                 <span>Power view</span>
                 <button
                   type="button"
@@ -114,6 +115,7 @@ const assetPathPrefix = "/assets";
                   ></span>
                 </button>
               </div>
+              }
               <div class="mx-2 my-1 h-px bg-[#1e252b]"></div>
               <button
                 type="button"
@@ -131,6 +133,7 @@ const assetPathPrefix = "/assets";
 })
 export class TopNavComponent {
   @Input({ required: true }) netLiqValue!: number;
+  @Input() showPowerView = false;
 
   private readonly router = inject(Router);
   protected readonly themeService = inject(ThemeService);
