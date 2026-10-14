@@ -835,7 +835,7 @@
   .chart-header { flex-direction: column; align-items: flex-start; }
 }
 
-/* --- Ticker Status & Refresh ----------------------- */
+/* --- Ticker Status ---------------------------------- */
 .ticker-status {
   display: flex;
   align-items: center;
@@ -855,6 +855,48 @@
 .status-icon { font-size: 14px; }
 .status-text { flex: 1; }
 
+.symbol-lookup-card {
+  display: flex;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.symbol-lookup-input {
+  flex: 1;
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.symbol-lookup-input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+.symbol-lookup-btn {
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  background: var(--surface-hi);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.symbol-lookup-btn:hover {
+  border-color: var(--green);
+}
+
 .ticker-item {
   cursor: pointer;
   transition: all 0.15s ease;
@@ -870,27 +912,3 @@
   padding-left: 13px;
 }
 
-.refresh-btn {
-  width: 100%;
-  background: var(--border);
-  border: 1px solid var(--border-mid);
-  border-top: 1px solid var(--border);
-  padding: 8px 12px;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: var(--surface-hi);
-  color: var(--text);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}

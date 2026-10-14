@@ -1,4 +1,5 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
@@ -50,11 +51,13 @@ export interface StockPrice {
 })
 export class StockDataService {
   private readonly http = inject(HttpClient);
+  private readonly platformId = inject(PLATFORM_ID);
   private readonly apiUrl = 'http://localhost:8081/api/prices';
+  private readonly clientStorageKey = 'wl.client.id';
   
   // Cache for price data
   private priceCache = new Map<string, StockPrice>();
-  private cacheDuration = 3000; // Cache for 3 seconds
+  private cacheDuration = 500; // Cache for 500 ms between live price requests
   private lastCacheTime = new Map<string, number>();
   
   // Observable subjects for real-time updates
@@ -207,6 +210,130 @@ export class StockDataService {
   }
 
   /**
+   * Register a ticker so the backend streamer starts polling it.
+   */
+  registerTicker(symbol: string): Observable<{ tickers: string[]; count: number }> {
+    const ticker = symbol.trim().toUpperCase();
+    if (!ticker) {
+      return of({ tickers: [], count: 0 });
+    }
+
+    return this.http.post<{ tickers: string[]; count: number }>(
+      `${this.apiUrl}/tickers/register`,
+      { ticker }
+    ).pipe(
+      catchError(error => {
+        console.error(`Error registering ticker ${ticker}:`, error);
+        return of({ tickers: [], count: 0 });
+      })
+    );
+  }
+
+  /**
+   * Register multiple tickers in one call.
+   */
+  registerTickers(symbols: string[]): Observable<{ tickers: string[]; count: number }> {
+    const tickers = Array.from(new Set(
+      (symbols || [])
+        .map(symbol => symbol?.trim().toUpperCase())
+        .filter((symbol): symbol is string => !!symbol)
+    ));
+
+    if (tickers.length === 0) {
+      return of({ tickers: [], count: 0 });
+    }
+
+    return this.http.post<{ tickers: string[]; count: number }>(
+      `${this.apiUrl}/tickers/register`,
+      { tickers }
+    ).pipe(
+      catchError(error => {
+        console.error('Error registering tickers:', error);
+        return of({ tickers: [], count: 0 });
+      })
+    );
+  }
+
+  /**
+   * Sync the full watchlist for a client so backend keeps persistent subscription ownership.
+   */
+  syncWatchlist(clientId: string, symbols: string[]): Observable<{ tickers: string[]; count: number }> {
+    const tickers = Array.from(new Set(
+      (symbols || [])
+        .map(symbol => symbol?.trim().toUpperCase())
+        .filter((symbol): symbol is string => !!symbol)
+    ));
+
+    return this.http.post<{ tickers: string[]; count: number }>(
+      `${this.apiUrl}/tickers/watchlist/sync`,
+      { clientId, tickers }
+    ).pipe(
+      catchError(error => {
+        console.error('Error syncing watchlist:', error);
+        return of({ tickers: [], count: 0 });
+      })
+    );
+  }
+
+  /**
+   * Register a focused ticker for this specific frontend client.
+   */
+  focusTicker(clientId: string, symbol: string): Observable<{ ticker: string; status: string }> {
+    const ticker = symbol.trim().toUpperCase();
+    if (!ticker) {
+      return of({ ticker: '', status: 'ignored' });
+    }
+
+    return this.http.post<{ ticker: string; status: string }>(
+      `${this.apiUrl}/tickers/focus`,
+      { clientId, ticker }
+    ).pipe(
+      catchError(error => {
+        console.error(`Error focusing ticker ${ticker}:`, error);
+        return of({ ticker, status: 'error' });
+      })
+    );
+  }
+
+  /**
+   * Release focused ticker ownership for this specific frontend client.
+   */
+  unfocusTicker(clientId: string, symbol: string): Observable<{ ticker: string; status: string }> {
+    const ticker = symbol.trim().toUpperCase();
+    if (!ticker) {
+      return of({ ticker: '', status: 'ignored' });
+    }
+
+    return this.http.post<{ ticker: string; status: string }>(
+      `${this.apiUrl}/tickers/unfocus`,
+      { clientId, ticker }
+    ).pipe(
+      catchError(error => {
+        console.error(`Error unfocusing ticker ${ticker}:`, error);
+        return of({ ticker, status: 'error' });
+      })
+    );
+  }
+
+  /**
+   * Get or create a stable per-browser client id used for ticker ownership.
+   */
+  getOrCreateClientId(): string {
+    if (!isPlatformBrowser(this.platformId)) {
+      return 'server-render-client';
+    }
+
+    const existing = localStorage.getItem(this.clientStorageKey);
+    if (existing) {
+      return existing;
+    }
+
+    const generated = this.generateClientId();
+    localStorage.setItem(this.clientStorageKey, generated);
+    return generated;
+  }
+
+  /**
    * Clear the price cache.
    */
   clearCache(): void {
@@ -239,5 +366,14 @@ export class StockDataService {
     }
     const elapsed = Date.now() - lastTime;
     return elapsed < this.cacheDuration && this.priceCache.has(symbol);
+  }
+
+  private generateClientId(): string {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return `client-${crypto.randomUUID()}`;
+    }
+
+    const randomPart = Math.random().toString(36).slice(2, 12);
+    return `client-${Date.now()}-${randomPart}`;
   }
 }

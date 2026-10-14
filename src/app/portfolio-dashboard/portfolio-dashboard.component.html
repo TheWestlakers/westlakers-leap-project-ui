@@ -1,5 +1,10 @@
 <!-- ─── TOP NAV ──────────────────────────────────────── -->
-<app-top-nav [netLiqValue]="totalAccountValue" />
+<app-top-nav
+  [netLiqValue]="totalAccountValue"
+  [searchValue]="searchValue"
+  (searchValueChange)="searchValue = $event"
+  (searchSubmit)="submitTickerSearch()"
+/>
 
 <!-- ─── MAIN WORKSPACE ───────────────────────────────── -->
 <div class="workspace">
@@ -35,7 +40,11 @@
     </div>
 
     <!-- WATCHLIST COMPONENT -->
-    <app-watchlist [allPrices]="allPrices()" [isSelectable]="false" />
+    <app-watchlist
+      [allPrices]="allPrices()"
+      [isSelectable]="false"
+      (watchlistSymbolsChange)="onWatchlistSymbolsChange($event)"
+    />
 
   </aside>
 

@@ -1,15 +1,16 @@
 import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
 import { WatchlistComponent } from './watchlist/watchlist.component';
 import { ThemeService } from '../services/theme.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
+import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 /* ─── Shared types ────────────────────────────────────── */
 export interface WatchlistItem {
@@ -132,8 +133,14 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
 export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly router = inject(Router);
   private readonly stockDataService = inject(StockDataService);
+  private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly destroy$ = new Subject<void>();
+  private readonly websocketSymbols = new Set<string>();
+  private readonly positionSymbols = new Set<string>();
+  private watchlistSymbols = new Set<string>();
+  private clientId = '';
 
   /* ── Account ── */
   readonly totalAccountValue = 248512.90;
@@ -143,6 +150,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   /* ── Stock prices ── */
   allPrices = signal<{ [symbol: string]: StockPrice }>({});
+  searchValue = '';
 
   /* ── Positions ── */
   readonly positions: Position[] = ALL_POSITIONS;
@@ -166,43 +174,72 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
 
-  ngOnInit(): void {
-    // Get symbols from open positions
-    const symbols = this.positions.map(p => p.symbol);
-    
-    if (symbols.length > 0) {
-      // Load prices immediately
-      this.stockDataService.getPrices(symbols)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (prices) => {
-            this.allPrices.set(prices);
-          },
-          error: (error) => {
-            console.error('Error loading prices:', error);
-          }
-        });
-      
-      // Then set up polling to refresh prices every 1 second
-      interval(1000)
-        .pipe(
-          switchMap(() => this.stockDataService.getPrices(symbols)),
-          takeUntil(this.destroy$)
-        )
-        .subscribe({
-          next: (prices) => {
-            this.allPrices.set(prices);
-          },
-          error: (error) => {
-            console.error('Error polling prices:', error);
-          }
-        });
+  submitTickerSearch(): void {
+    const ticker = this.searchValue.trim().toUpperCase();
+    if (!ticker) {
+      return;
     }
+
+    this.router.navigate(['/stock-ticker'], { queryParams: { symbol: ticker } });
+  }
+
+  ngOnInit(): void {
+    this.clientId = this.stockDataService.getOrCreateClientId();
+    this.priceWebsocketService.getPriceUpdates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(update => this.applyPriceUpdate(update));
+
+    const symbols = this.positions.map(position => position.symbol.toUpperCase());
+    this.priceWebsocketService.subscribe(symbols);
+    symbols.forEach(symbol => {
+      this.positionSymbols.add(symbol);
+      this.websocketSymbols.add(symbol);
+    });
+  }
+
+  onWatchlistSymbolsChange(symbols: string[]): void {
+    const normalized = Array.from(new Set(symbols.map(symbol => symbol.toUpperCase())));
+
+    this.stockDataService.syncWatchlist(this.clientId, normalized)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe();
+
+    const nextWatchlistSymbols = new Set(normalized);
+    const symbolsToSubscribe = normalized.filter(symbol => !this.websocketSymbols.has(symbol));
+    if (symbolsToSubscribe.length > 0) {
+      this.priceWebsocketService.subscribe(symbolsToSubscribe);
+    }
+    symbolsToSubscribe.forEach(symbol => this.websocketSymbols.add(symbol));
+
+    const symbolsToUnsubscribe = Array.from(this.watchlistSymbols)
+      .filter(symbol => !nextWatchlistSymbols.has(symbol) && !this.positionSymbols.has(symbol));
+    if (symbolsToUnsubscribe.length > 0) {
+      this.priceWebsocketService.unsubscribe(symbolsToUnsubscribe);
+      symbolsToUnsubscribe.forEach(symbol => this.websocketSymbols.delete(symbol));
+    }
+    this.watchlistSymbols = nextWatchlistSymbols;
   }
 
   ngOnDestroy(): void {
+    this.priceWebsocketService.unsubscribe(Array.from(this.websocketSymbols));
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private applyPriceUpdate(update: PriceUpdate): void {
+    if (update.type !== 'price_update' || !update.ticker || !update.data) {
+      return;
+    }
+
+    const ticker = update.ticker.toUpperCase();
+    const price = {
+      ...update.data,
+      ticker,
+      symbol: update.data.symbol || ticker,
+      timestamp: update.data.timestamp || new Date(update.timestamp || Date.now()).toISOString()
+    } as StockPrice;
+
+    this.allPrices.update(prices => ({ ...prices, [ticker]: price }));
   }
 
   /* ── Style helpers ── */

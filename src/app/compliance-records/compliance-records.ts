@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { CommonModule, isPlatformBrowser } from "@angular/common";
+import { PLATFORM_ID } from "@angular/core";
 import { Location } from "@angular/common";
 import { ThemeService } from "../services/theme.service";
 
@@ -50,6 +51,7 @@ export interface ComplianceRecord {
 })
 export class ComplianceRecordsComponent implements OnInit {
   protected readonly themeService = inject(ThemeService);
+  private readonly platformId = inject(PLATFORM_ID);
   allRecords = signal<ComplianceRecord[]>([]);
   paginatedRecords = signal<ComplianceRecord[]>([]);
   currentPage = signal(1);
@@ -146,7 +148,7 @@ export class ComplianceRecordsComponent implements OnInit {
     const endIdx = startIdx + RECORDS_PER_PAGE;
     this.paginatedRecords.set(this.allRecords().slice(startIdx, endIdx));
     this.currentPage.set(page);
-    if (typeof window !== "undefined") {
+    if (isPlatformBrowser(this.platformId)) {
       window.scrollTo(0, 0);
     }
   }

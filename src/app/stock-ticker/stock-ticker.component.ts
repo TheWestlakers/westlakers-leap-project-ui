@@ -2,14 +2,16 @@ import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
 import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { PriceWebsocketService, PriceUpdate } from '../services/price-websocket.service';
 
 interface RangeConfig {
   linePath: string;
@@ -72,8 +74,13 @@ const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
 export class StockTickerComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly route = inject(ActivatedRoute);
   private readonly stockDataService = inject(StockDataService);
+  private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly destroy$ = new Subject<void>();
+  private clientId = '';
+  private focusedTransientTicker: string | null = null;
+  private websocketSymbols = new Set<string>();
 
   /* ── Account ── */
   readonly totalAccountValue = 248512.90;
@@ -94,6 +101,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   // Loading and error states
   isLoadingPrices = signal(false);
   priceError = signal<string | null>(null);
+  symbolLookup = '';
 
   /* ── Computed values for main ticker display ── */
   currentTickerPrice = computed<StockPrice | null>(() => {
@@ -107,9 +115,9 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     return price?.ticker || this.selectedTicker();
   });
 
-  stockPrice = computed(() => {
+  stockPrice = computed<number | null>(() => {
     const price = this.currentTickerPrice();
-    return price ? Number(price.currentPrice) : 182.52;
+    return price?.currentPrice != null ? Number(price.currentPrice) : null;
   });
 
   stockSymbol = computed(() => this.selectedTicker());
@@ -123,7 +131,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     return RANGE_DATA[this.activeRange()];
   }
 
-  get currentValue(): number { return this.stockPrice(); }
+  get currentValue(): number | null { return this.stockPrice(); }
 
   get isPositive(): boolean { return this.rangeData.deltaValue >= 0; }
 
@@ -134,12 +142,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   orderType      = signal<OrderType>('LIMIT');
   orderSymbol    = signal(this.stockSymbol());
   orderShares    = signal(100);
-  orderPrice     = signal(182.50);
+  orderPrice     = signal<number | null>(null);
   orderExtHours  = signal(true);
   orderSubmitted = signal(false);
 
   get estValue(): number {
-    return this.orderShares() * this.orderPrice();
+    return this.orderShares() * (this.orderPrice() ?? 0);
   }
 
   get submitLabel(): string {
@@ -152,70 +160,43 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Load prices immediately.
-    this.loadPrices();
+    this.clientId = this.stockDataService.getOrCreateClientId();
 
-    // Keep prices fresh using the same reliable polling pattern as portfolio page.
-    interval(1000)
-      .pipe(
-        switchMap(() => this.stockDataService.getPrices(this.watchlistSymbols())),
-        takeUntil(this.destroy$)
-      )
-      .subscribe({
-        next: (prices) => {
-          this.allPrices.set(prices);
-          const currentTicker = this.selectedTicker();
-          const tickerPrice = prices[currentTicker];
-          if (tickerPrice && tickerPrice.currentPrice) {
-            this.orderPrice.set(Number(tickerPrice.currentPrice));
-          }
-        },
-        error: (error) => {
-          console.error('Error polling prices:', error);
-        }
-      });
+    const initialTicker = this.route.snapshot.queryParamMap.get('symbol')?.trim().toUpperCase();
+    if (initialTicker) {
+      this.selectedTicker.set(initialTicker);
+      this.orderSymbol.set(initialTicker);
+
+      if (!this.watchlistSymbols().includes(initialTicker)) {
+        this.focusedTransientTicker = initialTicker;
+        this.stockDataService.focusTicker(this.clientId, initialTicker)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe();
+      }
+    }
+
+    this.stockDataService.syncWatchlist(this.clientId, this.watchlistSymbols())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe();
+
+    this.priceWebsocketService.getPriceUpdates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(update => this.applyPriceUpdate(update));
+    this.syncWebsocketSubscriptions();
   }
 
   ngOnDestroy(): void {
+    if (this.focusedTransientTicker) {
+      this.stockDataService.unfocusTicker(this.clientId, this.focusedTransientTicker)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe();
+      this.focusedTransientTicker = null;
+    }
+
+    this.priceWebsocketService.unsubscribe(Array.from(this.websocketSymbols));
+
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  /**
-   * Load prices for the displayed tickers from the backend.
-   */
-  private loadPrices(): void {
-    this.isLoadingPrices.set(true);
-    this.priceError.set(null);
-
-    this.stockDataService.getPrices(this.watchlistSymbols())
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (prices) => {
-          this.allPrices.set(prices);
-          // Initialize order price with current ticker's live price
-          const currentTicker = this.selectedTicker();
-          const tickerPrice = prices[currentTicker];
-          if (tickerPrice && tickerPrice.currentPrice) {
-            this.orderPrice.set(Number(tickerPrice.currentPrice));
-          }
-          this.isLoadingPrices.set(false);
-        },
-        error: (error) => {
-          console.error('Error loading prices:', error);
-          this.priceError.set('Failed to load prices. Please try again.');
-          this.isLoadingPrices.set(false);
-          // Keep displaying fallback data if available
-        }
-      });
-  }
-
-  /**
-   * Refresh prices for all displayed tickers.
-   */
-  refreshPrices(): void {
-    this.stockDataService.invalidateCache(this.watchlistSymbols());
-    this.loadPrices();
   }
 
   /**
@@ -224,28 +205,129 @@ export class StockTickerComponent implements OnInit, OnDestroy {
    */
   selectTicker(ticker: string): void {
     const upperTicker = ticker.toUpperCase();
+    const currentTicker = this.selectedTicker();
+
+    if (currentTicker !== upperTicker) {
+      this.releaseTransientFocus(currentTicker);
+    }
+
     this.selectedTicker.set(upperTicker);
+    this.syncWebsocketSubscriptions();
     
     // Sync order entry form with selected ticker
     this.orderSymbol.set(upperTicker);
     
     // Update order price to the current price of the selected ticker
     const tickerPrice = this.allPrices()[upperTicker];
-    if (tickerPrice && tickerPrice.currentPrice) {
-      this.orderPrice.set(Number(tickerPrice.currentPrice));
-    }
+    this.orderPrice.set(tickerPrice?.currentPrice != null ? Number(tickerPrice.currentPrice) : null);
   }
 
   onWatchlistSymbolsChange(symbols: string[]): void {
     const normalized = symbols.map(symbol => symbol.toUpperCase());
     this.watchlistSymbols.set(normalized);
 
-    if (normalized.length > 0 && !normalized.includes(this.selectedTicker())) {
+    this.stockDataService.syncWatchlist(this.clientId, normalized)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe();
+
+    if (this.focusedTransientTicker && normalized.includes(this.focusedTransientTicker)) {
+      this.stockDataService.unfocusTicker(this.clientId, this.focusedTransientTicker)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe();
+      this.focusedTransientTicker = null;
+    }
+
+    if (normalized.length > 0 && !normalized.includes(this.selectedTicker()) && !this.focusedTransientTicker) {
       this.selectTicker(normalized[0]);
     }
 
-    this.stockDataService.invalidateCache(normalized);
-    this.loadPrices();
+    this.syncWebsocketSubscriptions();
+  }
+
+  addFocusedTicker(): void {
+    const symbol = this.symbolLookup.trim().toUpperCase();
+    if (!symbol) {
+      return;
+    }
+
+    const inWatchlist = this.watchlistSymbols().includes(symbol);
+
+    if (inWatchlist) {
+      this.selectTicker(symbol);
+      this.symbolLookup = '';
+      return;
+    }
+
+    this.focusedTransientTicker = symbol;
+    this.stockDataService.focusTicker(this.clientId, symbol)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.selectTicker(symbol);
+      });
+
+    this.symbolLookup = '';
+  }
+
+  private releaseTransientFocus(ticker: string): void {
+    const normalized = ticker.toUpperCase();
+    const isWatchlistTicker = this.watchlistSymbols().includes(normalized);
+    if (this.focusedTransientTicker !== normalized || isWatchlistTicker) {
+      return;
+    }
+
+    this.stockDataService.unfocusTicker(this.clientId, normalized)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe();
+
+    this.focusedTransientTicker = null;
+  }
+
+  private getWebsocketSymbols(): string[] {
+    const symbols = [...this.watchlistSymbols(), this.selectedTicker()];
+    return Array.from(new Set(symbols.map(symbol => symbol.toUpperCase())));
+  }
+
+  private syncWebsocketSubscriptions(): void {
+    const desiredSymbols = new Set(this.getWebsocketSymbols());
+    const symbolsToSubscribe = Array.from(desiredSymbols)
+      .filter(symbol => !this.websocketSymbols.has(symbol));
+    const symbolsToUnsubscribe = Array.from(this.websocketSymbols)
+      .filter(symbol => !desiredSymbols.has(symbol));
+
+    if (symbolsToSubscribe.length > 0) {
+      this.priceWebsocketService.subscribe(symbolsToSubscribe);
+    }
+    if (symbolsToUnsubscribe.length > 0) {
+      this.priceWebsocketService.unsubscribe(symbolsToUnsubscribe);
+    }
+
+    this.websocketSymbols = desiredSymbols;
+  }
+
+  private applyPriceUpdate(update: PriceUpdate): void {
+    if (update.type === 'subscription_confirmed') {
+      this.isLoadingPrices.set(false);
+      return;
+    }
+
+    if (update.type !== 'price_update' || !update.ticker || !update.data) {
+      return;
+    }
+
+    const ticker = update.ticker.toUpperCase();
+    const price = {
+      ...update.data,
+      ticker,
+      symbol: update.data.symbol || ticker,
+      timestamp: update.data.timestamp || new Date(update.timestamp || Date.now()).toISOString()
+    } as StockPrice;
+
+    this.allPrices.update(prices => ({ ...prices, [ticker]: price }));
+    const shouldSetInitialLimitPrice = this.orderType() === 'LIMIT' && this.orderPrice() === null;
+    if (ticker === this.selectedTicker() && price.currentPrice != null &&
+        (this.orderType() === 'MARKET' || shouldSetInitialLimitPrice)) {
+      this.orderPrice.set(Number(price.currentPrice));
+    }
   }
 
   /* ── Order actions ── */
@@ -281,5 +363,9 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
   formatCurrency(val: number): string {
     return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  formatPrice(val: number | null): string {
+    return val == null ? '' : val.toFixed(2);
   }
 }
