@@ -9,9 +9,11 @@ import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.c
 import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
-import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PriceWebsocketService, PriceUpdate } from '../services/price-websocket.service';
+import { TradeService } from '../services/trade.service';
+import { Subject, concatMap, interval, timer } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 
 interface RangeConfig {
   linePath: string;
@@ -77,6 +79,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly stockDataService = inject(StockDataService);
   private readonly priceWebsocketService = inject(PriceWebsocketService);
+  private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
   private clientId = '';
   private focusedTransientTicker: string | null = null;
@@ -87,6 +90,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   readonly buyingPower       =  94210.45;
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
+  readonly accountId = 3;
 
   /* ── Stock symbol and price data ── */
   // Currently selected ticker for main display
@@ -143,14 +147,19 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   orderSymbol    = signal(this.stockSymbol());
   orderShares    = signal(100);
   orderPrice     = signal<number | null>(null);
+  private limitPriceEdited = false;
   orderExtHours  = signal(true);
   orderSubmitted = signal(false);
+  orderExecuted = signal(false);
+  isSubmittingOrder = signal(false);
+  orderError = signal<string | null>(null);
 
   get estValue(): number {
     return this.orderShares() * (this.orderPrice() ?? 0);
   }
 
   get submitLabel(): string {
+    if (this.orderExecuted()) return '✓ ORDER EXECUTED';
     return this.orderSubmitted() ? '✓ ORDER SUBMITTED' : `PLACE ${this.orderSide()} ORDER`;
   }
 
@@ -200,6 +209,44 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Load prices for the displayed tickers from the backend.
+   */
+  private loadPrices(): void {
+    this.isLoadingPrices.set(true);
+    this.priceError.set(null);
+
+    this.stockDataService.getPrices(this.watchlistSymbols())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (prices) => {
+          this.allPrices.set(prices);
+          // Initialize order price with current ticker's live price
+          const currentTicker = this.selectedTicker();
+          const tickerPrice = prices[currentTicker];
+          if (tickerPrice && tickerPrice.currentPrice &&
+              (this.orderType() === 'MARKET' || !this.limitPriceEdited)) {
+            this.orderPrice.set(Number(tickerPrice.currentPrice));
+          }
+          this.isLoadingPrices.set(false);
+        },
+        error: (error) => {
+          console.error('Error loading prices:', error);
+          this.priceError.set('Failed to load prices. Please try again.');
+          this.isLoadingPrices.set(false);
+          // Keep displaying fallback data if available
+        }
+      });
+  }
+
+  /**
+   * Refresh prices for all displayed tickers.
+   */
+  refreshPrices(): void {
+    this.stockDataService.invalidateCache(this.watchlistSymbols());
+    this.loadPrices();
+  }
+
+  /**
    * Select a ticker to display in the main chart.
    * Also updates the order entry form to reflect the selected ticker.
    */
@@ -216,6 +263,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     
     // Sync order entry form with selected ticker
     this.orderSymbol.set(upperTicker);
+    this.limitPriceEdited = false;
     
     // Update order price to the current price of the selected ticker
     const tickerPrice = this.allPrices()[upperTicker];
@@ -332,15 +380,80 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
   /* ── Order actions ── */
   setSide(side: OrderSide): void { this.orderSide.set(side); }
-  setOrderType(type: OrderType): void { this.orderType.set(type); }
+  setOrderType(type: OrderType): void {
+    this.orderType.set(type);
+    if (type === 'LIMIT') {
+      this.limitPriceEdited = false;
+      const tickerPrice = this.allPrices()[this.selectedTicker()];
+      if (tickerPrice?.currentPrice) {
+        this.orderPrice.set(Number(tickerPrice.currentPrice));
+      }
+    }
+  }
+  setOrderPrice(price: number): void {
+    this.orderPrice.set(price);
+    if (this.orderType() === 'LIMIT') {
+      this.limitPriceEdited = true;
+    }
+  }
   incrementShares(): void { this.orderShares.update(n => n + 1); }
   decrementShares(): void { this.orderShares.update(n => Math.max(1, n - 1)); }
   toggleExtHours(): void { this.orderExtHours.update(v => !v); }
 
   
   submitOrder(): void {
-    this.orderSubmitted.set(true);
-    setTimeout(() => this.orderSubmitted.set(false), 2500);
+    this.orderError.set(null);
+    this.orderSubmitted.set(false);
+    this.orderExecuted.set(false);
+
+    const orderType = this.orderType();
+    const orderSide = this.orderSide();
+    const orderQuantity = this.orderShares();
+    const orderPrice = this.orderPrice();
+
+    this.isSubmittingOrder.set(true);
+    this.tradeService.getInstrumentByTicker(this.orderSymbol()).pipe(
+      switchMap(instrument => orderType === 'LIMIT'
+        ? this.tradeService.createLimitTrade({
+            accountId: this.accountId,
+            instrumentId: instrument.instrumentId,
+            side: orderSide,
+            quantity: orderQuantity,
+            limitPrice: orderPrice,
+          })
+        : this.tradeService.createMarketTrade({
+            accountId: this.accountId,
+            instrumentId: instrument.instrumentId,
+            side: orderSide,
+            quantity: orderQuantity,
+            estimatedPrice: orderPrice,
+          })
+      ),
+      concatMap(order => {
+        this.orderSubmitted.set(true);
+        const simulatedDelay = 1500 + Math.floor(Math.random() * 3500);
+        return timer(simulatedDelay).pipe(
+          switchMap(() => this.stockDataService.getPrice(this.selectedTicker())),
+          switchMap(marketPrice => this.tradeService.executeTrade(
+            order.orderId,
+            Number(marketPrice.currentPrice)
+          ))
+        );
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: () => {
+        this.isSubmittingOrder.set(false);
+        this.orderExecuted.set(true);
+      },
+      error: (error: { error?: { message?: string; details?: string }; message?: string }) => {
+        this.isSubmittingOrder.set(false);
+        this.orderError.set(
+          error.error?.details || error.error?.message || error.message ||
+          `Unable to create the ${orderType.toLowerCase()} order.`
+        );
+      },
+    });
   }
 
   /* ── Style helpers ── */

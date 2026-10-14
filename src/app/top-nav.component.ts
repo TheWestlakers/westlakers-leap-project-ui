@@ -100,6 +100,27 @@ const assetPathPrefix = "/assets";
                   ></span>
                 </button>
               </div>
+              @if (showPowerView) {
+                <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
+                <span>Power view</span>
+                <button
+                  type="button"
+                  role="switch"
+                  [attr.aria-checked]="isPowerView()"
+                  aria-label="Toggle power view"
+                  (click)="togglePowerView()"
+                  class="relative h-5 w-9 shrink-0 rounded-full transition-colors"
+                  [class.bg-[#3e8914]]="isPowerView()"
+                  [class.bg-[#4b5563]]="!isPowerView()"
+                >
+                  <span
+                    class="absolute left-0.5 top-0.5 size-4 rounded-full bg-white transition-transform"
+                    [class.translate-x-4]="isPowerView()"
+                    [class.translate-x-0]="!isPowerView()"
+                  ></span>
+                </button>
+              </div>
+              }
               <div class="mx-2 my-1 h-px bg-[#1e252b]"></div>
               <button
                 type="button"
@@ -120,12 +141,14 @@ export class TopNavComponent {
   @Input() searchValue = "";
   @Output() searchValueChange = new EventEmitter<string>();
   @Output() searchSubmit = new EventEmitter<void>();
+  @Input() showPowerView = false;
 
   private readonly router = inject(Router);
   protected readonly themeService = inject(ThemeService);
 
   protected readonly isMenuOpen = signal(false);
   protected readonly isDarkMode = this.themeService.isDarkMode;
+  protected readonly isPowerView = this.themeService.isPowerView;
 
   imgCircleX = `${assetPathPrefix}/ed609.svg`;
   imgLiveDot = `${assetPathPrefix}/2ea7c.svg`;
@@ -140,6 +163,10 @@ export class TopNavComponent {
 
   protected toggleTheme(): void {
     this.themeService.toggleTheme();
+  }
+
+  protected togglePowerView(): void {
+    this.themeService.togglePowerView();
   }
 
   protected logout(): void {

@@ -52,7 +52,7 @@ export interface StockPrice {
 export class StockDataService {
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly apiUrl = 'http://localhost:8081/api/prices';
+  private readonly apiUrl = '/api/prices';
   private readonly clientStorageKey = 'wl.client.id';
   
   // Cache for price data
