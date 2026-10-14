@@ -1,49 +1,64 @@
 <!-- ─── TOP NAV ──────────────────────────────────────── -->
-<app-top-nav [netLiqValue]="totalAccountValue" />
+<app-top-nav [netLiqValue]="totalAccountValue" [showPowerView]="true" />
 
 <!-- ─── MAIN WORKSPACE ───────────────────────────────── -->
-<div class="workspace">
+<div class="workspace" [class.simple-view-layout]="!themeService.isPowerView()">
 
   <!-- LEFT RAIL -->
   <aside class="left-rail">
 
-    <!-- Total account value -->
-    <div class="stat-card">
-      <p class="stat-label">TOTAL ACCOUNT VALUE</p>
-      <div class="stat-row">
-        <span class="stat-value">${{ formatCurrency(totalAccountValue) }}</span>
-        <span class="stat-change positive">+{{ dayChangePct }}%</span>
+    @if (themeService.isPowerView()) {
+      <!-- Total account value -->
+      <div class="stat-card">
+        <p class="stat-label">TOTAL ACCOUNT VALUE</p>
+        <div class="stat-row">
+          <span class="stat-value">${{ formatCurrency(totalAccountValue) }}</span>
+          <span class="stat-change positive">+{{ dayChangePct }}%</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Buying power -->
-    <div class="stat-card">
-      <p class="stat-label">AVAILABLE BUYING POWER</p>
-      <div class="stat-row">
-        <span class="stat-value">${{ formatCurrency(buyingPower) }}</span>
-        <span class="stat-margin">MARGIN x2.0</span>
+      <!-- Buying power -->
+      <div class="stat-card">
+        <p class="stat-label">AVAILABLE BUYING POWER</p>
+        <div class="stat-row">
+          <span class="stat-value">${{ formatCurrency(buyingPower) }}</span>
+          <span class="stat-margin">MARGIN x2.0</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Day change -->
-    <div class="stat-card">
-      <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
-      <div class="stat-row">
-        <span class="stat-value positive">+${{ formatCurrency(dayChange) }}</span>
-        <span class="change-pill">▲ UP</span>
+      <!-- Day change -->
+      <div class="stat-card">
+        <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
+        <div class="stat-row">
+          <span class="stat-value positive">+${{ formatCurrency(dayChange) }}</span>
+          <span class="change-pill">▲ UP</span>
+        </div>
       </div>
-    </div>
 
-    <!-- WATCHLIST COMPONENT -->
-    <app-watchlist [allPrices]="allPrices()" [isSelectable]="false" />
+      <!-- WATCHLIST COMPONENT -->
+      <app-watchlist [allPrices]="allPrices()" [isSelectable]="false" />
+    } @else {
+      <div class="simple-summary">
+        <div class="simple-account-value">
+          <p class="stat-label">TOTAL VALUE</p>
+          <p class="simple-value">${{ formatCurrency(totalAccountValue) }}</p>
+          <p class="simple-day-change positive">Today +${{ formatCurrency(dayChange) }} ({{ dayChangePct }}%)</p>
+        </div>
+        <div class="simple-account-value">
+          <p class="stat-label">SETTLED CASH</p>
+          <p class="simple-value">${{ formatCurrency(buyingPower) }}</p>
+        </div>
+      </div>
+    }
 
   </aside>
 
   <!-- CENTER COLUMN -->
   <main class="center-col">
 
-    <!-- PORTFOLIO CHART -->
-    <div class="chart-widget">
+    @if (themeService.isPowerView()) {
+      <!-- PORTFOLIO CHART -->
+      <div class="chart-widget">
       <div class="chart-header">
         <div class="chart-left">
           <span class="chart-title">PORTFOLIO</span>
@@ -105,14 +120,15 @@
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    }
 
     <!-- OPEN POSITIONS (compact) -->
-    <div class="positions-widget">
+    <div class="positions-widget" [class.simple-positions]="!themeService.isPowerView()">
       <div class="positions-header">
         <div class="pos-title-group">
           <span class="pos-icon">💼</span>
-          <span class="pos-title">OPEN POSITIONS</span>
+          <span class="pos-title">{{ themeService.isPowerView() ? 'OPEN POSITIONS' : 'HOLDINGS' }}</span>
         </div>
         <div class="pos-header-right">
           <span class="active-pill">{{ positions.length }} ACTIVE</span>
