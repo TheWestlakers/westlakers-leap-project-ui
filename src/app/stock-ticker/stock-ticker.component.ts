@@ -76,11 +76,12 @@ function formatTooltipDate(timestamp: string): string {
 }
 
 const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number; bucketMs: number }> = {
-  '1D': { period: '1d', interval: '1m', limit: 390, refreshMs: 60_000, bucketMs: 60_000 },
-  '5D': { period: '5d', interval: '5m', limit: 390, refreshMs: 300_000, bucketMs: 300_000 },
-  '1Y': { period: '1y', interval: '1d', limit: 260, refreshMs: 900_000, bucketMs: 86_400_000 },
-  '3Y': { period: '3y', interval: '1d', limit: 780, refreshMs: 3_600_000, bucketMs: 86_400_000 },
-  '5Y': { period: '5y', interval: '1wk', limit: 260, refreshMs: 14_400_000, bucketMs: 604_800_000 },
+  '1D': { period: '1d', interval: '5m', limit: 78, refreshMs: 60_000, bucketMs: 300_000 },
+  '5D': { period: '5d', interval: '15m', limit: 130, refreshMs: 300_000, bucketMs: 900_000 },
+  '1M': { period: '1mo', interval: '1d', limit: 31, refreshMs: 900_000, bucketMs: 86_400_000 },
+  '6M': { period: '6mo', interval: '1d', limit: 130, refreshMs: 900_000, bucketMs: 86_400_000 },
+  '1Y': { period: '1y', interval: '1wk', limit: 53, refreshMs: 1_800_000, bucketMs: 604_800_000 },
+  '3Y': { period: '3y', interval: '1wk', limit: 156, refreshMs: 3_600_000, bucketMs: 604_800_000 },
 };
 
 function buildRangeConfig(points: ChartPoint[]): RangeConfig {
@@ -98,8 +99,8 @@ function buildRangeConfig(points: ChartPoint[]): RangeConfig {
   const chartMax = Math.ceil(max / step) * step + step;
   const span = chartMax - chartMin || 1;
   const plotPoints = points.map((point, index): ChartPlotPoint => {
-    const x = (index / Math.max(points.length - 1, 1)) * 680;
-    const y = 200 - ((point.price - chartMin) / span) * 200;
+    const x = 4 + (index / Math.max(points.length - 1, 1)) * 672;
+    const y = 196 - ((point.price - chartMin) / span) * 192;
     return { ...point, x, y };
   });
   const line = plotPoints.map((point, index) =>
@@ -193,7 +194,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   stockName = computed(() => this.currentTickerName());
 
   /* ── Stock chart ── */
-  readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
+  readonly RANGES: PortfolioRange[] = ['1D', '5D', '1M', '6M', '1Y', '3Y'];
   activeRange = signal<PortfolioRange>('5D');
   chartPoints = signal<ChartPoint[]>([]);
   hoveredPointIndex = signal<number | null>(null);
@@ -211,6 +212,17 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   get hoveredChartPoint(): ChartPlotPoint | null {
     const index = this.hoveredPointIndex();
     return index == null ? null : this.rangeData.plotPoints[index] ?? null;
+  }
+
+  getChartHoverZoneX(index: number): number {
+    const points = this.rangeData.plotPoints;
+    return index === 0 ? 0 : (points[index - 1].x + points[index].x) / 2;
+  }
+
+  getChartHoverZoneWidth(index: number): number {
+    const points = this.rangeData.plotPoints;
+    const rightEdge = index === points.length - 1 ? 680 : (points[index].x + points[index + 1].x) / 2;
+    return rightEdge - this.getChartHoverZoneX(index);
   }
 
   formatTooltipDate(timestamp: string): string {

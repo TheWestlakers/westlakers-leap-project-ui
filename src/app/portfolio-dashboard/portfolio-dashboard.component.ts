@@ -36,7 +36,7 @@ export interface Position {
 
 export type OrderSide = 'BUY' | 'SELL';
 export type OrderType = 'LIMIT' | 'MARKET';
-export type PortfolioRange = '1D' | '5D' | '1Y' | '3Y' | '5Y';
+export type PortfolioRange = '1D' | '5D' | '1M' | '6M' | '1Y' | '3Y';
 
 export interface ChartPoint {
   x: number; // 0–100 percent along x axis
@@ -108,9 +108,10 @@ function buildRangeConfig(days: number, base: number, end: number, xLbls: string
 const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
   '1D': buildRangeConfig(1,   244800, 248512.90, ['9:30', '11:00', '12:30', '14:00', '16:00']),
   '5D': buildRangeConfig(5,   241200, 248512.90, ['Mon',  'Tue',   'Wed',   'Thu',   'Fri'  ]),
+  '1M': buildRangeConfig(30,  232000, 248512.90, ['Mar 18', 'Mar 25', 'Apr 1', 'Apr 8', 'Apr 15']),
+  '6M': buildRangeConfig(182, 210000, 248512.90, ['Oct', 'Dec', 'Feb', 'Mar', 'Apr']),
   '1Y': buildRangeConfig(365, 198000, 248512.90, ['May',  'Jul',   'Sep',   'Nov',   'Jan'  ]),
   '3Y': buildRangeConfig(365 * 3, 142000, 248512.90, ['2022', '2023', '2024', 'Q1',  'Now' ]),
-  '5Y': buildRangeConfig(365 * 5,  95000, 248512.90, ['2020', '2021', '2022', '2023', '2024']),
 };
 
 /* ─── Inline sparkline SVG paths ─────────────────────── */
@@ -158,7 +159,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   readonly COMPACT_LIMIT = 3;
 
   /* ── Portfolio chart ── */
-  readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
+  readonly RANGES: PortfolioRange[] = ['1D', '5D', '1M', '6M', '1Y', '3Y'];
   activeRange = signal<PortfolioRange>('5D');
 
   /* ── Order form ── */
