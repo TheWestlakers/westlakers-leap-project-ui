@@ -92,8 +92,11 @@
 }
 
 .compliance-title {
-  font-size: 16px !important;
-  letter-spacing: 0.01em;
+  font-family: 'Instrument Sans', system-ui, sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  font-variation-settings: 'wdth' 100 !important;
 }
 
 .compliance-content {
@@ -101,18 +104,22 @@
 }
 
 .compliance-stat {
-  padding: 18px 20px !important;
-  gap: 8px !important;
+  padding: 14px !important;
+  gap: 4px !important;
 }
 
 .compliance-stat > p:first-child {
-  font-size: 11px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
   font-weight: 600 !important;
   letter-spacing: 0.06em;
 }
 
 .compliance-stat > p:last-child {
-  font-size: 24px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  margin: 2px 0;
 }
 
 .records-panel-header {
