@@ -51,6 +51,39 @@
   gap: 16px;
 }
 
+/* ─── Sub nav ─────────────────────────────────────────── */
+.sub-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 48px;
+  padding: 0 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sub-nav-back {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.12s;
+}
+
+.sub-nav-back:hover { color: var(--text); }
+
+.sub-nav-divider { width: 1px; height: 18px; background: var(--border); }
+
+.sub-nav-title {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
 .nav-brand {
   display: flex;
   align-items: center;
