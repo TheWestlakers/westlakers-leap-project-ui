@@ -86,6 +86,15 @@
   border-color: var(--border) !important;
 }
 
+/* Match the admin dashboard's light-theme gray on every compliance outline. */
+:host.light-theme .compliance-page [class*="border"] {
+  border-color: #e0e7f1 !important;
+}
+
+:host.light-theme .compliance-page {
+  --border: #e0e7f1;
+}
+
 /* Keep the audit view aligned with the dashboard's page rhythm and type scale. */
 .compliance-header {
   height: 64px !important;
@@ -202,6 +211,22 @@
   color: #64748b !important;
 }
 
+:host.light-theme .side-buy-badge {
+  background-color: #e8f5e9 !important;
+  color: #047857 !important;
+}
+
+:host.light-theme .side-sell-badge,
+:host.light-theme .status-rejected {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+:host.light-theme .status-partially-filled {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
 @media (max-width: 900px) {
   .compliance-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -294,4 +319,21 @@
 :host.light-theme .status-badge.rejected {
   background-color: #fee2e2 !important;
   color: #dc2626 !important;
+}
+
+/* These specific rules come after the generic badge theme so each state wins. */
+:host.light-theme .compliance-page .status-badge.side-buy-badge {
+  background-color: #e8f5e9 !important;
+  color: #047857 !important;
+}
+
+:host.light-theme .compliance-page .status-badge.side-sell-badge,
+:host.light-theme .compliance-page .status-badge.status-rejected {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+:host.light-theme .compliance-page .status-badge.status-partially-filled {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
 }

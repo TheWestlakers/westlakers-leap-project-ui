@@ -101,6 +101,8 @@
                     ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]'
                     : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
                 "
+                [class.side-buy-badge]="record.orderDecision.side === 'BUY'"
+                [class.side-sell-badge]="record.orderDecision.side === 'SELL'"
               >
                 {{ record.orderDecision.side }}
               </span>
@@ -127,6 +129,8 @@
                       ? 'bg-[rgba(245,158,11,0.1)] text-[#fbbf24]'
                       : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
                 "
+                        [class.status-partially-filled]="record.executionResult.status === 'PARTIALLY_FILLED'"
+                        [class.status-rejected]="record.executionResult.status === 'REJECTED'"
               >
                 {{ record.executionResult.status }}
               </span>
