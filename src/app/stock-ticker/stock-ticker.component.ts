@@ -7,6 +7,7 @@ import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-ass
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
 import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
+import { AccountService } from '../services/account.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { TradeService } from '../services/trade.service';
 import { Subject, concatMap, interval, timer } from 'rxjs';
@@ -73,13 +74,14 @@ const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
 export class StockTickerComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly accountService = inject(AccountService);
   private readonly stockDataService = inject(StockDataService);
   private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
 
   /* ── Account ── */
-  readonly totalAccountValue = 248512.90;
-  readonly buyingPower       =  94210.45;
+  get totalAccountValue(): number { return Number(this.accountService.account()?.settledCash ?? 0); }
+  get buyingPower(): number { return Number(this.accountService.account()?.settledCash ?? 0); }
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
   readonly accountId = 3;
@@ -160,6 +162,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.accountService.loadAccount(this.accountId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        error: (error) => console.error('Error loading account:', error)
+      });
+
     // Load prices immediately.
     this.loadPrices();
 
@@ -324,8 +332,19 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: () => {
-        this.isSubmittingOrder.set(false);
-        this.orderExecuted.set(true);
+        this.accountService.refreshAccount(this.accountId)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.isSubmittingOrder.set(false);
+              this.orderExecuted.set(true);
+            },
+            error: (error) => {
+              console.error('Error refreshing account after trade:', error);
+              this.isSubmittingOrder.set(false);
+              this.orderExecuted.set(true);
+            }
+          });
       },
       error: (error: { error?: { message?: string; details?: string }; message?: string }) => {
         this.isSubmittingOrder.set(false);
