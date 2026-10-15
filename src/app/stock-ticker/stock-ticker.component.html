@@ -103,7 +103,12 @@
           <span *ngFor="let y of rangeData.yLabels" class="axis-label">{{ y }}</span>
         </div>
         <div class="chart-svg-wrap">
-          <svg viewBox="0 0 680 200" preserveAspectRatio="none" class="chart-svg">
+          <svg
+            viewBox="0 0 680 200"
+            preserveAspectRatio="none"
+            class="chart-svg"
+            (mouseleave)="hoveredPointIndex.set(null)"
+          >
             <defs>
               <linearGradient id="stGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   [attr.stop-color]="chartColor" stop-opacity="0.18"/>
@@ -118,6 +123,52 @@
               stroke-width="1.5"
               stroke-linejoin="round"
               stroke-linecap="round"
+            />
+            <line
+              *ngIf="hoveredChartPoint as point"
+              [attr.x1]="point.x"
+              [attr.x2]="point.x"
+              y1="0"
+              y2="200"
+              class="chart-hover-line"
+            />
+            <circle
+              *ngIf="rangeData.plotPoints.length"
+              [attr.cx]="Math.min(rangeData.plotPoints[rangeData.plotPoints.length - 1].x, 676)"
+              [attr.cy]="Math.min(Math.max(rangeData.plotPoints[rangeData.plotPoints.length - 1].y, 4), 196)"
+              r="4"
+              [attr.fill]="chartColor"
+              class="chart-end-dot"
+            />
+            <g *ngIf="hoveredChartPoint as point" class="chart-tooltip" pointer-events="none">
+              <rect
+                [attr.x]="Math.min(Math.max(point.x - 42, 4), 592)"
+                y="84"
+                width="84"
+                height="32"
+                rx="3"
+              />
+              <text
+                [attr.x]="Math.min(Math.max(point.x, 46), 634)"
+                y="98"
+                text-anchor="middle"
+              >{{ '$' + formatCurrency(point.price) }}</text>
+              <text
+                [attr.x]="Math.min(Math.max(point.x, 46), 634)"
+                y="110"
+                text-anchor="middle"
+                class="chart-tooltip-date"
+              >{{ formatTooltipDate(point.timestamp) }}</text>
+            </g>
+            <circle
+              *ngFor="let point of rangeData.plotPoints; let i = index"
+              [attr.cx]="point.x"
+              [attr.cy]="point.y"
+              r="9"
+              fill="transparent"
+              class="chart-hover-target"
+              (mouseenter)="hoveredPointIndex.set(i)"
+              (mouseleave)="hoveredPointIndex.set(null)"
             />
           </svg>
           <div class="chart-x-labels">

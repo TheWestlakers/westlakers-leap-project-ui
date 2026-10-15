@@ -20,9 +20,15 @@ interface ChartPoint {
   timestamp: string;
 }
 
+interface ChartPlotPoint extends ChartPoint {
+  x: number;
+  y: number;
+}
+
 interface RangeConfig {
   linePath: string;
   fillPath: string;
+  plotPoints: ChartPlotPoint[];
   xLabels: string[];
   yLabels: string[];
   deltaValue: number;
@@ -61,6 +67,14 @@ function formatAxisTime(timestamp: string, spanMs: number): string {
   return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 }
 
+function formatTooltipDate(timestamp: string): string {
+  return new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number; bucketMs: number }> = {
   '1D': { period: '1d', interval: '1m', limit: 390, refreshMs: 60_000, bucketMs: 60_000 },
   '5D': { period: '5d', interval: '5m', limit: 390, refreshMs: 300_000, bucketMs: 300_000 },
@@ -72,7 +86,7 @@ const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; 
 function buildRangeConfig(points: ChartPoint[]): RangeConfig {
   if (points.length === 0) {
     return { linePath: 'M0,100 L680,100', fillPath: 'M0,100 L680,100 L680,200 L0,200 Z',
-      xLabels: [], yLabels: [], deltaValue: 0, deltaPct: 0 };
+      plotPoints: [], xLabels: [], yLabels: [], deltaValue: 0, deltaPct: 0 };
   }
 
   const prices = points.map(point => point.price);
@@ -83,11 +97,14 @@ function buildRangeConfig(points: ChartPoint[]): RangeConfig {
   const chartMin = Math.floor(min / step) * step - step;
   const chartMax = Math.ceil(max / step) * step + step;
   const span = chartMax - chartMin || 1;
-  const line = points.map((point, index) => {
+  const plotPoints = points.map((point, index): ChartPlotPoint => {
     const x = (index / Math.max(points.length - 1, 1)) * 680;
     const y = 200 - ((point.price - chartMin) / span) * 200;
-    return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+    return { ...point, x, y };
+  });
+  const line = plotPoints.map((point, index) =>
+    `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`
+  ).join(' ');
   const first = points[0].price;
   const last = points[points.length - 1].price;
   const delta = last - first;
@@ -103,6 +120,7 @@ function buildRangeConfig(points: ChartPoint[]): RangeConfig {
   return {
     linePath:   line,
     fillPath:   generateFillPath(line),
+    plotPoints,
     xLabels:    labels,
     yLabels,
     deltaValue: delta,
@@ -178,6 +196,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
   activeRange = signal<PortfolioRange>('5D');
   chartPoints = signal<ChartPoint[]>([]);
+  hoveredPointIndex = signal<number | null>(null);
 
   get rangeData(): RangeConfig {
     return buildRangeConfig(this.chartPoints());
@@ -188,6 +207,15 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   get isPositive(): boolean { return this.rangeData.deltaValue >= 0; }
 
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
+
+  get hoveredChartPoint(): ChartPlotPoint | null {
+    const index = this.hoveredPointIndex();
+    return index == null ? null : this.rangeData.plotPoints[index] ?? null;
+  }
+
+  formatTooltipDate(timestamp: string): string {
+    return formatTooltipDate(timestamp);
+  }
 
   /* ── Order entry ── */
   orderSide      = signal<OrderSide>('BUY');
