@@ -1,8 +1,12 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { ThemeService } from '../services/theme.service';
+import { HoldingService } from '../services/holding.service';
+import { StockDataService, StockPrice } from '../services/stock-data.service';
+import { Subject, interval } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 
 /* ─── Types ───────────────────────────────────────────── */
 export interface Position {
@@ -20,16 +24,6 @@ export interface Position {
 export type SortField = 'symbol' | 'shares' | 'avgCost' | 'lastPrice' | 'marketValue' | 'unrealizedPnl';
 export type SortDir = 'asc' | 'desc';
 
-/* ─── Seed data ───────────────────────────────────────── */
-const ALL_POSITIONS: Position[] = [
-  { id: '1', symbol: 'AAPL',  shares: 150, avgCost: 168.20, lastPrice: 182.52, marketValue:  27378.00, unrealizedPnl:  2148.00, unrealizedPct:   8.51, sector: 'Technology' },
-  { id: '2', symbol: 'TSLA',  shares:  60, avgCost: 185.00, lastPrice: 176.54, marketValue:  10592.40, unrealizedPnl:  -507.60, unrealizedPct:  -4.57, sector: 'Consumer Discretionary' },
-  { id: '3', symbol: 'AMZN',  shares:  80, avgCost: 155.40, lastPrice: 174.42, marketValue:  13953.60, unrealizedPnl:  1521.60, unrealizedPct:  12.24, sector: 'Consumer Discretionary' },
-  { id: '4', symbol: 'NVDA',  shares:  45, avgCost: 420.00, lastPrice: 875.40, marketValue:  39393.00, unrealizedPnl: 20493.00, unrealizedPct: 108.57, sector: 'Technology' },
-  { id: '5', symbol: 'MSFT',  shares:  30, avgCost: 310.50, lastPrice: 415.60, marketValue:  12468.00, unrealizedPnl:  3153.00, unrealizedPct:  33.82, sector: 'Technology' },
-  { id: '6', symbol: 'META',  shares:  25, avgCost: 290.00, lastPrice: 485.20, marketValue:  12130.00, unrealizedPnl:  4880.00, unrealizedPct:  67.24, sector: 'Communication Services' },
-];
-
 @Component({
   selector: 'app-open-positions',
   standalone: true,
@@ -38,18 +32,54 @@ const ALL_POSITIONS: Position[] = [
   styleUrls: ['./open-positions.component.css'],
   host: { '[class.light-theme]': '!themeService.isDarkMode()' }
 })
-export class OpenPositionsComponent {
+export class OpenPositionsComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly holdingService = inject(HoldingService);
+  private readonly stockDataService = inject(StockDataService);
+  private readonly destroy$ = new Subject<void>();
+  private readonly emptyPosition: Position = { id: '', symbol: '--', shares: 0, avgCost: 0, lastPrice: 0, marketValue: 0, unrealizedPnl: 0, unrealizedPct: 0, sector: 'Unknown' };
+  readonly positionData = signal<Position[]>([]);
+  readonly accountId = 3;
   /* ── Sort state ── */
   sortField = signal<SortField>('marketValue');
   sortDir   = signal<SortDir>('desc');
+
+  ngOnInit(): void {
+    this.holdingService.getHoldingsByAccountId(this.accountId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: holdings => {
+          const positions = holdings.map(holding => ({ ...holding, lastPrice: holding.avgCost, marketValue: holding.shares * holding.avgCost, unrealizedPnl: 0, unrealizedPct: 0, sector: 'Unknown' }));
+          this.positionData.set(positions);
+          const symbols = positions.map(position => position.symbol);
+          if (symbols.length === 0) return;
+
+          const updatePrices = (prices: { [symbol: string]: StockPrice }) => this.positionData.update(current => current.map(position => {
+            const lastPrice = prices[position.symbol]?.currentPrice ?? position.lastPrice;
+            const marketValue = position.shares * lastPrice;
+            const unrealizedPnl = (lastPrice - position.avgCost) * position.shares;
+            const costBasis = position.avgCost * position.shares;
+            return { ...position, lastPrice, marketValue, unrealizedPnl, unrealizedPct: costBasis ? unrealizedPnl / costBasis * 100 : 0 };
+          }));
+
+          this.stockDataService.getPrices(symbols).pipe(takeUntil(this.destroy$)).subscribe({ next: updatePrices, error: error => console.error('Error loading prices:', error) });
+          interval(1000).pipe(switchMap(() => this.stockDataService.getPrices(symbols)), takeUntil(this.destroy$)).subscribe({ next: updatePrices, error: error => console.error('Error polling prices:', error) });
+        },
+        error: error => console.error('Error loading holdings:', error),
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   /* ── Sorted positions ── */
   get positions(): Position[] {
     const field = this.sortField();
     const dir   = this.sortDir();
-    return [...ALL_POSITIONS].sort((a, b) => {
+    return [...this.positionData()].sort((a, b) => {
       const av = a[field];
       const bv = b[field];
       if (typeof av === 'string' && typeof bv === 'string') {
@@ -61,11 +91,11 @@ export class OpenPositionsComponent {
 
   /* ── Summary metrics ── */
   get totalMarketValue(): number {
-    return ALL_POSITIONS.reduce((s, p) => s + p.marketValue, 0);
+    return this.positionData().reduce((s, p) => s + p.marketValue, 0);
   }
 
   get totalUnrealizedPnl(): number {
-    return ALL_POSITIONS.reduce((s, p) => s + p.unrealizedPnl, 0);
+    return this.positionData().reduce((s, p) => s + p.unrealizedPnl, 0);
   }
 
   get totalUnrealizedPct(): number {
@@ -73,18 +103,14 @@ export class OpenPositionsComponent {
     return costBasis > 0 ? (this.totalUnrealizedPnl / costBasis) * 100 : 0;
   }
 
-  get activeCount(): number { return ALL_POSITIONS.length; }
+  get activeCount(): number { return this.positionData().length; }
 
   get bestPerformer(): Position {
-    return ALL_POSITIONS.reduce((best, p) =>
-      p.unrealizedPct > best.unrealizedPct ? p : best, ALL_POSITIONS[0]
-    );
+    return this.positionData().reduce((best, p) => p.unrealizedPct > best.unrealizedPct ? p : best, this.emptyPosition);
   }
 
   get worstPerformer(): Position {
-    return ALL_POSITIONS.reduce((worst, p) =>
-      p.unrealizedPct < worst.unrealizedPct ? p : worst, ALL_POSITIONS[0]
-    );
+    return this.positionData().reduce((worst, p) => p.unrealizedPct < worst.unrealizedPct ? p : worst, this.emptyPosition);
   }
 
   /* ── Sort interaction ── */
@@ -133,7 +159,7 @@ export class OpenPositionsComponent {
 
   /** Width % of the largest market value for the bar chart */
   barWidth(pos: Position): number {
-    const max = Math.max(...ALL_POSITIONS.map(p => p.marketValue));
-    return (pos.marketValue / max) * 100;
+    const max = Math.max(...this.positionData().map(p => p.marketValue), 0);
+    return max ? (pos.marketValue / max) * 100 : 0;
   }
 }

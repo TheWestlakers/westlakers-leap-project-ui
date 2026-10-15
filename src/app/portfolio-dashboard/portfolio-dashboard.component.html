@@ -131,7 +131,7 @@
           <span class="pos-title">{{ themeService.isPowerView() ? 'OPEN POSITIONS' : 'HOLDINGS' }}</span>
         </div>
         <div class="pos-header-right">
-          <span class="active-pill">{{ positions.length }} ACTIVE</span>
+          <span class="active-pill">{{ positions().length }} ACTIVE</span>
           <a class="view-all-link" routerLink="/open-positions">VIEW ALL →</a>
         </div>
       </div>
@@ -149,7 +149,7 @@
       <!-- Rows — show first 3 in compact mode, scrollable -->
       <div class="pos-rows compact-scroll">
         <div
-          *ngFor="let pos of positions; let i = index"
+          *ngFor="let pos of positions(); let i = index"
           class="pos-row"
           [ngClass]="rowBg(i)"
         >

@@ -8,6 +8,7 @@ import { TradeHereComponent } from './trade-here/trade-here.component';
 import { WatchlistComponent } from './watchlist/watchlist.component';
 import { ThemeService } from '../services/theme.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
+import { HoldingService } from '../services/holding.service';
 import { Subject, interval } from 'rxjs';
 import { takeUntil, switchMap } from 'rxjs/operators';
 
@@ -51,15 +52,6 @@ export const INITIAL_WATCHLIST: WatchlistItem[] = [
   { symbol: 'AMZN',  name: 'Amazon.com Inc.',  price: 174.42, change: 0.85,  positive: true,  sparkKey: 'up3'  },
   { symbol: 'GOOGL', name: 'Alphabet Inc.',    price: 151.60, change: -1.15, positive: false, sparkKey: 'down2' },
   { symbol: 'MU',    name: 'Micron Technology',  price: 98.35,  change: 2.41,  positive: true,  sparkKey: 'up1'  },
-];
-
-const ALL_POSITIONS: Position[] = [
-  { id: '1', symbol: 'AAPL',  shares: 150, avgCost: 168.20, lastPrice: 182.52, marketValue:  27378.00, unrealizedPnl:  2148.00, unrealizedPct:  8.51 },
-  { id: '2', symbol: 'TSLA',  shares:  60, avgCost: 185.00, lastPrice: 176.54, marketValue:  10592.40, unrealizedPnl:  -507.60, unrealizedPct: -4.57 },
-  { id: '3', symbol: 'AMZN',  shares:  80, avgCost: 155.40, lastPrice: 174.42, marketValue:  13953.60, unrealizedPnl:  1521.60, unrealizedPct: 12.24 },
-  { id: '4', symbol: 'NVDA',  shares:  45, avgCost: 420.00, lastPrice: 875.40, marketValue:  39393.00, unrealizedPnl: 20493.00, unrealizedPct: 108.57 },
-  { id: '5', symbol: 'MSFT',  shares:  30, avgCost: 310.50, lastPrice: 415.60, marketValue:  12468.00, unrealizedPnl:  3153.00, unrealizedPct: 33.82 },
-  { id: '6', symbol: 'META',  shares:  25, avgCost: 290.00, lastPrice: 485.20, marketValue:  12130.00, unrealizedPnl:  4880.00, unrealizedPct: 67.24 },
 ];
 
 /* ─── Chart data generator ────────────────────────────── */
@@ -133,7 +125,9 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
   private readonly stockDataService = inject(StockDataService);
+  private readonly holdingService = inject(HoldingService);
   private readonly destroy$ = new Subject<void>();
+  readonly accountId = 3;
 
   /* ── Account ── */
   readonly totalAccountValue = 248512.90;
@@ -145,7 +139,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   allPrices = signal<{ [symbol: string]: StockPrice }>({});
 
   /* ── Positions ── */
-  readonly positions: Position[] = ALL_POSITIONS;
+  readonly positions = signal<Position[]>([]);
   readonly COMPACT_LIMIT = 3;
 
   /* ── Portfolio chart ── */
@@ -167,37 +161,43 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
 
   ngOnInit(): void {
-    // Get symbols from open positions
-    const symbols = this.positions.map(p => p.symbol);
-    
-    if (symbols.length > 0) {
-      // Load prices immediately
-      this.stockDataService.getPrices(symbols)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (prices) => {
+    this.holdingService.getHoldingsByAccountId(this.accountId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: holdings => {
+          const positions = holdings.map(holding => ({
+            ...holding,
+            lastPrice: holding.avgCost,
+            marketValue: holding.shares * holding.avgCost,
+            unrealizedPnl: 0,
+            unrealizedPct: 0,
+          }));
+          this.positions.set(positions);
+
+          const symbols = positions.map(position => position.symbol);
+          if (symbols.length === 0) return;
+
+          const updatePrices = (prices: { [symbol: string]: StockPrice }) => {
             this.allPrices.set(prices);
-          },
-          error: (error) => {
-            console.error('Error loading prices:', error);
-          }
-        });
-      
-      // Then set up polling to refresh prices every 1 second
-      interval(1000)
-        .pipe(
-          switchMap(() => this.stockDataService.getPrices(symbols)),
-          takeUntil(this.destroy$)
-        )
-        .subscribe({
-          next: (prices) => {
-            this.allPrices.set(prices);
-          },
-          error: (error) => {
-            console.error('Error polling prices:', error);
-          }
-        });
-    }
+            this.positions.update(current => current.map(position => {
+              const lastPrice = prices[position.symbol]?.currentPrice ?? position.lastPrice;
+              const marketValue = position.shares * lastPrice;
+              const unrealizedPnl = (lastPrice - position.avgCost) * position.shares;
+              const costBasis = position.avgCost * position.shares;
+              return { ...position, lastPrice, marketValue, unrealizedPnl, unrealizedPct: costBasis ? unrealizedPnl / costBasis * 100 : 0 };
+            }));
+          };
+
+          this.stockDataService.getPrices(symbols)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({ next: updatePrices, error: error => console.error('Error loading prices:', error) });
+
+          interval(1000)
+            .pipe(switchMap(() => this.stockDataService.getPrices(symbols)), takeUntil(this.destroy$))
+            .subscribe({ next: updatePrices, error: error => console.error('Error polling prices:', error) });
+        },
+        error: error => console.error('Error loading holdings:', error),
+      });
   }
 
   ngOnDestroy(): void {
