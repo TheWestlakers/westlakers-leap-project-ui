@@ -7,6 +7,8 @@ import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
 import { WatchlistComponent } from './watchlist/watchlist.component';
 import { ThemeService } from '../services/theme.service';
+import { AccountService } from '../services/account.service';
+import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { HoldingService } from '../services/holding.service';
 import { Subject, interval } from 'rxjs';
@@ -124,16 +126,29 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
 export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly accountService = inject(AccountService);
+  private readonly portfolioValueService = inject(PortfolioValueService);
   private readonly stockDataService = inject(StockDataService);
   private readonly holdingService = inject(HoldingService);
   private readonly destroy$ = new Subject<void>();
-  readonly accountId = 3;
 
   /* ── Account ── */
-  readonly totalAccountValue = 248512.90;
-  readonly buyingPower       =  94210.45;
+  readonly accountId = 3;
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
+
+  get totalAccountValue(): number {
+    return this.accountSummary.totalAccountValue;
+  }
+  get buyingPower(): number { return this.accountSummary.buyingPower; }
+
+  get accountSummary() {
+    return this.portfolioValueService.calculateSummary(
+      this.accountService.account(),
+      this.positions(),
+      this.allPrices(),
+    );
+  }
 
   /* ── Stock prices ── */
   allPrices = signal<{ [symbol: string]: StockPrice }>({});
@@ -154,13 +169,19 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
     return RANGE_DATA[this.activeRange()];
   }
 
-  get currentValue(): number { return 248512.90; }
+  get currentValue(): number { return this.totalAccountValue; }
 
   get isPositive(): boolean { return this.rangeData.deltaValue >= 0; }
 
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
 
   ngOnInit(): void {
+    this.accountService.loadAccount(this.accountId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        error: (error) => console.error('Error loading account:', error)
+      });
+
     this.holdingService.getHoldingsByAccountId(this.accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({

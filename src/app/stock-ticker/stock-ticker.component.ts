@@ -7,6 +7,9 @@ import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-ass
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
 import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
+import { AccountService } from '../services/account.service';
+import { HoldingPosition, HoldingService } from '../services/holding.service';
+import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { TradeService } from '../services/trade.service';
 import { Subject, concatMap, interval, timer } from 'rxjs';
@@ -73,13 +76,23 @@ const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
 export class StockTickerComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly accountService = inject(AccountService);
+  private readonly holdingService = inject(HoldingService);
+  private readonly portfolioValueService = inject(PortfolioValueService);
   private readonly stockDataService = inject(StockDataService);
   private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
 
   /* ── Account ── */
-  readonly totalAccountValue = 248512.90;
-  readonly buyingPower       =  94210.45;
+  get accountSummary() {
+    return this.portfolioValueService.calculateSummary(
+      this.accountService.account(),
+      this.holdings(),
+      this.allPrices(),
+    );
+  }
+  get totalAccountValue(): number { return this.accountSummary.totalAccountValue; }
+  get buyingPower(): number { return this.accountSummary.buyingPower; }
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
   readonly accountId = 3;
@@ -90,6 +103,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   
   // All prices from backend
   allPrices = signal<{ [symbol: string]: StockPrice }>({});
+  holdings = signal<HoldingPosition[]>([]);
   
   // Tickers tracked by the shared watchlist component
   watchlistSymbols = signal<string[]>(INITIAL_WATCHLIST.map(item => item.symbol));
@@ -160,13 +174,21 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.accountService.loadAccount(this.accountId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        error: (error) => console.error('Error loading account:', error)
+      });
+
+    this.loadHoldings();
+
     // Load prices immediately.
     this.loadPrices();
 
     // Keep prices fresh using the same reliable polling pattern as portfolio page.
     interval(1000)
       .pipe(
-        switchMap(() => this.stockDataService.getPrices(this.watchlistSymbols())),
+        switchMap(() => this.stockDataService.getPrices(this.priceSymbols())),
         takeUntil(this.destroy$)
       )
       .subscribe({
@@ -197,7 +219,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     this.isLoadingPrices.set(true);
     this.priceError.set(null);
 
-    this.stockDataService.getPrices(this.watchlistSymbols())
+    this.stockDataService.getPrices(this.priceSymbols())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (prices) => {
@@ -217,6 +239,25 @@ export class StockTickerComponent implements OnInit, OnDestroy {
           this.isLoadingPrices.set(false);
           // Keep displaying fallback data if available
         }
+      });
+  }
+
+  private priceSymbols(): string[] {
+    return [...new Set([
+      ...this.watchlistSymbols(),
+      ...this.holdings().map(holding => holding.symbol),
+    ])];
+  }
+
+  private loadHoldings(): void {
+    this.holdingService.getHoldingsByAccountId(this.accountId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: holdings => {
+          this.holdings.set(holdings);
+          this.loadPrices();
+        },
+        error: error => console.error('Error loading holdings:', error),
       });
   }
 
@@ -324,8 +365,20 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: () => {
-        this.isSubmittingOrder.set(false);
-        this.orderExecuted.set(true);
+        this.accountService.refreshAccount(this.accountId)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.loadHoldings();
+              this.isSubmittingOrder.set(false);
+              this.orderExecuted.set(true);
+            },
+            error: (error) => {
+              console.error('Error refreshing account after trade:', error);
+              this.isSubmittingOrder.set(false);
+              this.orderExecuted.set(true);
+            }
+          });
       },
       error: (error: { error?: { message?: string; details?: string }; message?: string }) => {
         this.isSubmittingOrder.set(false);
