@@ -9,6 +9,10 @@
   --border: #1e252b;
   --text: #ffffff;
   --text-muted: #94a3b8;
+  display: block;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
 }
 
 :host.light-theme {
@@ -82,6 +86,185 @@
   border-color: var(--border) !important;
 }
 
+/* Match the admin dashboard's light-theme gray on every compliance outline. */
+:host.light-theme .compliance-page [class*="border"] {
+  border-color: #e0e7f1 !important;
+}
+
+:host.light-theme .compliance-page {
+  --border: #e0e7f1;
+}
+
+/* Keep the audit view aligned with the dashboard's page rhythm and type scale. */
+.compliance-header {
+  height: 64px !important;
+}
+
+.compliance-title {
+  font-family: 'Instrument Sans', system-ui, sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  font-variation-settings: 'wdth' 100 !important;
+}
+
+.compliance-content {
+  gap: 16px !important;
+}
+
+.compliance-stat {
+  padding: 14px !important;
+  gap: 4px !important;
+}
+
+.compliance-stat > p:first-child {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em;
+}
+
+.compliance-stat > p:last-child {
+  font-family: var(--font-mono) !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  margin: 2px 0;
+}
+
+.records-panel-header {
+  min-height: 52px;
+  padding: 14px 16px !important;
+}
+
+.records-panel-header p {
+  font-size: 14px !important;
+  letter-spacing: 0.01em;
+}
+
+.records-table-header {
+  min-height: 40px;
+  padding: 10px 16px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.06em;
+  display: grid !important;
+  grid-template-columns: 1.2fr 1.5fr 1fr 0.8fr 0.7fr 0.8fr 0.9fr 1.2fr 1.3fr 1.8fr;
+  column-gap: 12px;
+}
+
+.record-row {
+  min-height: 52px;
+  padding: 13px 16px !important;
+  font-size: 13px !important;
+  display: grid !important;
+  grid-template-columns: 1.2fr 1.5fr 1fr 0.8fr 0.7fr 0.8fr 0.9fr 1.2fr 1.3fr 1.8fr;
+  column-gap: 12px;
+}
+
+.cash-impact-column {
+  margin-right: 0;
+}
+
+.audit-hash-column {
+  flex: none;
+}
+
+.records-table-header > *,
+.record-row > * {
+  width: auto !important;
+  min-width: 0;
+}
+
+.records-panel {
+  overflow-x: auto;
+}
+
+.record-row > p,
+.record-row .status-badge {
+  font-size: 13px !important;
+}
+
+.record-row .status-badge {
+  font-size: 11px !important;
+}
+
+.compliance-pagination,
+.compliance-note {
+  padding: 12px 16px !important;
+}
+
+.compliance-pagination p,
+.compliance-note p {
+  font-size: 13px !important;
+}
+
+:host.light-theme .compliance-page-button:not(:disabled) {
+  background-color: #5b9f36 !important;
+  color: #ffffff !important;
+}
+
+:host.light-theme .compliance-page-button:not(:disabled):hover {
+  background-color: #4d8f2d !important;
+}
+
+:host.light-theme .compliance-page-button:disabled {
+  background-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+:host.light-theme .side-buy-badge {
+  background-color: #e8f5e9 !important;
+  color: #047857 !important;
+}
+
+:host.light-theme .side-sell-badge,
+:host.light-theme .status-rejected {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+:host.light-theme .status-partially-filled {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
+@media (max-width: 900px) {
+  .compliance-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .records-panel {
+    overflow-x: auto;
+  }
+
+  .records-panel-header,
+  .records-table-header,
+  .record-row {
+    min-width: 1166px;
+  }
+}
+
+@media (max-width: 640px) {
+  .compliance-header,
+  .compliance-content {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .compliance-title {
+    font-size: 13px !important;
+  }
+
+  .compliance-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .compliance-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 /* Optional: Add custom styles here if Tailwind classes need enhancement */
 
 /* Scrollbar styling for the table body */
@@ -136,4 +319,21 @@
 :host.light-theme .status-badge.rejected {
   background-color: #fee2e2 !important;
   color: #dc2626 !important;
+}
+
+/* These specific rules come after the generic badge theme so each state wins. */
+:host.light-theme .compliance-page .status-badge.side-buy-badge {
+  background-color: #e8f5e9 !important;
+  color: #047857 !important;
+}
+
+:host.light-theme .compliance-page .status-badge.side-sell-badge,
+:host.light-theme .compliance-page .status-badge.status-rejected {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+:host.light-theme .compliance-page .status-badge.status-partially-filled {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
 }
