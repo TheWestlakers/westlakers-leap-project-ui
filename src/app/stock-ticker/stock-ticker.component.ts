@@ -1,18 +1,24 @@
 import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
+import { PLATFORM_ID } from '@angular/core';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
 import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
-import { StockDataService, StockPrice } from '../services/stock-data.service';
+import { PriceHistoryPoint, StockDataService, StockPrice } from '../services/stock-data.service';
 import { PriceWebsocketService, PriceUpdate } from '../services/price-websocket.service';
 import { TradeService } from '../services/trade.service';
 import { Subject, concatMap, interval, timer } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
+
+interface ChartPoint {
+  price: number;
+  timestamp: string;
+}
 
 interface RangeConfig {
   linePath: string;
@@ -23,46 +29,86 @@ interface RangeConfig {
   deltaPct: number;
 }
 
-/* ─── Chart data generator ────────────────────────────── */
-function generateSvgPath(days: number, baseVal: number, endVal: number): string {
-  const points: string[] = [];
-  const steps = Math.min(days, 60);
-  for (let i = 0; i <= steps; i++) {
-    const progress = i / steps;
-    const noise    = (Math.random() - 0.4) * (endVal - baseVal) * 0.06;
-    const val      = baseVal + (endVal - baseVal) * Math.pow(progress, 0.7) + noise;
-    const x = (i / steps) * 680;
-    const y = 200 - ((val - baseVal * 0.9) / ((endVal * 1.05) - baseVal * 0.9)) * 200;
-    points.push(i === 0 ? `M${x.toFixed(1)},${y.toFixed(1)}` : `L${x.toFixed(1)},${y.toFixed(1)}`);
-  }
-  return points.join(' ');
-}
-
 function generateFillPath(linePath: string): string {
   return linePath + ' L680,200 L0,200 Z';
 }
 
-function buildRangeConfig(days: number, base: number, end: number, xLbls: string[]): RangeConfig {
-  const line = generateSvgPath(days, base, end);
-  const delta = end - base;
-  const pct   = (delta / base) * 100;
+function niceStep(rawStep: number): number {
+  const exponent = Math.floor(Math.log10(rawStep));
+  const magnitude = Math.pow(10, exponent);
+  const normalized = rawStep / magnitude;
+  const multiplier = normalized >= 5 ? 5 : normalized >= 2 ? 2 : 1;
+  return multiplier * magnitude;
+}
+
+function formatAxisPrice(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toFixed(2)}`;
+}
+
+function formatAxisTime(timestamp: string, spanMs: number): string {
+  const date = new Date(timestamp);
+  if (spanMs <= 2 * 24 * 60 * 60 * 1000) {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+  if (spanMs <= 14 * 24 * 60 * 60 * 1000) {
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
+  }
+  if (spanMs <= 2 * 365 * 24 * 60 * 60 * 1000) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+
+const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number; bucketMs: number }> = {
+  '1D': { period: '1d', interval: '1m', limit: 390, refreshMs: 60_000, bucketMs: 60_000 },
+  '5D': { period: '5d', interval: '5m', limit: 390, refreshMs: 300_000, bucketMs: 300_000 },
+  '1Y': { period: '1y', interval: '1d', limit: 260, refreshMs: 900_000, bucketMs: 86_400_000 },
+  '3Y': { period: '3y', interval: '1d', limit: 780, refreshMs: 3_600_000, bucketMs: 86_400_000 },
+  '5Y': { period: '5y', interval: '1wk', limit: 260, refreshMs: 14_400_000, bucketMs: 604_800_000 },
+};
+
+function buildRangeConfig(points: ChartPoint[]): RangeConfig {
+  if (points.length === 0) {
+    return { linePath: 'M0,100 L680,100', fillPath: 'M0,100 L680,100 L680,200 L0,200 Z',
+      xLabels: [], yLabels: [], deltaValue: 0, deltaPct: 0 };
+  }
+
+  const prices = points.map(point => point.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const rawStep = Math.max((max - min) / 4, Math.abs(max) * 0.0025, 0.01);
+  const step = niceStep(rawStep);
+  const chartMin = Math.floor(min / step) * step - step;
+  const chartMax = Math.ceil(max / step) * step + step;
+  const span = chartMax - chartMin || 1;
+  const line = points.map((point, index) => {
+    const x = (index / Math.max(points.length - 1, 1)) * 680;
+    const y = 200 - ((point.price - chartMin) / span) * 200;
+    return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const first = points[0].price;
+  const last = points[points.length - 1].price;
+  const delta = last - first;
+  const firstTimestamp = new Date(points[0].timestamp).getTime();
+  const lastTimestamp = new Date(points[points.length - 1].timestamp).getTime();
+  const timestampSpan = Math.max(lastTimestamp - firstTimestamp, 0);
+  const labels = [0, 0.25, 0.5, 0.75, 1].map(ratio => {
+    const point = points[Math.min(points.length - 1, Math.round(ratio * (points.length - 1)))];
+    return formatAxisTime(point.timestamp, timestampSpan);
+  });
+  const yLabels = [4, 3, 2, 1, 0]
+    .map(level => formatAxisPrice(chartMin + span * level / 4));
   return {
     linePath:   line,
     fillPath:   generateFillPath(line),
-    xLabels:    xLbls,
-    yLabels:    ['$220', '$210', '$200', '$190', '$180'],
+    xLabels:    labels,
+    yLabels,
     deltaValue: delta,
-    deltaPct:   pct,
+    deltaPct:   first === 0 ? 0 : (delta / first) * 100,
   };
 }
-
-const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
-  '1D': buildRangeConfig(1,   178.50, 182.52, ['9:30', '11:00', '12:30', '14:00', '16:00']),
-  '5D': buildRangeConfig(5,   175.20, 182.52, ['Mon',  'Tue',   'Wed',   'Thu',   'Fri'  ]),
-  '1Y': buildRangeConfig(365, 145.80, 182.52, ['May',  'Jul',   'Sep',   'Nov',   'Jan'  ]),
-  '3Y': buildRangeConfig(365 * 3, 95.50, 182.52, ['2022', '2023', '2024', 'Q1',  'Now' ]),
-  '5Y': buildRangeConfig(365 * 5,  62.30, 182.52, ['2020', '2021', '2022', '2023', '2024']),
-};
 
 @Component({
   selector: 'app-stock-ticker',
@@ -75,11 +121,13 @@ const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
 export class StockTickerComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly platformId = inject(PLATFORM_ID);
   private readonly route = inject(ActivatedRoute);
   private readonly stockDataService = inject(StockDataService);
   private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
+  private readonly historyReload$ = new Subject<void>();
   private clientId = '';
   private focusedTransientTicker: string | null = null;
   private websocketSymbols = new Set<string>();
@@ -129,9 +177,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   /* ── Stock chart ── */
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
   activeRange = signal<PortfolioRange>('5D');
+  chartPoints = signal<ChartPoint[]>([]);
 
   get rangeData(): RangeConfig {
-    return RANGE_DATA[this.activeRange()];
+    return buildRangeConfig(this.chartPoints());
   }
 
   get currentValue(): number | null { return this.stockPrice(); }
@@ -175,12 +224,16 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       this.selectedTicker.set(initialTicker);
       this.orderSymbol.set(initialTicker);
 
-      if (!this.watchlistSymbols().includes(initialTicker)) {
+      if (isPlatformBrowser(this.platformId) && !this.watchlistSymbols().includes(initialTicker)) {
         this.focusedTransientTicker = initialTicker;
         this.stockDataService.focusTicker(this.clientId, initialTicker)
           .pipe(takeUntil(this.destroy$))
           .subscribe();
       }
+    }
+
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
     }
 
     this.stockDataService.syncWatchlist(this.clientId, this.watchlistSymbols())
@@ -191,9 +244,14 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(update => this.applyPriceUpdate(update));
     this.syncWebsocketSubscriptions();
+    this.startHistoryPolling();
   }
 
   ngOnDestroy(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     if (this.focusedTransientTicker) {
       this.stockDataService.unfocusTicker(this.clientId, this.focusedTransientTicker)
         .pipe(takeUntil(this.destroy$))
@@ -203,6 +261,8 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
     this.priceWebsocketService.unsubscribe(Array.from(this.websocketSymbols));
 
+    this.historyReload$.next();
+    this.historyReload$.complete();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -267,6 +327,38 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     // Update order price to the current price of the selected ticker
     const tickerPrice = this.allPrices()[upperTicker];
     this.orderPrice.set(tickerPrice?.currentPrice != null ? Number(tickerPrice.currentPrice) : null);
+    this.startHistoryPolling();
+  }
+
+  setActiveRange(range: PortfolioRange): void {
+    if (this.activeRange() === range) {
+      return;
+    }
+    this.activeRange.set(range);
+    this.startHistoryPolling();
+  }
+
+  private startHistoryPolling(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.historyReload$.next();
+    const ticker = this.selectedTicker();
+    const range = RANGE_OPTIONS[this.activeRange()];
+
+    timer(0, range.refreshMs).pipe(
+      switchMap(() => this.stockDataService.getPriceHistory(
+        ticker, range.period, range.interval, range.limit)),
+      takeUntil(this.historyReload$),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: points => this.chartPoints.set(points.map(point => ({
+        price: point.price,
+        timestamp: point.timestamp
+      }))),
+      error: error => console.error(`Error loading chart history for ${ticker}:`, error)
+    });
   }
 
   onWatchlistSymbolsChange(symbols: string[]): void {
@@ -370,11 +462,34 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     } as StockPrice;
 
     this.allPrices.update(prices => ({ ...prices, [ticker]: price }));
+    if (ticker === this.selectedTicker() && price.currentPrice != null) {
+      this.mergeLiveChartPoint(Number(price.currentPrice), price.timestamp || new Date().toISOString());
+    }
     const shouldSetInitialLimitPrice = this.orderType() === 'LIMIT' && this.orderPrice() === null;
     if (ticker === this.selectedTicker() && price.currentPrice != null &&
         (this.orderType() === 'MARKET' || shouldSetInitialLimitPrice)) {
       this.orderPrice.set(Number(price.currentPrice));
     }
+  }
+
+  private mergeLiveChartPoint(price: number, timestamp: string): void {
+    const pointTime = new Date(timestamp).getTime();
+    if (!Number.isFinite(pointTime)) {
+      return;
+    }
+
+    const bucketSize = RANGE_OPTIONS[this.activeRange()].bucketMs;
+    const bucket = Math.floor(pointTime / bucketSize) * bucketSize;
+    this.chartPoints.update(points => {
+      const next = [...points];
+      const last = next[next.length - 1];
+      if (last && Math.floor(new Date(last.timestamp).getTime() / bucketSize) * bucketSize === bucket) {
+        next[next.length - 1] = { price, timestamp };
+      } else {
+        next.push({ price, timestamp });
+      }
+      return next.slice(-RANGE_OPTIONS[this.activeRange()].limit);
+    });
   }
 
   /* ── Order actions ── */

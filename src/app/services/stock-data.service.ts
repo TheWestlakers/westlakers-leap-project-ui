@@ -31,6 +31,12 @@ export interface StockPrice {
   lastUpdate?: string;
 }
 
+export interface PriceHistoryPoint {
+  ticker: string;
+  price: number;
+  timestamp: string;
+}
+
 /**
  * Service for fetching live stock price data from the backend.
  * Handles HTTP requests to the Price API and caches results.
@@ -86,6 +92,28 @@ export class StockDataService {
       }),
       catchError(error => {
         console.error(`Error fetching price for ${upperSymbol}:`, error);
+        throw error;
+      })
+    );
+  }
+
+  getPriceHistory(symbol: string, period = '5d', interval = '5m', limit = 240): Observable<PriceHistoryPoint[]> {
+    const params = new HttpParams()
+      .set('ticker', symbol.toUpperCase())
+      .set('period', period)
+      .set('interval', interval)
+      .set('limit', limit);
+
+    return this.http.get<{ history?: Array<{ ticker: string; price: string | number; timestamp: string }> }>(
+      `${this.apiUrl}/history`, { params }
+    ).pipe(
+      map(response => (response.history || []).map(point => ({
+        ticker: point.ticker,
+        price: Number(point.price),
+        timestamp: point.timestamp
+      })).filter(point => Number.isFinite(point.price) && Boolean(point.timestamp))),
+      catchError(error => {
+        console.error(`Error fetching history for ${symbol}:`, error);
         throw error;
       })
     );

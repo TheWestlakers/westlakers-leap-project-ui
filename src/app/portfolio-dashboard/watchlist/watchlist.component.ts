@@ -98,6 +98,10 @@ export class WatchlistComponent implements OnInit {
   }
 
   private emitWatchlistSymbols(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     this.watchlistSymbolsChange.emit(this.watchlist().map(item => item.symbol));
   }
 

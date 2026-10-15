@@ -1,5 +1,5 @@
-import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, signal, computed, inject, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
@@ -133,6 +133,7 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
 export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
   private readonly stockDataService = inject(StockDataService);
   private readonly priceWebsocketService = inject(PriceWebsocketService);
@@ -184,6 +185,10 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     this.clientId = this.stockDataService.getOrCreateClientId();
     this.priceWebsocketService.getPriceUpdates()
       .pipe(takeUntil(this.destroy$))
