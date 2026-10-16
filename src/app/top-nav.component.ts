@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Input, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, EventEmitter, Input, Output, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -12,7 +12,7 @@ const assetPathPrefix = "/assets";
   imports: [CommonModule, FormsModule],
   styleUrl: "./top-nav.component.css",
   template: `
-    <div [class.light-theme]="!isDarkMode()" class="top-nav-container bg-[#11161b] border-b border-[#1e252b] flex h-16 items-center justify-between px-6 shrink-0 w-full gap-4">
+    <div [class.light-theme]="!isDarkMode()" class="top-nav-container bg-[#11161b] border-b border-[#1e252b] grid h-16 grid-cols-[1fr_auto_1fr] items-center px-6 shrink-0 w-full gap-4">
       <div class="flex gap-3 items-center flex-shrink-0">
         <div class="bg-[#3e8914] flex items-center justify-center rounded-[6px] size-7">
           <img alt="" class="size-4" [src]="imgCircleX" />
@@ -38,29 +38,22 @@ const assetPathPrefix = "/assets";
         <input
           class="flex-1 bg-transparent font-['Instrument_Sans'] font-normal text-[#94a3b8] text-[13px] outline-none placeholder:text-[#64748b]"
           placeholder="Enter symbol, company, or order hotkey..."
-          [(ngModel)]="searchVal"
+          [ngModel]="searchValue"
+          (ngModelChange)="searchValueChange.emit($event)"
+          (keydown.enter)="submitSearch()"
           style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100"
         />
-        <div class="bg-[#1e252b] px-1.5 py-0.5 rounded-[4px]">
-          <span class="font-['Geist_Mono'] font-normal text-[#94a3b8] text-[10px]" style="font-family: 'Geist Mono', 'Courier New', monospace">
-            /
-          </span>
-        </div>
+        <button
+          type="button"
+          (click)="submitSearch()"
+          class="bg-[#1e252b] border border-[#2d3748] px-2 py-1 rounded-[4px] font-['Instrument_Sans'] font-semibold text-[#94a3b8] text-[10px] hover:text-white transition-colors"
+          style="font-family: 'Instrument Sans', system-ui, sans-serif"
+        >
+          Enter
+        </button>
       </div>
 
-      <div class="flex gap-5 items-center flex-shrink-0">
-        <div class="flex flex-col gap-0.5 items-end">
-          <p class="font-['Instrument_Sans'] font-normal text-[#64748b] text-[10px] tracking-[0.04em]" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-            NET LIQ VALUE
-          </p>
-          <p class="font-['Geist_Mono'] font-semibold text-[14px] text-white" style="font-family: 'Geist Mono', 'Courier New', monospace">
-            {{ '$' + (netLiqValue | number: '1.2-2') }}
-          </p>
-        </div>
-        <button type="button" class="bg-[#080b0d] border border-[#1e252b] flex items-center justify-center rounded-full size-9 cursor-pointer hover:border-[#2d3748] transition-colors" aria-label="Notifications">
-          <img alt="" class="size-[18px]" [src]="imgBadgeAlert" />
-        </button>
-        <div class="bg-[#1e252b] h-7 w-px"></div>
+      <div class="flex gap-5 items-center flex-shrink-0 justify-self-end">
         <div class="relative">
           <div class="flex gap-2.5 items-center cursor-pointer" (click)="toggleMenu()">
             <div class="bg-[#3e8914] flex items-center justify-center rounded-full size-8">
@@ -133,13 +126,14 @@ const assetPathPrefix = "/assets";
 })
 export class TopNavComponent {
   @Input({ required: true }) netLiqValue!: number;
+  @Input() searchValue = "";
+  @Output() searchValueChange = new EventEmitter<string>();
+  @Output() searchSubmit = new EventEmitter<void>();
   @Input() showPowerView = false;
 
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef);
   protected readonly themeService = inject(ThemeService);
-
-  searchVal = "";
 
   protected readonly isMenuOpen = signal(false);
   protected readonly isDarkMode = this.themeService.isDarkMode;
@@ -174,5 +168,9 @@ export class TopNavComponent {
   protected logout(): void {
     this.isMenuOpen.set(false);
     this.router.navigateByUrl('/logout');
+  }
+
+  protected submitSearch(): void {
+    this.searchSubmit.emit();
   }
 }

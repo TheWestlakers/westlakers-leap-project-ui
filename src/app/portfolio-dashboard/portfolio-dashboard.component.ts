@@ -1,7 +1,7 @@
-import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, signal, computed, inject, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
@@ -11,8 +11,10 @@ import { AccountService } from '../services/account.service';
 import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { HoldingService } from '../services/holding.service';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
+import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
+import { interval, Subject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 
 /* ─── Shared types ────────────────────────────────────── */
 export interface WatchlistItem {
@@ -38,7 +40,7 @@ export interface Position {
 
 export type OrderSide = 'BUY' | 'SELL';
 export type OrderType = 'LIMIT' | 'MARKET';
-export type PortfolioRange = '1D' | '5D' | '1Y' | '3Y' | '5Y';
+export type PortfolioRange = '1D' | '5D' | '1M' | '6M' | '1Y' | '3Y';
 
 export interface ChartPoint {
   x: number; // 0–100 percent along x axis
@@ -84,6 +86,26 @@ interface RangeConfig {
   deltaPct: number;
 }
 
+interface MarketClock {
+  name: string;
+  code: string;
+  timeZone: string;
+  hours: string;
+  time: string;
+  status: string;
+  isOpen: boolean;
+}
+
+const MARKET_DEFINITIONS = [
+  { name: 'NYSE', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'Nasdaq', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'Cboe US', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'London', code: 'UK', timeZone: 'Europe/London', hours: '08:00 - 16:30', open: [8, 0], close: [16, 30], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'NSE / BSE', code: 'IN', timeZone: 'Asia/Kolkata', hours: '09:15 - 15:30', open: [9, 15], close: [15, 30], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'Forex', code: 'FX', timeZone: 'America/New_York', hours: '24 hours / 5 days', open: [17, 0], close: [17, 0], weekdays: [0, 1, 2, 3, 4, 5] },
+  { name: 'Crypto', code: '24/7', timeZone: 'UTC', hours: '24 hours / 7 days', open: [0, 0], close: [24, 0], weekdays: [0, 1, 2, 3, 4, 5, 6] },
+] as const;
+
 function buildRangeConfig(days: number, base: number, end: number, xLbls: string[]): RangeConfig {
   const line = generateSvgPath(days, base, end);
   const delta = end - base;
@@ -101,9 +123,10 @@ function buildRangeConfig(days: number, base: number, end: number, xLbls: string
 const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
   '1D': buildRangeConfig(1,   244800, 248512.90, ['9:30', '11:00', '12:30', '14:00', '16:00']),
   '5D': buildRangeConfig(5,   241200, 248512.90, ['Mon',  'Tue',   'Wed',   'Thu',   'Fri'  ]),
+  '1M': buildRangeConfig(30,  232000, 248512.90, ['Mar 18', 'Mar 25', 'Apr 1', 'Apr 8', 'Apr 15']),
+  '6M': buildRangeConfig(182, 210000, 248512.90, ['Oct', 'Dec', 'Feb', 'Mar', 'Apr']),
   '1Y': buildRangeConfig(365, 198000, 248512.90, ['May',  'Jul',   'Sep',   'Nov',   'Jan'  ]),
   '3Y': buildRangeConfig(365 * 3, 142000, 248512.90, ['2022', '2023', '2024', 'Q1',  'Now' ]),
-  '5Y': buildRangeConfig(365 * 5,  95000, 248512.90, ['2020', '2021', '2022', '2023', '2024']),
 };
 
 /* ─── Inline sparkline SVG paths ─────────────────────── */
@@ -128,9 +151,16 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   protected readonly themeService = inject(ThemeService);
   private readonly accountService = inject(AccountService);
   private readonly portfolioValueService = inject(PortfolioValueService);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly router = inject(Router);
   private readonly stockDataService = inject(StockDataService);
+  private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly holdingService = inject(HoldingService);
   private readonly destroy$ = new Subject<void>();
+  private readonly websocketSymbols = new Set<string>();
+  private readonly positionSymbols = new Set<string>();
+  private subscribedWatchlistSymbols = new Set<string>();
+  private clientId = '';
 
   /* ── Account ── */
   readonly accountId = 3;
@@ -152,13 +182,24 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   /* ── Stock prices ── */
   allPrices = signal<{ [symbol: string]: StockPrice }>({});
+  searchValue = '';
+  readonly clockNow = signal(new Date());
+  readonly userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  get userLocalTime(): string {
+    return this.formatTime(this.clockNow(), this.userTimeZone, true);
+  }
+
+  get marketClocks(): MarketClock[] {
+    return MARKET_DEFINITIONS.map(market => this.getMarketClock(market, this.clockNow()));
+  }
 
   /* ── Positions ── */
   readonly positions = signal<Position[]>([]);
   readonly COMPACT_LIMIT = 3;
 
   /* ── Portfolio chart ── */
-  readonly RANGES: PortfolioRange[] = ['1D', '5D', '1Y', '3Y', '5Y'];
+  readonly RANGES: PortfolioRange[] = ['1D', '5D', '1M', '6M', '1Y', '3Y'];
   activeRange = signal<PortfolioRange>('5D');
 
   /* ── Order form ── */
@@ -175,7 +216,22 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
 
+  submitTickerSearch(): void {
+    const ticker = this.searchValue.trim().toUpperCase();
+    if (!ticker) {
+      return;
+    }
+
+    this.router.navigate(['/stock-ticker'], { queryParams: { symbol: ticker } });
+  }
+
   ngOnInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      interval(1000)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => this.clockNow.set(new Date()));
+    }
+
     this.accountService.loadAccount(this.accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -198,8 +254,17 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
           const symbols = positions.map(position => position.symbol);
           if (symbols.length === 0) return;
 
+          if (isPlatformBrowser(this.platformId)) {
+            const normalizedSymbols = symbols.map(symbol => symbol.toUpperCase());
+            this.priceWebsocketService.subscribe(normalizedSymbols);
+            normalizedSymbols.forEach(symbol => {
+              this.positionSymbols.add(symbol);
+              this.websocketSymbols.add(symbol);
+            });
+          }
+
           const updatePrices = (prices: { [symbol: string]: StockPrice }) => {
-            this.allPrices.set(prices);
+            this.allPrices.update(current => ({ ...current, ...prices }));
             this.positions.update(current => current.map(position => {
               const lastPrice = prices[position.symbol]?.currentPrice ?? position.lastPrice;
               const marketValue = position.shares * lastPrice;
@@ -213,17 +278,129 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({ next: updatePrices, error: error => console.error('Error loading prices:', error) });
 
-          interval(1000)
+          interval(30000)
             .pipe(switchMap(() => this.stockDataService.getPrices(symbols)), takeUntil(this.destroy$))
-            .subscribe({ next: updatePrices, error: error => console.error('Error polling prices:', error) });
+            .subscribe({ next: updatePrices, error: (error: unknown) => console.error('Error polling prices:', error) });
         },
         error: error => console.error('Error loading holdings:', error),
       });
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.clientId = this.stockDataService.getOrCreateClientId();
+    this.priceWebsocketService.getPriceUpdates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(update => this.applyPriceUpdate(update));
+
+  }
+
+  onWatchlistSymbolsChange(symbols: string[]): void {
+    const normalized = Array.from(new Set(symbols.map(symbol => symbol.toUpperCase())));
+
+    this.stockDataService.syncWatchlist(this.clientId, normalized)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe();
+
+    const nextWatchlistSymbols = new Set(normalized);
+    const symbolsToSubscribe = normalized.filter(symbol => !this.websocketSymbols.has(symbol));
+    if (symbolsToSubscribe.length > 0) {
+      this.priceWebsocketService.subscribe(symbolsToSubscribe);
+    }
+    symbolsToSubscribe.forEach(symbol => this.websocketSymbols.add(symbol));
+
+    const symbolsToUnsubscribe = Array.from(this.subscribedWatchlistSymbols)
+      .filter(symbol => !nextWatchlistSymbols.has(symbol) && !this.positionSymbols.has(symbol));
+    if (symbolsToUnsubscribe.length > 0) {
+      this.priceWebsocketService.unsubscribe(symbolsToUnsubscribe);
+      symbolsToUnsubscribe.forEach(symbol => this.websocketSymbols.delete(symbol));
+    }
+    this.subscribedWatchlistSymbols = nextWatchlistSymbols;
   }
 
   ngOnDestroy(): void {
+    this.priceWebsocketService.unsubscribe(Array.from(this.websocketSymbols));
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private applyPriceUpdate(update: PriceUpdate): void {
+    if (update.type !== 'price_update' || !update.ticker || !update.data) {
+      return;
+    }
+
+    const ticker = update.ticker.toUpperCase();
+    const price = {
+      ...update.data,
+      ticker,
+      symbol: update.data.symbol || ticker,
+      timestamp: update.data.timestamp || new Date(update.timestamp || Date.now()).toISOString()
+    } as StockPrice;
+
+    this.allPrices.update(prices => ({ ...prices, [ticker]: price }));
+    this.positions.update(positions => positions.map(position => {
+      if (position.symbol.toUpperCase() !== ticker) {
+        return position;
+      }
+      const lastPrice = Number(price.currentPrice ?? position.lastPrice);
+      const marketValue = position.shares * lastPrice;
+      const unrealizedPnl = (lastPrice - position.avgCost) * position.shares;
+      const costBasis = position.avgCost * position.shares;
+      return { ...position, lastPrice, marketValue, unrealizedPnl, unrealizedPct: costBasis ? unrealizedPnl / costBasis * 100 : 0 };
+    }));
+  }
+
+  private getMarketClock(
+    market: typeof MARKET_DEFINITIONS[number],
+    now: Date,
+  ): MarketClock {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: market.timeZone,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(now);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    const hour = Number(values['hour']) % 24;
+    const minute = Number(values['minute']);
+    const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values['weekday']);
+    const currentMinutes = hour * 60 + minute;
+    const openMinutes = market.open[0] * 60 + market.open[1];
+    const closeMinutes = market.close[0] * 60 + market.close[1];
+    const isCrypto = market.code === '24/7';
+    const isForex = market.code === 'FX';
+    const isForexOpen = day === 0
+      ? currentMinutes >= openMinutes
+      : day >= 1 && day <= 4
+        ? true
+        : day === 5
+          ? currentMinutes < openMinutes
+          : false;
+    const isOpen = isCrypto || (isForex
+      ? isForexOpen
+      : market.weekdays.includes(day as never) && currentMinutes >= openMinutes && currentMinutes < closeMinutes);
+
+    return {
+      name: market.name,
+      code: market.code,
+      timeZone: market.timeZone,
+      hours: market.hours,
+      time: this.formatTime(now, market.timeZone),
+      status: isOpen ? 'OPEN' : 'CLOSED',
+      isOpen,
+    };
+  }
+
+  private formatTime(date: Date, timeZone: string, includeZone = false): string {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZoneName: includeZone ? 'short' : undefined,
+    }).format(date);
   }
 
   /* ── Style helpers ── */

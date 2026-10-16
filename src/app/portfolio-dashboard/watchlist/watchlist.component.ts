@@ -1,5 +1,5 @@
-import { Component, signal, input, output, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, input, output, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WatchlistItem, SPARKLINE_PATHS, INITIAL_WATCHLIST } from '../portfolio-dashboard.component';
 import { StockPrice } from '../../services/stock-data.service';
@@ -12,6 +12,9 @@ import { StockPrice } from '../../services/stock-data.service';
   styleUrls: ['./watchlist.component.css']
 })
 export class WatchlistComponent implements OnInit {
+  private readonly watchlistStorageKey = 'wl.watchlist.items';
+  private readonly platformId = inject(PLATFORM_ID);
+
   /* ── Inputs ── */
   allPrices = input<{ [symbol: string]: StockPrice }>({});
   isSelectable = input(true); // When false, items can't be clicked to select
@@ -29,6 +32,7 @@ export class WatchlistComponent implements OnInit {
   readonly sparklinePaths = SPARKLINE_PATHS;
 
   ngOnInit(): void {
+    this.restoreWatchlist();
     this.emitWatchlistSymbols();
   }
 
@@ -67,6 +71,7 @@ export class WatchlistComponent implements OnInit {
 
   removeWatchlistItem(symbol: string): void {
     this.watchlist.update(list => list.filter(i => i.symbol !== symbol));
+    this.persistWatchlist();
     this.emitWatchlistSymbols();
   }
 
@@ -81,6 +86,7 @@ export class WatchlistComponent implements OnInit {
       ...list,
       { symbol: sym, name: this.newName.trim() || sym, price, change, positive: change >= 0, sparkKey },
     ]);
+    this.persistWatchlist();
     this.emitWatchlistSymbols();
     this.newSymbol = '';
     this.newName   = '';
@@ -92,6 +98,45 @@ export class WatchlistComponent implements OnInit {
   }
 
   private emitWatchlistSymbols(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     this.watchlistSymbolsChange.emit(this.watchlist().map(item => item.symbol));
+  }
+
+  private persistWatchlist(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    localStorage.setItem(this.watchlistStorageKey, JSON.stringify(this.watchlist()));
+  }
+
+  private restoreWatchlist(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    const raw = localStorage.getItem(this.watchlistStorageKey);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as WatchlistItem[];
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const valid = parsed.filter(item => !!item?.symbol)
+        .map(item => ({ ...item, symbol: item.symbol.toUpperCase() }));
+
+      if (valid.length > 0) {
+        this.watchlist.set(valid);
+      }
+    } catch {
+      // Ignore malformed local storage and continue with defaults.
+    }
   }
 }
