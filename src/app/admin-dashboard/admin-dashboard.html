@@ -22,39 +22,51 @@
   <!-- CENTER CONTENT -->
   <main class="center-content">
 
-    <!-- TRANSACTION VELOCITY CHART -->
-    <div class="chart-widget">
-      <div class="chart-header">
-        <div class="chart-title-group">
-          <span class="chart-title">TRANSACTION VELOCITY</span>
-          <span class="chart-desc">System operations &amp; platform processing load</span>
-          <span class="live-pill">LIVE 5M</span>
-        </div>
-        <div class="chart-stats">
-          <span class="chart-rate">{{ txRate }}</span>
-          <span class="chart-workload">{{ txWorkload }}</span>
-        </div>
-      </div>
-      <div class="chart-body">
-        <div class="y-labels">
-          <span *ngFor="let y of yLabels" class="axis-label">{{ y }}</span>
-        </div>
-        <div class="chart-svg-wrap">
-          <svg [attr.viewBox]="chartViewBox" preserveAspectRatio="none" class="chart-svg">
-            <defs>
-              <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#10b981" stop-opacity="0.18"/>
-                <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <path [attr.d]="chartFill" fill="url(#txGrad)"/>
-            <path [attr.d]="chartPath" fill="none" stroke="#10b981" stroke-width="2" stroke-linejoin="round"/>
-          </svg>
-          <div class="x-labels">
-            <span *ngFor="let x of xLabels" class="axis-label">{{ x }}</span>
+    <!-- TOP INVESTORS AND INSTRUMENTS -->
+    <div class="leaderboard-grid">
+      <section class="leaderboard-widget">
+        <div class="leaderboard-header">
+          <div>
+            <h2 class="leaderboard-title">TOP 5 INVESTORS</h2>
+            <p class="leaderboard-desc">Highest current order value</p>
           </div>
+          <span class="live-pill">CURRENT</span>
         </div>
-      </div>
+        <table class="leaderboard-table">
+          <thead>
+            <tr><th>RANK</th><th>INVESTOR</th><th class="numeric">ORDER VALUE</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let investor of topInvestors; let i = index">
+              <td class="rank">{{ i + 1 | number: '2.0-0' }}</td>
+              <td class="leaderboard-name">{{ investor.name }}</td>
+              <td class="numeric leaderboard-value">{{ investor.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="leaderboard-widget">
+        <div class="leaderboard-header">
+          <div>
+            <h2 class="leaderboard-title">TOP 5 INSTRUMENTS</h2>
+            <p class="leaderboard-desc">Highest current traded value</p>
+          </div>
+          <span class="live-pill">CURRENT</span>
+        </div>
+        <table class="leaderboard-table">
+          <thead>
+            <tr><th>RANK</th><th>SYMBOL</th><th class="numeric">TRADED VALUE</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let instrument of topInstruments; let i = index">
+              <td class="rank">{{ i + 1 | number: '2.0-0' }}</td>
+              <td class="leaderboard-name">{{ instrument.symbol }}</td>
+              <td class="numeric leaderboard-value">{{ instrument.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </div>
 
     <!-- PENDING ORDER QUEUE -->

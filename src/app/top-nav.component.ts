@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, EventEmitter, Input, Output, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -144,6 +144,7 @@ export class TopNavComponent {
   @Input() showPowerView = false;
 
   private readonly router = inject(Router);
+  private readonly elementRef = inject(ElementRef);
   protected readonly themeService = inject(ThemeService);
 
   protected readonly isMenuOpen = signal(false);
@@ -159,6 +160,13 @@ export class TopNavComponent {
 
   protected toggleMenu(): void {
     this.isMenuOpen.update((value) => !value);
+  }
+
+  @HostListener("document:click", ["$event"])
+  protected closeMenuOnOutsideClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.isMenuOpen.set(false);
+    }
   }
 
   protected toggleTheme(): void {

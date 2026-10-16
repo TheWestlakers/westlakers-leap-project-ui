@@ -44,6 +44,16 @@ export interface PendingOrder {
   riskAlert: boolean;
 }
 
+export interface InvestorRanking {
+  name: string;
+  value: string;
+}
+
+export interface InstrumentRanking {
+  symbol: string;
+  value: string;
+}
+
 export interface BroadcastEntry {
   time: string;
   message: string;
@@ -119,25 +129,30 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     { accountId: 'USR-9021', symbol: 'AMZN', qty: 450, gateway: 'FINRA-1B', estValue: '$78,489.00', risk: 'CLEARED (LOW RISK)', riskAlert: false },
   ];
 
+  // Replace these view models with the database analytics response when that API is available.
+  topInvestors: InvestorRanking[] = [
+    { name: 'USR-4421', value: '$211,848.00' },
+    { name: 'USR-8812', value: '$91,260.00' },
+    { name: 'USR-9021', value: '$78,489.00' },
+    { name: 'USR-2490', value: '$64,210.50' },
+    { name: 'USR-8411', value: '$52,875.25' },
+  ];
+
+  topInstruments: InstrumentRanking[] = [
+    { symbol: 'TSLA', value: '$211,848.00' },
+    { symbol: 'AAPL', value: '$91,260.00' },
+    { symbol: 'AMZN', value: '$78,489.00' },
+    { symbol: 'NVDA', value: '$66,742.80' },
+    { symbol: 'MSFT', value: '$54,318.40' },
+  ];
+
   broadcastFeed: BroadcastEntry[] = [
     { time: '10:14:52', message: 'AAPL buy 150 @ $182.52' },
     { time: '10:14:50', message: 'AMZN buy 80 @ $174.42' },
     { time: '10:14:48', message: 'TSLA sell 60 @ $176.54' },
   ];
 
-  txRate = '12,851 tx/m';
-  txWorkload = '+1.42% workload';
   apiLatency = '1.4ms';
-
-  /* SVG chart path — S-curve rising from lower-left to upper-right */
-  readonly chartViewBox = '0 0 660 200';
-  readonly chartPath =
-    'M0,190 C30,185 60,175 100,160 C140,145 160,130 200,110 C240,90 270,70 310,50 C350,30 390,20 430,15 C470,10 510,8 560,5 C600,3 630,2 660,1';
-  readonly chartFill =
-    'M0,190 C30,185 60,175 100,160 C140,145 160,130 200,110 C240,90 270,70 310,50 C350,30 390,20 430,15 C470,10 510,8 560,5 C600,3 630,2 660,1 L660,200 L0,200 Z';
-
-  xLabels = ['10:11', '10:12', '10:13', '10:14'];
-  yLabels = ['20k', '15k', '10k', '5k'];
 
   haltActive = false;
   private tickInterval: ReturnType<typeof setInterval> | null = null;
