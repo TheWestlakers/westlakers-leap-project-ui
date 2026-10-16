@@ -198,9 +198,16 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   activeRange = signal<PortfolioRange>('5D');
   chartPoints = signal<ChartPoint[]>([]);
   hoveredPointIndex = signal<number | null>(null);
+  private rangeConfigPoints: ChartPoint[] | null = null;
+  private rangeConfigCache: RangeConfig | null = null;
 
   get rangeData(): RangeConfig {
-    return buildRangeConfig(this.chartPoints());
+    const points = this.chartPoints();
+    if (points !== this.rangeConfigPoints || !this.rangeConfigCache) {
+      this.rangeConfigPoints = points;
+      this.rangeConfigCache = buildRangeConfig(points);
+    }
+    return this.rangeConfigCache;
   }
 
   get currentValue(): number | null { return this.stockPrice(); }
