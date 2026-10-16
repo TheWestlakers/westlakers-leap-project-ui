@@ -79,12 +79,12 @@ function formatTooltipDate(timestamp: string): string {
 }
 
 const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number; bucketMs: number }> = {
-  '1D': { period: '1d', interval: '5m', limit: 78, refreshMs: 60_000, bucketMs: 300_000 },
-  '5D': { period: '5d', interval: '15m', limit: 130, refreshMs: 300_000, bucketMs: 900_000 },
-  '1M': { period: '1mo', interval: '1d', limit: 31, refreshMs: 900_000, bucketMs: 86_400_000 },
-  '6M': { period: '6mo', interval: '1d', limit: 130, refreshMs: 900_000, bucketMs: 86_400_000 },
-  '1Y': { period: '1y', interval: '1wk', limit: 53, refreshMs: 1_800_000, bucketMs: 604_800_000 },
-  '3Y': { period: '3y', interval: '1wk', limit: 156, refreshMs: 3_600_000, bucketMs: 604_800_000 },
+  '1D': { period: '1d', interval: '1m', limit: 390, refreshMs: 60_000, bucketMs: 60_000 },
+  '5D': { period: '5d', interval: '15m', limit: 260, refreshMs: 300_000, bucketMs: 900_000 },
+  '1M': { period: '1mo', interval: '1h', limit: 260, refreshMs: 900_000, bucketMs: 3_600_000 },
+  '6M': { period: '6mo', interval: '1d', limit: 260, refreshMs: 900_000, bucketMs: 86_400_000 },
+  '1Y': { period: '1y', interval: '1d', limit: 260, refreshMs: 1_800_000, bucketMs: 86_400_000 },
+  '3Y': { period: '3y', interval: '1wk', limit: 260, refreshMs: 3_600_000, bucketMs: 604_800_000 },
 };
 
 function buildRangeConfig(points: ChartPoint[]): RangeConfig {
