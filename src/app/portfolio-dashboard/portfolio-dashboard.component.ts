@@ -12,7 +12,8 @@ import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { HoldingService } from '../services/holding.service';
 import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
-import { Subject } from 'rxjs';
+import { interval, Subject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { takeUntil } from 'rxjs/operators';
 
 /* ─── Shared types ────────────────────────────────────── */
@@ -85,6 +86,26 @@ interface RangeConfig {
   deltaPct: number;
 }
 
+interface MarketClock {
+  name: string;
+  code: string;
+  timeZone: string;
+  hours: string;
+  time: string;
+  status: string;
+  isOpen: boolean;
+}
+
+const MARKET_DEFINITIONS = [
+  { name: 'NYSE', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'Nasdaq', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'Cboe US', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'London', code: 'UK', timeZone: 'Europe/London', hours: '08:00 - 16:30', open: [8, 0], close: [16, 30], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'NSE / BSE', code: 'IN', timeZone: 'Asia/Kolkata', hours: '09:15 - 15:30', open: [9, 15], close: [15, 30], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'Forex', code: 'FX', timeZone: 'America/New_York', hours: '24 hours / 5 days', open: [17, 0], close: [17, 0], weekdays: [0, 1, 2, 3, 4, 5] },
+  { name: 'Crypto', code: '24/7', timeZone: 'UTC', hours: '24 hours / 7 days', open: [0, 0], close: [24, 0], weekdays: [0, 1, 2, 3, 4, 5, 6] },
+] as const;
+
 function buildRangeConfig(days: number, base: number, end: number, xLbls: string[]): RangeConfig {
   const line = generateSvgPath(days, base, end);
   const delta = end - base;
@@ -138,7 +159,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly websocketSymbols = new Set<string>();
   private readonly positionSymbols = new Set<string>();
-  private watchlistSymbols = new Set<string>();
+  private subscribedWatchlistSymbols = new Set<string>();
   private clientId = '';
 
   /* ── Account ── */
@@ -162,6 +183,16 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   /* ── Stock prices ── */
   allPrices = signal<{ [symbol: string]: StockPrice }>({});
   searchValue = '';
+  readonly clockNow = signal(new Date());
+  readonly userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  get userLocalTime(): string {
+    return this.formatTime(this.clockNow(), this.userTimeZone, true);
+  }
+
+  get marketClocks(): MarketClock[] {
+    return MARKET_DEFINITIONS.map(market => this.getMarketClock(market, this.clockNow()));
+  }
 
   /* ── Positions ── */
   readonly positions = signal<Position[]>([]);
@@ -195,6 +226,12 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      interval(1000)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => this.clockNow.set(new Date()));
+    }
+
     this.accountService.loadAccount(this.accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -217,8 +254,17 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
           const symbols = positions.map(position => position.symbol);
           if (symbols.length === 0) return;
 
+          if (isPlatformBrowser(this.platformId)) {
+            const normalizedSymbols = symbols.map(symbol => symbol.toUpperCase());
+            this.priceWebsocketService.subscribe(normalizedSymbols);
+            normalizedSymbols.forEach(symbol => {
+              this.positionSymbols.add(symbol);
+              this.websocketSymbols.add(symbol);
+            });
+          }
+
           const updatePrices = (prices: { [symbol: string]: StockPrice }) => {
-            this.allPrices.set(prices);
+            this.allPrices.update(current => ({ ...current, ...prices }));
             this.positions.update(current => current.map(position => {
               const lastPrice = prices[position.symbol]?.currentPrice ?? position.lastPrice;
               const marketValue = position.shares * lastPrice;
@@ -232,9 +278,9 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
             .pipe(takeUntil(this.destroy$))
             .subscribe({ next: updatePrices, error: error => console.error('Error loading prices:', error) });
 
-          interval(1000)
+          interval(30000)
             .pipe(switchMap(() => this.stockDataService.getPrices(symbols)), takeUntil(this.destroy$))
-            .subscribe({ next: updatePrices, error: error => console.error('Error polling prices:', error) });
+            .subscribe({ next: updatePrices, error: (error: unknown) => console.error('Error polling prices:', error) });
         },
         error: error => console.error('Error loading holdings:', error),
       });
@@ -247,12 +293,6 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(update => this.applyPriceUpdate(update));
 
-    const symbols = this.positions.map(position => position.symbol.toUpperCase());
-    this.priceWebsocketService.subscribe(symbols);
-    symbols.forEach(symbol => {
-      this.positionSymbols.add(symbol);
-      this.websocketSymbols.add(symbol);
-    });
   }
 
   onWatchlistSymbolsChange(symbols: string[]): void {
@@ -269,13 +309,13 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
     }
     symbolsToSubscribe.forEach(symbol => this.websocketSymbols.add(symbol));
 
-    const symbolsToUnsubscribe = Array.from(this.watchlistSymbols)
+    const symbolsToUnsubscribe = Array.from(this.subscribedWatchlistSymbols)
       .filter(symbol => !nextWatchlistSymbols.has(symbol) && !this.positionSymbols.has(symbol));
     if (symbolsToUnsubscribe.length > 0) {
       this.priceWebsocketService.unsubscribe(symbolsToUnsubscribe);
       symbolsToUnsubscribe.forEach(symbol => this.websocketSymbols.delete(symbol));
     }
-    this.watchlistSymbols = nextWatchlistSymbols;
+    this.subscribedWatchlistSymbols = nextWatchlistSymbols;
   }
 
   ngOnDestroy(): void {
@@ -298,6 +338,69 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
     } as StockPrice;
 
     this.allPrices.update(prices => ({ ...prices, [ticker]: price }));
+    this.positions.update(positions => positions.map(position => {
+      if (position.symbol.toUpperCase() !== ticker) {
+        return position;
+      }
+      const lastPrice = Number(price.currentPrice ?? position.lastPrice);
+      const marketValue = position.shares * lastPrice;
+      const unrealizedPnl = (lastPrice - position.avgCost) * position.shares;
+      const costBasis = position.avgCost * position.shares;
+      return { ...position, lastPrice, marketValue, unrealizedPnl, unrealizedPct: costBasis ? unrealizedPnl / costBasis * 100 : 0 };
+    }));
+  }
+
+  private getMarketClock(
+    market: typeof MARKET_DEFINITIONS[number],
+    now: Date,
+  ): MarketClock {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: market.timeZone,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(now);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    const hour = Number(values['hour']) % 24;
+    const minute = Number(values['minute']);
+    const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values['weekday']);
+    const currentMinutes = hour * 60 + minute;
+    const openMinutes = market.open[0] * 60 + market.open[1];
+    const closeMinutes = market.close[0] * 60 + market.close[1];
+    const isCrypto = market.code === '24/7';
+    const isForex = market.code === 'FX';
+    const isForexOpen = day === 0
+      ? currentMinutes >= openMinutes
+      : day >= 1 && day <= 4
+        ? true
+        : day === 5
+          ? currentMinutes < openMinutes
+          : false;
+    const isOpen = isCrypto || (isForex
+      ? isForexOpen
+      : market.weekdays.includes(day as never) && currentMinutes >= openMinutes && currentMinutes < closeMinutes);
+
+    return {
+      name: market.name,
+      code: market.code,
+      timeZone: market.timeZone,
+      hours: market.hours,
+      time: this.formatTime(now, market.timeZone),
+      status: isOpen ? 'OPEN' : 'CLOSED',
+      isOpen,
+    };
+  }
+
+  private formatTime(date: Date, timeZone: string, includeZone = false): string {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZoneName: includeZone ? 'short' : undefined,
+    }).format(date);
   }
 
   /* ── Style helpers ── */

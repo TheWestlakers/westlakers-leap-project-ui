@@ -206,6 +206,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
   stockSymbol = computed(() => this.selectedTicker());
   stockName = computed(() => this.currentTickerName());
+  systemTime = signal(new Date());
 
   /* ── Stock chart ── */
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1M', '6M', '1Y', '3Y'];
@@ -248,6 +249,14 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
   formatTooltipDate(timestamp: string): string {
     return formatTooltipDate(timestamp);
+  }
+
+  formatSystemTime(date: Date): string {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   }
 
   /* ── Order entry ── */
@@ -297,6 +306,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       return;
     }
 
+    timer(0, 1000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.systemTime.set(new Date()));
+
     this.stockDataService.syncWatchlist(this.clientId, this.watchlistSymbols())
       .pipe(takeUntil(this.destroy$))
       .subscribe();
@@ -318,14 +331,14 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     this.loadPrices();
 
     // Keep prices fresh using the same reliable polling pattern as portfolio page.
-    interval(1000)
+    interval(5000)
       .pipe(
         switchMap(() => this.stockDataService.getPrices(this.priceSymbols())),
         takeUntil(this.destroy$)
       )
       .subscribe({
         next: (prices) => {
-          this.allPrices.set(prices);
+          this.allPrices.update(current => ({ ...current, ...prices }));
           const currentTicker = this.selectedTicker();
           const tickerPrice = prices[currentTicker];
           if (tickerPrice && tickerPrice.currentPrice &&
@@ -370,7 +383,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (prices) => {
-          this.allPrices.set(prices);
+          this.allPrices.update(current => ({ ...current, ...prices }));
           // Initialize order price with current ticker's live price
           const currentTicker = this.selectedTicker();
           const tickerPrice = prices[currentTicker];
@@ -393,6 +406,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     return [...new Set([
       ...this.watchlistSymbols(),
       ...this.holdings().map(holding => holding.symbol),
+      this.selectedTicker(),
     ])];
   }
 
@@ -565,11 +579,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     }
 
     const ticker = update.ticker.toUpperCase();
+    const systemTimestamp = new Date().toISOString();
     const price = {
       ...update.data,
       ticker,
       symbol: update.data.symbol || ticker,
-      timestamp: update.data.timestamp || new Date(update.timestamp || Date.now()).toISOString()
+      timestamp: systemTimestamp
     } as StockPrice;
 
     this.allPrices.update(prices => ({ ...prices, [ticker]: price }));

@@ -12,7 +12,7 @@ const assetPathPrefix = "/assets";
   imports: [CommonModule, FormsModule],
   styleUrl: "./top-nav.component.css",
   template: `
-    <div [class.light-theme]="!isDarkMode()" class="top-nav-container bg-[#11161b] border-b border-[#1e252b] flex h-16 items-center justify-between px-6 shrink-0 w-full gap-4">
+    <div [class.light-theme]="!isDarkMode()" class="top-nav-container bg-[#11161b] border-b border-[#1e252b] grid h-16 grid-cols-[1fr_auto_1fr] items-center px-6 shrink-0 w-full gap-4">
       <div class="flex gap-3 items-center flex-shrink-0">
         <div class="bg-[#3e8914] flex items-center justify-center rounded-[6px] size-7">
           <img alt="" class="size-4" [src]="imgCircleX" />
@@ -53,19 +53,7 @@ const assetPathPrefix = "/assets";
         </button>
       </div>
 
-      <div class="flex gap-5 items-center flex-shrink-0">
-        <div class="flex flex-col gap-0.5 items-end">
-          <p class="font-['Instrument_Sans'] font-normal text-[#64748b] text-[10px] tracking-[0.04em]" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-            NET LIQ VALUE
-          </p>
-          <p class="font-['Geist_Mono'] font-semibold text-[14px] text-white" style="font-family: 'Geist Mono', 'Courier New', monospace">
-            {{ '$' + (netLiqValue | number: '1.2-2') }}
-          </p>
-        </div>
-        <button type="button" class="bg-[#080b0d] border border-[#1e252b] flex items-center justify-center rounded-full size-9 cursor-pointer hover:border-[#2d3748] transition-colors" aria-label="Notifications">
-          <img alt="" class="size-[18px]" [src]="imgBadgeAlert" />
-        </button>
-        <div class="bg-[#1e252b] h-7 w-px"></div>
+      <div class="flex gap-5 items-center flex-shrink-0 justify-self-end">
         <div class="relative">
           <div class="flex gap-2.5 items-center cursor-pointer" (click)="toggleMenu()">
             <div class="bg-[#3e8914] flex items-center justify-center rounded-full size-8">
