@@ -26,6 +26,55 @@
             </div>
           }
 
+          <!-- Name fields -->
+          <div class="mb-4">
+            <label for="firstName" class="mb-1 block text-sm font-medium text-gray-300">First name</label>
+            <input
+              id="firstName"
+              type="text"
+              formControlName="firstName"
+              autocomplete="given-name"
+              required
+              aria-required="true"
+              [attr.aria-invalid]="form.controls.firstName.invalid && form.controls.firstName.touched"
+              [attr.aria-describedby]="form.controls.firstName.invalid && form.controls.firstName.touched ? 'firstName-error' : null"
+              class="w-full rounded-md border border-gray-500 px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            @if (form.controls.firstName.invalid && form.controls.firstName.touched) {
+              <p id="firstName-error" role="alert" class="mt-1 text-sm text-red-600">
+                @if (form.controls.firstName.errors?.['required']) {
+                  First name is required.
+                } @else if (form.controls.firstName.errors?.['maxlength']) {
+                  First name must be 50 characters or fewer.
+                }
+              </p>
+            }
+          </div>
+
+          <div class="mb-4">
+            <label for="lastName" class="mb-1 block text-sm font-medium text-gray-300">Last name</label>
+            <input
+              id="lastName"
+              type="text"
+              formControlName="lastName"
+              autocomplete="family-name"
+              required
+              aria-required="true"
+              [attr.aria-invalid]="form.controls.lastName.invalid && form.controls.lastName.touched"
+              [attr.aria-describedby]="form.controls.lastName.invalid && form.controls.lastName.touched ? 'lastName-error' : null"
+              class="w-full rounded-md border border-gray-500 px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            @if (form.controls.lastName.invalid && form.controls.lastName.touched) {
+              <p id="lastName-error" role="alert" class="mt-1 text-sm text-red-600">
+                @if (form.controls.lastName.errors?.['required']) {
+                  Last name is required.
+                } @else if (form.controls.lastName.errors?.['maxlength']) {
+                  Last name must be 50 characters or fewer.
+                }
+              </p>
+            }
+          </div>
+
           <!-- Email field -->
           <div class="mb-4">
           <label for="email" class="mb-1 block text-sm font-medium text-gray-300">Email</label>
@@ -75,6 +124,133 @@
                   Password is required.
                 } @else if (form.controls.password.errors?.['minlength']) {
                   Password must be at least 8 characters.
+                }
+              </p>
+            }
+          </div>
+
+          <!-- Contact and identity fields -->
+          <div class="mb-4">
+            <label for="phoneNumber" class="mb-1 block text-sm font-medium text-gray-300">Phone number</label>
+            <input
+              id="phoneNumber"
+              type="tel"
+              formControlName="phoneNumber"
+              autocomplete="tel"
+              required
+              aria-required="true"
+              inputmode="numeric"
+              [attr.aria-invalid]="form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched"
+              [attr.aria-describedby]="form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched ? 'phoneNumber-error' : null"
+              class="w-full rounded-md border border-gray-500 px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            @if (form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched) {
+              <p id="phoneNumber-error" role="alert" class="mt-1 text-sm text-red-600">
+                @if (form.controls.phoneNumber.errors?.['required']) {
+                  Phone number is required.
+                } @else if (form.controls.phoneNumber.errors?.['pattern']) {
+                  Phone number must be 10-15 digits with no spaces or symbols.
+                }
+              </p>
+            }
+          </div>
+
+          <div class="mb-4">
+            <label for="dateOfBirth" class="mb-1 block text-sm font-medium text-gray-300">Date of birth</label>
+            <input
+              id="dateOfBirth"
+              type="date"
+              formControlName="dateOfBirth"
+              autocomplete="bday"
+              required
+              aria-required="true"
+              [max]="maxDateOfBirth"
+              [attr.aria-invalid]="form.controls.dateOfBirth.invalid && form.controls.dateOfBirth.touched"
+              [attr.aria-describedby]="form.controls.dateOfBirth.invalid && form.controls.dateOfBirth.touched ? 'dateOfBirth-error' : null"
+              class="w-full rounded-md border border-gray-500 px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            @if (form.controls.dateOfBirth.invalid && form.controls.dateOfBirth.touched) {
+              <p id="dateOfBirth-error" role="alert" class="mt-1 text-sm text-red-600">
+                @if (form.controls.dateOfBirth.errors?.['required']) {
+                  Date of birth is required.
+                } @else if (form.controls.dateOfBirth.errors?.['invalidDate']) {
+                  Please enter a valid date.
+                } @else if (form.controls.dateOfBirth.errors?.['notInPast']) {
+                  Date of birth must be in the past.
+                }
+              </p>
+            }
+          </div>
+
+          <div class="mb-4">
+            <label for="taxId" class="mb-1 block text-sm font-medium text-gray-300">Tax ID (optional)</label>
+            <input
+              id="taxId"
+              type="text"
+              formControlName="taxId"
+              autocomplete="off"
+              inputmode="numeric"
+              [attr.aria-invalid]="form.controls.taxId.invalid && form.controls.taxId.touched"
+              [attr.aria-describedby]="form.controls.taxId.invalid && form.controls.taxId.touched ? 'taxId-error' : null"
+              class="w-full rounded-md border border-gray-500 px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            @if (form.controls.taxId.invalid && form.controls.taxId.touched) {
+              <p id="taxId-error" role="alert" class="mt-1 text-sm text-red-600">
+                @if (form.controls.taxId.errors?.['pattern']) {
+                  Tax ID must be exactly 9 digits.
+                }
+              </p>
+            }
+          </div>
+
+          <!-- Account setup fields -->
+          <div class="mb-4">
+            <label for="accountTypeId" class="mb-1 block text-sm font-medium text-gray-300">Account type</label>
+            <select
+              id="accountTypeId"
+              formControlName="accountTypeId"
+              required
+              aria-required="true"
+              [attr.aria-invalid]="form.controls.accountTypeId.invalid && form.controls.accountTypeId.touched"
+              [attr.aria-describedby]="form.controls.accountTypeId.invalid && form.controls.accountTypeId.touched ? 'accountTypeId-error' : null"
+              class="w-full rounded-md border border-gray-500 bg-[#1E252B] px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option [ngValue]="null" disabled>Select an account type</option>
+              @for (type of accountTypes; track type.id) {
+                <option [ngValue]="type.id">{{ type.label }}</option>
+              }
+            </select>
+            @if (form.controls.accountTypeId.invalid && form.controls.accountTypeId.touched) {
+              <p id="accountTypeId-error" role="alert" class="mt-1 text-sm text-red-600">
+                Please select an account type.
+              </p>
+            }
+          </div>
+
+          <div class="mb-4">
+            <label for="settledCash" class="mb-1 block text-sm font-medium text-gray-300">Starting settled cash ($)</label>
+            <input
+              id="settledCash"
+              type="number"
+              formControlName="settledCash"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="0.00"
+              required
+              aria-required="true"
+              [attr.aria-invalid]="form.controls.settledCash.invalid && form.controls.settledCash.touched"
+              [attr.aria-describedby]="form.controls.settledCash.invalid && form.controls.settledCash.touched ? 'settledCash-error' : null"
+              class="w-full rounded-md border border-gray-500 px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            @if (form.controls.settledCash.invalid && form.controls.settledCash.touched) {
+              <p id="settledCash-error" role="alert" class="mt-1 text-sm text-red-600">
+                @if (form.controls.settledCash.errors?.['required']) {
+                  Starting settled cash is required.
+                } @else if (form.controls.settledCash.errors?.['min']) {
+                  Starting settled cash cannot be negative.
+                } @else if (form.controls.settledCash.errors?.['cents']) {
+                  Use at most 2 decimal places.
                 }
               </p>
             }
