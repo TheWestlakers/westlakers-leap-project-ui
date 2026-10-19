@@ -18,6 +18,7 @@ export class WatchlistComponent implements OnInit {
   /* ── Inputs ── */
   allPrices = input<{ [symbol: string]: StockPrice }>({});
   isSelectable = input(true); // When false, items can't be clicked to select
+  highlightFirstItem = input(true);
   selectedSymbol = input<string | null>(null);
 
   /* ── Outputs ── */
@@ -38,7 +39,7 @@ export class WatchlistComponent implements OnInit {
 
   /* ── Get live price or fallback to static price ── */
   getPrice(symbol: string): string {
-    const livePrice = this.allPrices()[symbol];
+    const livePrice = this.getLivePrice(symbol);
     if (livePrice) {
       return Number(livePrice.currentPrice).toFixed(2);
     }
@@ -46,22 +47,17 @@ export class WatchlistComponent implements OnInit {
     return item ? item.price.toFixed(2) : '—';
   }
 
-  getChange(symbol: string): string {
-    const livePrice = this.allPrices()[symbol];
-    if (livePrice && livePrice.changePct) {
-      return Number(livePrice.changePct).toFixed(2);
+  private getLivePrice(symbol: string): StockPrice | null {
+    const prices = this.allPrices();
+    const normalizedSymbol = symbol.toUpperCase();
+    const directPrice = prices[normalizedSymbol] ?? prices[symbol];
+    if (directPrice) {
+      return directPrice;
     }
-    const item = this.watchlist().find(w => w.symbol === symbol);
-    return item ? item.change.toFixed(2) : '0.00';
-  }
 
-  isPositive(symbol: string): boolean {
-    const livePrice = this.allPrices()[symbol];
-    if (livePrice && livePrice.changePct) {
-      return Number(livePrice.changePct) >= 0;
-    }
-    const item = this.watchlist().find(w => w.symbol === symbol);
-    return item ? item.positive : false;
+    return Object.values(prices).find(price =>
+      (price.symbol || price.ticker || '').toUpperCase() === normalizedSymbol
+    ) ?? null;
   }
 
   /* ── Watchlist actions ── */
