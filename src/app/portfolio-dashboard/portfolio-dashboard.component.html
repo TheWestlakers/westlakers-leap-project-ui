@@ -99,7 +99,7 @@
               *ngFor="let r of RANGES"
               class="range-tab"
               [ngClass]="rangeTabClass(r)"
-              (click)="activeRange.set(r)"
+              (click)="setActiveRange(r)"
             >{{ r }}</button>
           </div>
           <!-- Values -->
