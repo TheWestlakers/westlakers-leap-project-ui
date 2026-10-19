@@ -2,11 +2,11 @@ import { Component, OnInit, signal, inject } from "@angular/core";
 import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { PLATFORM_ID } from "@angular/core";
 import { Location } from "@angular/common";
-import { isPlatformBrowser } from "@angular/common";
 import { ThemeService } from "../services/theme.service";
 import { TradingVolume, TradingVolumeService } from "../services/trading-volume.service";
 
 const assetPathPrefix = "/assets";
+const RECORDS_PER_PAGE = 20;
 
 export interface ComplianceRecord {
   orderReference: string;
