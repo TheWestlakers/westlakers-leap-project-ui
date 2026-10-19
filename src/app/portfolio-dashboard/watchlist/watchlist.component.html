@@ -2,7 +2,11 @@
 <div class="watchlist-card">
   <div class="watchlist-header">
     <div class="wl-title-group">
-      <span class="wl-icon">☰</span>
+      <span class="wl-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" role="img">
+          <path d="M6 4.5A2.5 2.5 0 0 1 8.5 2h7A2.5 2.5 0 0 1 18 4.5V22l-6-3.5L6 22V4.5Z"></path>
+        </svg>
+      </span>
       <span class="wl-title">WATCHLIST</span>
     </div>
     <button 
@@ -17,8 +21,9 @@
     <div
       *ngFor="let item of watchlist(); let i = index"
       class="wl-item"
-      [class.wl-item-highlight]="i === 0 && !isSelectable()"
+      [class.wl-item-highlight]="i === 0 && !isSelectable() && highlightFirstItem()"
       [class.wl-item-no-hover]="!isSelectable()"
+      [class.wl-item-portfolio]="!isSelectable()"
       [class.wl-item-selectable]="isSelectable()"
       [class.wl-item-selected]="isSelectable() && item.symbol === selectedSymbol()"
       (click)="onItemClick(item.symbol)"
@@ -28,22 +33,8 @@
         <span class="wl-name">{{ item.name }}</span>
       </div>
 
-      <!-- Inline SVG sparkline -->
-      <svg class="wl-sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
-        <path
-          [attr.d]="sparklinePaths[item.sparkKey]"
-          fill="none"
-          [attr.stroke]="item.positive ? '#10b981' : '#ef4444'"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        />
-      </svg>
-
       <div class="wl-right">
         <span class="wl-price">{{ getPrice(item.symbol) }}</span>
-        <span class="wl-change" [class.positive]="isPositive(item.symbol)" [class.negative]="!isPositive(item.symbol)">
-          {{ isPositive(item.symbol) ? '+' : '' }}{{ getChange(item.symbol) }}%
-        </span>
       </div>
 
       <button
