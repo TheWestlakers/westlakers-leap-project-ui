@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { ThemeService } from "./services/theme.service";
+import { AuthService } from "./services/auth.service";
 
 const assetPathPrefix = "/assets";
 
@@ -65,11 +66,11 @@ const assetPathPrefix = "/assets";
           <div class="flex gap-2.5 items-center cursor-pointer" (click)="toggleMenu()">
             <div class="bg-[#3e8914] flex items-center justify-center rounded-full size-8">
               <p class="font-['Instrument_Sans'] font-bold text-[12px] text-white tracking-[0.02em]" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-                JS
+                {{ initials() }}
               </p>
             </div>
             <p class="font-['Instrument_Sans'] font-semibold text-[13px] text-white whitespace-nowrap" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-              Joanna Smith
+              {{ displayName() }}
             </p>
             <img alt="" class="size-3" [src]="imgChevronDown" />
           </div>
@@ -138,8 +139,12 @@ export class TopNavComponent {
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef);
   protected readonly themeService = inject(ThemeService);
+  private readonly authService = inject(AuthService);
 
   searchVal = "";
+
+  protected readonly displayName = this.authService.displayName;
+  protected readonly initials = this.authService.initials;
 
   protected readonly isMenuOpen = signal(false);
   protected readonly isDarkMode = this.themeService.isDarkMode;

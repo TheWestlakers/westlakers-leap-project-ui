@@ -7,6 +7,7 @@ import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
 import { WatchlistComponent } from './watchlist/watchlist.component';
 import { ThemeService } from '../services/theme.service';
+import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
 import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
@@ -130,10 +131,14 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private readonly portfolioValueService = inject(PortfolioValueService);
   private readonly stockDataService = inject(StockDataService);
   private readonly holdingService = inject(HoldingService);
+  private readonly authService = inject(AuthService);
   private readonly destroy$ = new Subject<void>();
 
   /* ── Account ── */
-  readonly accountId = 3;
+  /** Account of the signed-in user. null when the user has no account yet. */
+  private get accountId(): number | null {
+    return this.authService.activeAccount()?.accountId ?? null;
+  }
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
 
@@ -176,13 +181,16 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
 
   ngOnInit(): void {
-    this.accountService.loadAccount(this.accountId)
+    const accountId = this.accountId;
+    if (accountId === null) return;
+
+    this.accountService.loadAccount(accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         error: (error) => console.error('Error loading account:', error)
       });
 
-    this.holdingService.getHoldingsByAccountId(this.accountId)
+    this.holdingService.getHoldingsByAccountId(accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: holdings => {

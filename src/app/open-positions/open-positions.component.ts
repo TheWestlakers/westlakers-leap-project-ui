@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { ThemeService } from '../services/theme.service';
+import { AuthService } from '../services/auth.service';
 import { HoldingService } from '../services/holding.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { Subject, interval } from 'rxjs';
@@ -40,13 +41,20 @@ export class OpenPositionsComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly emptyPosition: Position = { id: '', symbol: '--', shares: 0, avgCost: 0, lastPrice: 0, marketValue: 0, unrealizedPnl: 0, unrealizedPct: 0, sector: 'Unknown' };
   readonly positionData = signal<Position[]>([]);
-  readonly accountId = 3;
+  private readonly authService = inject(AuthService);
+  /** Account of the signed-in user. null when the user has no account yet. */
+  private get accountId(): number | null {
+    return this.authService.activeAccount()?.accountId ?? null;
+  }
   /* ── Sort state ── */
   sortField = signal<SortField>('marketValue');
   sortDir   = signal<SortDir>('desc');
 
   ngOnInit(): void {
-    this.holdingService.getHoldingsByAccountId(this.accountId)
+    const accountId = this.accountId;
+    if (accountId === null) return;
+
+    this.holdingService.getHoldingsByAccountId(accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: holdings => {
