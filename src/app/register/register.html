@@ -203,6 +203,59 @@
             }
           </div>
 
+          <!-- Account setup fields -->
+          <div class="mb-4">
+            <label for="accountTypeId" class="mb-1 block text-sm font-medium text-gray-300">Account type</label>
+            <select
+              id="accountTypeId"
+              formControlName="accountTypeId"
+              required
+              aria-required="true"
+              [attr.aria-invalid]="form.controls.accountTypeId.invalid && form.controls.accountTypeId.touched"
+              [attr.aria-describedby]="form.controls.accountTypeId.invalid && form.controls.accountTypeId.touched ? 'accountTypeId-error' : null"
+              class="w-full rounded-md border border-gray-500 bg-[#1E252B] px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option [ngValue]="null" disabled>Select an account type</option>
+              @for (type of accountTypes; track type.id) {
+                <option [ngValue]="type.id">{{ type.label }}</option>
+              }
+            </select>
+            @if (form.controls.accountTypeId.invalid && form.controls.accountTypeId.touched) {
+              <p id="accountTypeId-error" role="alert" class="mt-1 text-sm text-red-600">
+                Please select an account type.
+              </p>
+            }
+          </div>
+
+          <div class="mb-4">
+            <label for="settledCash" class="mb-1 block text-sm font-medium text-gray-300">Starting settled cash ($)</label>
+            <input
+              id="settledCash"
+              type="number"
+              formControlName="settledCash"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="0.00"
+              required
+              aria-required="true"
+              [attr.aria-invalid]="form.controls.settledCash.invalid && form.controls.settledCash.touched"
+              [attr.aria-describedby]="form.controls.settledCash.invalid && form.controls.settledCash.touched ? 'settledCash-error' : null"
+              class="w-full rounded-md border border-gray-500 px-3 py-2 text-sm text-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            @if (form.controls.settledCash.invalid && form.controls.settledCash.touched) {
+              <p id="settledCash-error" role="alert" class="mt-1 text-sm text-red-600">
+                @if (form.controls.settledCash.errors?.['required']) {
+                  Starting settled cash is required.
+                } @else if (form.controls.settledCash.errors?.['min']) {
+                  Starting settled cash cannot be negative.
+                } @else if (form.controls.settledCash.errors?.['cents']) {
+                  Use at most 2 decimal places.
+                }
+              </p>
+            }
+          </div>
+
           <button type="submit" [disabled]="isSubmitting()" [attr.aria-busy]="isSubmitting()" class="mt-2 w-full rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
             {{ isSubmitting() ? 'Registering…' : 'Register' }}
           </button>

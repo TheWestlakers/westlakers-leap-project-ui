@@ -16,6 +16,20 @@ function pastDateValidator(control: AbstractControl<string>): ValidationErrors |
   return date < today ? null : { notInPast: true };
 }
 
+/** Cash amounts can have at most 2 decimal places (mirrors the BFF's @Digits check). */
+function centsValidator(control: AbstractControl<number | null>): ValidationErrors | null {
+  if (control.value === null || control.value === undefined) return null;
+  return /^\d+(\.\d{1,2})?$/.test(String(control.value)) ? null : { cents: true };
+}
+
+/** IDs match the account_types rows seeded by the BFF (data.sql). */
+const ACCOUNT_TYPES = [
+  { id: 1, label: 'Individual' },
+  { id: 2, label: 'Health' },
+  { id: 3, label: 'Retirement' },
+  { id: 4, label: 'Corporate' },
+] as const;
+
 @Component({
   selector: 'app-register',
   imports: [ReactiveFormsModule, RouterLink, CommonModule],
@@ -39,7 +53,11 @@ export class Register {
     phoneNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{10,15}$/)]],
     dateOfBirth: ['', [Validators.required, pastDateValidator]],
     taxId: ['', [Validators.pattern(/^[0-9]{9}$/)]],
+    accountTypeId: [null as number | null, [Validators.required]],
+    settledCash: [null as number | null, [Validators.required, Validators.min(0), centsValidator]],
   });
+
+  protected readonly accountTypes = ACCOUNT_TYPES;
 
   protected readonly showPassword = signal(false);
   protected readonly isSubmitting = signal(false);
@@ -59,7 +77,7 @@ export class Register {
     }
 
     this.isSubmitting.set(true);
-    const { firstName, lastName, email, password, phoneNumber, dateOfBirth, taxId } = this.form.getRawValue();
+    const { firstName, lastName, email, password, phoneNumber, dateOfBirth, taxId, accountTypeId, settledCash } = this.form.getRawValue();
     this.auth.register({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -68,6 +86,9 @@ export class Register {
       phoneNumber,
       dateOfBirth,
       taxId: taxId || null,
+      // Both are guaranteed non-null by the required validators checked above
+      accountTypeId: Number(accountTypeId),
+      settledCash: Number(settledCash),
     }).subscribe({
       next: () => {
         this.isSubmitting.set(false);

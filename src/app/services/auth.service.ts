@@ -25,6 +25,8 @@ export interface RegisterRequest {
   phoneNumber: string;
   taxId: string | null;
   dateOfBirth: string;
+  accountTypeId: number;
+  settledCash: number;
 }
 
 export interface RegisterResponse {
