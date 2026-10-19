@@ -30,7 +30,10 @@
             <h2 class="leaderboard-title">TOP 5 INVESTORS</h2>
             <p class="leaderboard-desc">Highest current order value</p>
           </div>
-          <span class="live-pill">CURRENT</span>
+          <button class="view-all-btn" (click)="navigateToInvestors()">
+            ALL INVESTORS
+            <span class="arrow-icon">→</span>
+          </button>
         </div>
         <table class="leaderboard-table">
           <thead>
@@ -52,7 +55,10 @@
             <h2 class="leaderboard-title">TOP 5 INSTRUMENTS</h2>
             <p class="leaderboard-desc">Highest current traded value</p>
           </div>
-          <span class="live-pill">CURRENT</span>
+          <button class="view-all-btn" (click)="navigateToInstruments()">
+            ALL INSTRUMENTS
+            <span class="arrow-icon">→</span>
+          </button>
         </div>
         <table class="leaderboard-table">
           <thead>
