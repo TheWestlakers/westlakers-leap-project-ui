@@ -1,4 +1,4 @@
-/* ─── Ticker Status & Refresh ─────────────────────── */
+/* ─── Ticker Status ───────────────────────────────── */
 .ticker-status {
   display: flex;
   align-items: center;
@@ -33,27 +33,3 @@
   padding-left: 13px;
 }
 
-.refresh-btn {
-  width: 100%;
-  background: var(--border);
-  border: 1px solid var(--border-mid);
-  border-top: 1px solid var(--border);
-  padding: 8px 12px;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: var(--surface-hi);
-  color: var(--text);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}

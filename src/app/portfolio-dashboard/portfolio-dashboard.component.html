@@ -1,5 +1,29 @@
 <!-- ─── TOP NAV ──────────────────────────────────────── -->
-<app-top-nav [netLiqValue]="totalAccountValue" [showPowerView]="true" />
+<app-top-nav
+  [netLiqValue]="totalAccountValue" [showPowerView]="true"
+  [searchValue]="searchValue"
+  (searchValueChange)="searchValue = $event"
+  (searchSubmit)="submitTickerSearch()"
+/>
+
+<section class="market-ribbon" aria-label="Market hours">
+  <div class="user-clock">
+    <span class="market-eyebrow">YOUR LOCAL TIME</span>
+    <strong>{{ userLocalTime }}</strong>
+    <span>{{ userTimeZone }}</span>
+  </div>
+  <div class="market-clocks">
+    <div *ngFor="let market of marketClocks" class="market-clock" [class.market-closed]="!market.isOpen">
+      <div class="market-clock-top">
+        <span class="market-code">{{ market.code }}</span>
+        <span class="market-status">{{ market.status }}</span>
+      </div>
+      <strong>{{ market.name }}</strong>
+      <span class="market-time">{{ market.time }}</span>
+      <span class="market-hours">{{ market.hours }}</span>
+    </div>
+  </div>
+</section>
 
 <!-- ─── MAIN WORKSPACE ───────────────────────────────── -->
 <div class="workspace" [class.simple-view-layout]="!themeService.isPowerView()">
@@ -35,7 +59,11 @@
       </div>
 
       <!-- WATCHLIST COMPONENT -->
-      <app-watchlist [allPrices]="allPrices()" [isSelectable]="false" />
+      <app-watchlist
+      [allPrices]="allPrices()"
+      [isSelectable]="false"
+      (watchlistSymbolsChange)="onWatchlistSymbolsChange($event)"
+    />
     } @else {
       <div class="simple-summary">
         <div class="simple-account-value">

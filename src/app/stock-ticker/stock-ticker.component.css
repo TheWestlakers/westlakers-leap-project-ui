@@ -11,6 +11,8 @@
   --green:       #10b981;
   --green-dk:    #3e8914;
   --red:         #ef4444;
+  --chart-tooltip-bg: #4b5563;
+  --chart-tooltip-text: #ffffff;
   --font-mono:   'Geist Mono', 'Courier New', monospace;
   --font-sans:   'Instrument Sans', system-ui, sans-serif;
   display: flex;
@@ -34,6 +36,8 @@
   --green:       #059669;
   --green-dk:    #047857;
   --red:         #dc2626;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-text: #1a202c;
   background: var(--bg);
   color: var(--text);
 }
@@ -400,23 +404,24 @@
 
 .wl-add-btn:hover { background: var(--green); }
 
-/* ─── Center column ───────────────────────────────────── */
 .center-col {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow: hidden;
 }
 
-/* Stock price chart */
 .chart-widget {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-header {
@@ -499,11 +504,11 @@
 
 .chart-period { font-size: 10px; color: var(--dim); }
 
-/* Chart body */
 .chart-body {
   display: flex;
   padding: 10px 12px;
-  height: 320px;
+  height: 500px;
+  flex: 0 0 auto;
   gap: 6px;
 }
 
@@ -530,10 +535,62 @@
   gap: 4px;
 }
 
-.chart-svg {
+.chart-plot-area {
+  position: relative;
   flex: 1;
+}
+
+.chart-svg {
   width: 100%;
+  height: 100%;
   display: block;
+}
+
+.chart-hover-line {
+  stroke: var(--muted);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.chart-end-dot-overlay {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.chart-tooltip-overlay {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 84px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background: var(--chart-tooltip-bg);
+  color: var(--chart-tooltip-text);
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  pointer-events: none;
+}
+
+.chart-tooltip-overlay {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.chart-tooltip-overlay span {
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.chart-hover-target {
+  cursor: crosshair;
 }
 
 .chart-x-labels {
@@ -875,7 +932,7 @@
   .chart-header { flex-direction: column; align-items: flex-start; }
 }
 
-/* --- Ticker Status & Refresh ----------------------- */
+/* --- Ticker Status ---------------------------------- */
 .ticker-status {
   display: flex;
   align-items: center;
@@ -895,6 +952,48 @@
 .status-icon { font-size: 14px; }
 .status-text { flex: 1; }
 
+.symbol-lookup-card {
+  display: flex;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.symbol-lookup-input {
+  flex: 1;
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.symbol-lookup-input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+.symbol-lookup-btn {
+  border: 1px solid var(--border-mid);
+  border-radius: 6px;
+  background: var(--surface-hi);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.symbol-lookup-btn:hover {
+  border-color: var(--green);
+}
+
 .ticker-item {
   cursor: pointer;
   transition: all 0.15s ease;
@@ -910,27 +1009,3 @@
   padding-left: 13px;
 }
 
-.refresh-btn {
-  width: 100%;
-  background: var(--border);
-  border: 1px solid var(--border-mid);
-  border-top: 1px solid var(--border);
-  padding: 8px 12px;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: var(--surface-hi);
-  color: var(--text);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}

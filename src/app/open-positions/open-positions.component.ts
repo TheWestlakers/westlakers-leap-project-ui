@@ -1,11 +1,12 @@
-import { Component, signal, inject, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, inject, OnInit, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 import { HoldingService } from '../services/holding.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
+import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
 import { Subject, interval } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
 
@@ -36,8 +37,10 @@ export type SortDir = 'asc' | 'desc';
 export class OpenPositionsComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   protected readonly themeService = inject(ThemeService);
+  private readonly platformId = inject(PLATFORM_ID);
   private readonly holdingService = inject(HoldingService);
   private readonly stockDataService = inject(StockDataService);
+  private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly destroy$ = new Subject<void>();
   private readonly emptyPosition: Position = { id: '', symbol: '--', shares: 0, avgCost: 0, lastPrice: 0, marketValue: 0, unrealizedPnl: 0, unrealizedPct: 0, sector: 'Unknown' };
   readonly positionData = signal<Position[]>([]);
@@ -72,15 +75,43 @@ export class OpenPositionsComponent implements OnInit, OnDestroy {
           }));
 
           this.stockDataService.getPrices(symbols).pipe(takeUntil(this.destroy$)).subscribe({ next: updatePrices, error: error => console.error('Error loading prices:', error) });
-          interval(1000).pipe(switchMap(() => this.stockDataService.getPrices(symbols)), takeUntil(this.destroy$)).subscribe({ next: updatePrices, error: error => console.error('Error polling prices:', error) });
+          if (isPlatformBrowser(this.platformId)) {
+            this.priceWebsocketService.getPriceUpdates()
+              .pipe(takeUntil(this.destroy$))
+              .subscribe(update => this.applyPriceUpdate(update));
+            this.priceWebsocketService.subscribe(symbols);
+          }
+
+          interval(30000).pipe(switchMap(() => this.stockDataService.getPrices(symbols)), takeUntil(this.destroy$)).subscribe({ next: updatePrices, error: error => console.error('Error polling prices:', error) });
         },
         error: error => console.error('Error loading holdings:', error),
       });
   }
 
   ngOnDestroy(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      this.priceWebsocketService.unsubscribe(this.positionData().map(position => position.symbol));
+    }
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private applyPriceUpdate(update: PriceUpdate): void {
+    if (update.type !== 'price_update' || !update.ticker || !update.data) {
+      return;
+    }
+
+    const ticker = update.ticker.toUpperCase();
+    this.positionData.update(current => current.map(position => {
+      if (position.symbol.toUpperCase() !== ticker) {
+        return position;
+      }
+      const lastPrice = Number(update.data.currentPrice ?? position.lastPrice);
+      const marketValue = position.shares * lastPrice;
+      const unrealizedPnl = (lastPrice - position.avgCost) * position.shares;
+      const costBasis = position.avgCost * position.shares;
+      return { ...position, lastPrice, marketValue, unrealizedPnl, unrealizedPct: costBasis ? unrealizedPnl / costBasis * 100 : 0 };
+    }));
   }
 
   /* ── Sorted positions ── */
