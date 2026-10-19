@@ -1,5 +1,31 @@
 <!-- ─── TOP NAV ──────────────────────────────────────── -->
-<app-top-nav [netLiqValue]="totalAccountValue" [showPowerView]="true" />
+<app-top-nav
+  [netLiqValue]="totalAccountValue" [showPowerView]="true"
+  [searchValue]="searchValue"
+  (searchValueChange)="searchValue = $event"
+  (searchSubmit)="submitTickerSearch()"
+/>
+
+<section class="market-ribbon" [class.simple-market-ribbon]="!themeService.isPowerView()" aria-label="Market hours">
+  <div class="user-clock">
+    <span class="market-eyebrow">YOUR LOCAL TIME</span>
+    <strong>{{ userLocalTime }}</strong>
+    <span>{{ userTimeZone }}</span>
+  </div>
+  <div class="market-clocks">
+    <div *ngFor="let market of marketClocks" class="market-clock" [class.market-closed]="!market.isOpen">
+      <div class="market-clock-top">
+        <span class="market-code">{{ market.code }}</span>
+        <span class="market-status">{{ market.status }}</span>
+      </div>
+      <strong>{{ market.name }}</strong>
+      @if (themeService.isPowerView()) {
+        <span class="market-time">{{ market.time }}</span>
+        <span class="market-hours">{{ market.hours }}</span>
+      }
+    </div>
+  </div>
+</section>
 
 <!-- ─── MAIN WORKSPACE ───────────────────────────────── -->
 <div class="workspace" [class.simple-view-layout]="!themeService.isPowerView()">
@@ -25,6 +51,14 @@
         </div>
       </div>
 
+      <!-- Equity value -->
+      <div class="stat-card">
+        <p class="stat-label">EQUITY VALUE</p>
+        <div class="stat-row">
+          <span class="stat-value">${{ formatCurrency(holdingsValue) }}</span>
+        </div>
+      </div>
+
       <!-- Day change -->
       <div class="stat-card">
         <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
@@ -35,7 +69,12 @@
       </div>
 
       <!-- WATCHLIST COMPONENT -->
-      <app-watchlist [allPrices]="allPrices()" [isSelectable]="false" />
+      <app-watchlist
+      [allPrices]="allPrices()"
+      [isSelectable]="false"
+      [highlightFirstItem]="false"
+      (watchlistSymbolsChange)="onWatchlistSymbolsChange($event)"
+    />
     } @else {
       <div class="simple-summary">
         <div class="simple-account-value">
@@ -61,7 +100,7 @@
       <div class="chart-header">
         <div class="chart-left">
           <span class="chart-title">PORTFOLIO</span>
-          <span class="chart-desc">Overall value over time</span>
+          <span class="chart-desc">Overall value over time excluding settled cash</span>
           <span class="chart-range-pill">{{ activeRange() }}</span>
         </div>
         <div class="chart-right">
@@ -71,7 +110,7 @@
               *ngFor="let r of RANGES"
               class="range-tab"
               [ngClass]="rangeTabClass(r)"
-              (click)="activeRange.set(r)"
+              (click)="setActiveRange(r)"
             >{{ r }}</button>
           </div>
           <!-- Values -->

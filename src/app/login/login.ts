@@ -1,7 +1,8 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 
@@ -15,6 +16,7 @@ import { AuthService } from '../services/auth.service';
 export class Login {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   protected readonly themeService = inject(ThemeService);
   private readonly auth = inject(AuthService);
 
@@ -44,11 +46,15 @@ export class Login {
     this.auth.login(email, password).subscribe({
       next: () => {
         this.isSubmitting.set(false);
-        this.router.navigateByUrl('/portfolio');
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        this.router.navigateByUrl(returnUrl?.startsWith('/') ? returnUrl : '/portfolio');
       },
-      error: () => {
+      error: (error: HttpErrorResponse) => {
         this.isSubmitting.set(false);
-        this.serverError.set('Incorrect email or password. Please try again.');
+        this.auth.logout();
+        this.serverError.set(error.status === 401
+          ? 'Incorrect email or password. Please try again.'
+          : 'Unable to sign in right now. Please try again later.');
       },
     });
   }

@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Subject, Observable } from 'rxjs';
 
 export interface PriceUpdate {
@@ -13,7 +14,8 @@ export interface PriceUpdate {
   providedIn: 'root',
 })
 export class PriceWebsocketService {
-  private ws!: WebSocket;
+  private readonly platformId = inject(PLATFORM_ID);
+  private ws?: WebSocket;
   private priceUpdates$ = new Subject<PriceUpdate>();
   private connectionStatus = signal('disconnected');
   private subscribedTickers = new Set<string>();
@@ -23,15 +25,26 @@ export class PriceWebsocketService {
   }
 
   private connect() {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     try {
-      this.ws = new WebSocket('ws://localhost:8081/ws/prices');
+      const socket = new WebSocket('ws://localhost:8081/ws/prices');
+      this.ws = socket;
       
-      this.ws.onopen = () => {
+      socket.onopen = () => {
         this.connectionStatus.set('connected');
         console.log('WebSocket connected');
+        if (this.subscribedTickers.size > 0) {
+          socket.send(JSON.stringify({
+            action: 'subscribe',
+            tickers: Array.from(this.subscribedTickers)
+          }));
+        }
       };
 
-      this.ws.onmessage = (event) => {
+      socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as PriceUpdate;
           this.priceUpdates$.next(data);
@@ -40,12 +53,12 @@ export class PriceWebsocketService {
         }
       };
 
-      this.ws.onerror = (event) => {
+      socket.onerror = (event) => {
         this.connectionStatus.set('error');
         console.error('WebSocket error:', event);
       };
 
-      this.ws.onclose = () => {
+      socket.onclose = () => {
         this.connectionStatus.set('disconnected');
         console.log('WebSocket disconnected');
         // Attempt to reconnect after 3 seconds
@@ -57,23 +70,25 @@ export class PriceWebsocketService {
   }
 
   subscribe(tickers: string[]): Observable<PriceUpdate> {
-    if (this.ws.readyState === WebSocket.OPEN) {
+    const normalizedTickers = tickers.map(ticker => ticker.toUpperCase());
+    normalizedTickers.forEach(ticker => this.subscribedTickers.add(ticker));
+    if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({
         action: 'subscribe',
-        tickers: tickers
+        tickers: normalizedTickers
       }));
-      tickers.forEach(t => this.subscribedTickers.add(t));
     }
     return this.priceUpdates$.asObservable();
   }
 
   unsubscribe(tickers: string[]) {
-    if (this.ws.readyState === WebSocket.OPEN) {
+    const normalizedTickers = tickers.map(ticker => ticker.toUpperCase());
+    normalizedTickers.forEach(ticker => this.subscribedTickers.delete(ticker));
+    if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({
         action: 'unsubscribe',
-        tickers: tickers
+        tickers: normalizedTickers
       }));
-      tickers.forEach(t => this.subscribedTickers.delete(t));
     }
   }
 

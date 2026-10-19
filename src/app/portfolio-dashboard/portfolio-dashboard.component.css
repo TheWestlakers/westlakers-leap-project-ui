@@ -175,6 +175,87 @@
   overflow: hidden;
 }
 
+/* ─── Market hours ───────────────────────────────────── */
+.market-ribbon {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.user-clock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 150px;
+  padding: 4px 14px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+
+.user-clock strong { font-family: var(--font-mono); font-size: 16px; }
+.user-clock span:last-child { color: var(--muted); font-size: 10px; }
+.market-eyebrow { color: var(--dim); font-size: 9px; letter-spacing: 0.08em; }
+
+.market-clocks { display: flex; justify-content: center; gap: 8px; min-width: max-content; }
+
+.market-clock {
+  min-width: 128px;
+  padding: 7px 10px;
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 6px;
+  background: rgba(16,185,129,0.06);
+}
+
+.market-clock.market-closed {
+  border-color: rgba(239,68,68,0.35);
+  background: var(--bg);
+}
+
+.market-clock-top { display: flex; justify-content: space-between; gap: 8px; }
+.market-code, .market-status { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; }
+.market-code { color: var(--green); }
+.market-status { color: var(--green); }
+.market-closed .market-code,
+.market-closed .market-status { color: #ef4444; }
+.market-clock strong { display: block; margin-top: 3px; font-size: 11px; text-align: center; }
+.market-time { display: block; margin-top: 3px; font-family: var(--font-mono); font-size: 13px; text-align: center; }
+.market-hours { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; text-align: center; white-space: nowrap; }
+
+.simple-market-ribbon .market-clock {
+  min-width: 112px;
+  padding: 9px 10px;
+}
+
+.simple-market-ribbon .market-clock strong {
+  margin-top: 6px;
+}
+
+:host:not(.light-theme) .market-ribbon {
+  scrollbar-color: #252b31 #050607;
+  scrollbar-width: thin;
+}
+
+:host:not(.light-theme) .market-ribbon::-webkit-scrollbar {
+  height: 8px;
+}
+
+:host:not(.light-theme) .market-ribbon::-webkit-scrollbar-track {
+  background: #050607;
+}
+
+:host:not(.light-theme) .market-ribbon::-webkit-scrollbar-thumb {
+  background: #252b31;
+  border-radius: 4px;
+}
+
+:host:not(.light-theme) .market-ribbon::-webkit-scrollbar-thumb:hover {
+  background: #343c44;
+}
+
 /* ─── Left rail ───────────────────────────────────────── */
 .left-rail {
   width: 260px;

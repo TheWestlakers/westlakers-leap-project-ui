@@ -1,5 +1,10 @@
 <!-- ─── TOP NAV ──────────────────────────────────────── -->
-<app-top-nav [netLiqValue]="totalAccountValue" />
+<app-top-nav
+  [netLiqValue]="totalAccountValue"
+  [searchValue]="symbolLookup"
+  (searchValueChange)="symbolLookup = $event"
+  (searchSubmit)="addFocusedTicker()"
+/>
 
 <!-- ─── SUB NAV ───────────────────────────────────────── -->
 <div class="sub-nav">
@@ -55,13 +60,10 @@
       [allPrices]="allPrices()"
       [isSelectable]="true"
       [selectedSymbol]="selectedTicker()"
+      [showPricePlaceholder]="true"
       (tickerSelected)="selectTicker($event)"
       (watchlistSymbolsChange)="onWatchlistSymbolsChange($event)"
     />
-
-    <button class="refresh-btn" (click)="refreshPrices()" [disabled]="isLoadingPrices()">
-      {{ isLoadingPrices() ? '⏳ Refreshing...' : '🔄 Refresh Prices' }}
-    </button>
 
   </aside>
 
@@ -74,6 +76,7 @@
         <div class="chart-left">
           <span class="chart-title">{{ stockSymbol() }}</span>
           <span class="chart-desc">{{ stockName() }} — Stock price over time</span>
+          <span class="chart-system-time">{{ formatSystemTime(systemTime()) }}</span>
           <span class="chart-range-pill">{{ activeRange() }}</span>
         </div>
         <div class="chart-right">
@@ -83,13 +86,13 @@
               *ngFor="let r of RANGES"
               class="range-tab"
               [ngClass]="rangeTabClass(r)"
-              (click)="activeRange.set(r)"
+              (click)="setActiveRange(r)"
             >{{ r }}</button>
           </div>
           <!-- Values -->
           <div class="chart-vals">
             <div class="chart-primary-val">
-              <span class="chart-price">${{ formatCurrency(currentValue) }}</span>
+              <span class="chart-price">{{ currentValue == null ? '-' : '$' + formatCurrency(currentValue) }}</span>
               <span class="chart-pct" [class.positive]="isPositive" [class.negative]="!isPositive">
                 {{ pnlPrefix(rangeData.deltaValue) }}{{ rangeData.deltaPct.toFixed(2) }}%
               </span>
@@ -109,7 +112,13 @@
           <span *ngFor="let y of rangeData.yLabels" class="axis-label">{{ y }}</span>
         </div>
         <div class="chart-svg-wrap">
-          <svg viewBox="0 0 680 200" preserveAspectRatio="none" class="chart-svg">
+          <div class="chart-plot-area">
+            <svg
+              viewBox="0 0 680 200"
+              preserveAspectRatio="none"
+              class="chart-svg"
+              (mouseleave)="hoveredPointIndex.set(null)"
+            >
             <defs>
               <linearGradient id="stGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   [attr.stop-color]="chartColor" stop-opacity="0.18"/>
@@ -125,7 +134,41 @@
               stroke-linejoin="round"
               stroke-linecap="round"
             />
-          </svg>
+            <line
+              *ngIf="hoveredChartPoint as point"
+              [attr.x1]="point.x"
+              [attr.x2]="point.x"
+              y1="0"
+              y2="200"
+              class="chart-hover-line"
+            />
+            <rect
+              *ngFor="let point of rangeData.plotPoints; let i = index"
+              [attr.x]="getChartHoverZoneX(i)"
+              [attr.width]="getChartHoverZoneWidth(i)"
+              y="0"
+              height="200"
+              fill="transparent"
+              class="chart-hover-target"
+              (mouseenter)="hoveredPointIndex.set(i)"
+            />
+            </svg>
+            <span
+              *ngIf="rangeData.plotPoints.length"
+              class="chart-end-dot-overlay"
+              [style.left.%]="rangeData.plotPoints[rangeData.plotPoints.length - 1].x / 680 * 100"
+              [style.top.%]="rangeData.plotPoints[rangeData.plotPoints.length - 1].y / 200 * 100"
+              [style.background-color]="chartColor"
+            ></span>
+            <div
+              *ngIf="hoveredChartPoint as point"
+              class="chart-tooltip-overlay"
+              [style.left.%]="Math.min(Math.max(point.x, 46), 634) / 680 * 100"
+            >
+              <strong>{{ '$' + formatCurrency(point.price) }}</strong>
+              <span>{{ formatTooltipDate(point.timestamp) }}</span>
+            </div>
+          </div>
           <div class="chart-x-labels">
             <span *ngFor="let x of rangeData.xLabels" class="axis-label">{{ x }}</span>
           </div>
@@ -206,7 +249,8 @@
               <input
                 type="number"
                 class="qty-input"
-                [value]="orderPrice()"
+                [value]="formatPrice(orderPrice())"
+                placeholder="-"
                 (input)="setOrderPrice(+$any($event.target).value || 0)"
                 step="0.01"
                 [disabled]="orderType() === 'MARKET'"
