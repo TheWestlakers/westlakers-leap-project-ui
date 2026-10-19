@@ -1,0 +1,39 @@
+<div class="ranking-page">
+  <header class="ranking-header">
+    <button class="back-button" (click)="goBack()">← BACK</button>
+    <div class="header-divider"></div>
+    <div>
+      <h1>{{ title }}</h1>
+      <p>{{ description }}</p>
+    </div>
+  </header>
+
+  <main class="ranking-content">
+    <section class="ranking-panel">
+      <div class="panel-header">
+        <div>
+          <h2>{{ title }}</h2>
+          <p>{{ entries.length }} ranked records</p>
+        </div>
+        <span class="ranked-label">RANKED</span>
+      </div>
+
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>RANK</th>
+            <th>{{ columnLabel }}</th>
+            <th class="numeric">{{ valueLabel }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of entries; let i = index">
+            <td class="rank">{{ i + 1 | number: '2.0-0' }}</td>
+            <td class="entry-name">{{ entry.name }}</td>
+            <td class="numeric entry-value">{{ entry.value | currency: 'USD': 'symbol': '1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>

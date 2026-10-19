@@ -198,6 +198,14 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/compliance-records']);
   }
 
+  navigateToInvestors(): void {
+    this.router.navigate(['/admin-rankings', 'investors']);
+  }
+
+  navigateToInstruments(): void {
+    this.router.navigate(['/admin-rankings', 'instruments']);
+  }
+
   get alertTagClass(): Record<string, (color: string) => string> {
     return {};
   }

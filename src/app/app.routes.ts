@@ -16,5 +16,6 @@ export const routes: Routes = [
     { path: 'logout', loadComponent: () => import('./logout/logout').then((m) => m.Logout) },
     { path: 'transaction-history', canActivate: [authGuard], loadComponent: () => import('./transaction-history/transaction-history').then((m) => m.TransactionHistoryComponent) },
     { path: 'admin-dashboard', loadComponent: () => import('./admin-dashboard/admin-dashboard').then((m) => m.AdminDashboardComponent) },
+    { path: 'admin-rankings/:rankingType', loadComponent: () => import('./admin-rankings/admin-rankings').then((m) => m.AdminRankingsComponent) },
     { path: 'compliance-records', loadComponent: () => import('./compliance-records/compliance-records').then((m) => m.ComplianceRecordsComponent) }
 ];
