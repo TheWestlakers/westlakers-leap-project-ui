@@ -7,6 +7,7 @@ import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
 import { WatchlistComponent } from './watchlist/watchlist.component';
 import { ThemeService } from '../services/theme.service';
+import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
 import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
@@ -156,6 +157,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private readonly stockDataService = inject(StockDataService);
   private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly holdingService = inject(HoldingService);
+  private readonly authService = inject(AuthService);
   private readonly destroy$ = new Subject<void>();
   private readonly websocketSymbols = new Set<string>();
   private readonly positionSymbols = new Set<string>();
@@ -163,7 +165,10 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private clientId = '';
 
   /* ── Account ── */
-  readonly accountId = 3;
+  /** Account of the signed-in user. null when the user has no account yet. */
+  private get accountId(): number | null {
+    return this.authService.activeAccount()?.accountId ?? null;
+  }
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
 
@@ -232,13 +237,16 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
         .subscribe(() => this.clockNow.set(new Date()));
     }
 
-    this.accountService.loadAccount(this.accountId)
+    const accountId = this.accountId;
+    if (accountId === null) return;
+
+    this.accountService.loadAccount(accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         error: (error) => console.error('Error loading account:', error)
       });
 
-    this.holdingService.getHoldingsByAccountId(this.accountId)
+    this.holdingService.getHoldingsByAccountId(accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: holdings => {

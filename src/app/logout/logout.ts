@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-logout',
@@ -13,6 +14,10 @@ import { ThemeService } from '../services/theme.service';
 export class Logout {
   private readonly router = inject(Router);
   protected readonly themeService = inject(ThemeService);
+
+  constructor() {
+    inject(AuthService).logout();
+  }
 
   protected signInAgain(): void {
     this.router.navigateByUrl('/login');

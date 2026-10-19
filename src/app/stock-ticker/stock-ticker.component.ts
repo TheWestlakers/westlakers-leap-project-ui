@@ -9,6 +9,7 @@ import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-ass
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
 import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
+import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
 import { HoldingPosition, HoldingService } from '../services/holding.service';
 import { PortfolioValueService } from '../services/portfolio-value.service';
@@ -169,7 +170,11 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   get buyingPower(): number { return this.accountSummary.buyingPower; }
   readonly dayChange         =   3480.12;
   readonly dayChangePct      =      1.42;
-  readonly accountId = 3;
+  private readonly authService = inject(AuthService);
+  /** Account of the signed-in user; null when the user has no account yet. */
+  private get accountId(): number | null {
+    return this.authService.activeAccount()?.accountId ?? null;
+  }
 
   /* ── Stock symbol and price data ── */
   // Currently selected ticker for main display
@@ -319,13 +324,17 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .subscribe(update => this.applyPriceUpdate(update));
     this.syncWebsocketSubscriptions();
     this.startHistoryPolling();
-    this.accountService.loadAccount(this.accountId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        error: (error) => console.error('Error loading account:', error)
-      });
 
-    this.loadHoldings();
+    const accountId = this.accountId;
+    if (accountId !== null) {
+      this.accountService.loadAccount(accountId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          error: (error) => console.error('Error loading account:', error)
+    });
+
+      this.loadHoldings();
+    }
 
     // Load prices immediately.
     this.loadPrices();
@@ -411,7 +420,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   private loadHoldings(): void {
-    this.holdingService.getHoldingsByAccountId(this.accountId)
+    const accountId = this.accountId;
+    if (accountId === null) return;
+
+    this.holdingService.getHoldingsByAccountId(accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: holdings => {
@@ -650,6 +662,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     const orderSide = this.orderSide();
     const orderQuantity = this.orderShares();
     const orderPrice = this.orderPrice();
+    const accountId = this.accountId;
+
+    if (accountId === null) {
+      this.orderError.set('No trading account is linked to your profile yet.');
+      return;
+    }
 
     if (orderPrice === null) {
       this.orderError.set('Order price is unavailable.');
@@ -660,14 +678,14 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     this.tradeService.getInstrumentByTicker(this.orderSymbol()).pipe(
       switchMap(instrument => orderType === 'LIMIT'
         ? this.tradeService.createLimitTrade({
-            accountId: this.accountId,
+            accountId,
             instrumentId: instrument.instrumentId,
             side: orderSide,
             quantity: orderQuantity,
             limitPrice: orderPrice,
           })
         : this.tradeService.createMarketTrade({
-            accountId: this.accountId,
+            accountId,
             instrumentId: instrument.instrumentId,
             side: orderSide,
             quantity: orderQuantity,
@@ -688,7 +706,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: () => {
-        this.accountService.refreshAccount(this.accountId)
+        this.accountService.refreshAccount(accountId)
           .pipe(takeUntil(this.destroy$))
           .subscribe({
             next: () => {
