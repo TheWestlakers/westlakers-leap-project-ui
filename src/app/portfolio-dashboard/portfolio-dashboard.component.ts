@@ -13,8 +13,8 @@ import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { HoldingService } from '../services/holding.service';
 import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
-import { interval, Subject } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { forkJoin, interval, of, Subject, timer } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { takeUntil } from 'rxjs/operators';
 
 /* ─── Shared types ────────────────────────────────────── */
@@ -60,23 +60,23 @@ export const INITIAL_WATCHLIST: WatchlistItem[] = [
 ];
 
 /* ─── Chart data generator ────────────────────────────── */
-function generateSvgPath(days: number, baseVal: number, endVal: number): string {
-  const points: string[] = [];
-  const steps = Math.min(days, 60);
-  for (let i = 0; i <= steps; i++) {
-    const progress = i / steps;
-    const noise    = (Math.random() - 0.4) * (endVal - baseVal) * 0.06;
-    const val      = baseVal + (endVal - baseVal) * Math.pow(progress, 0.7) + noise;
-    const x = (i / steps) * 680;
-    const y = 200 - ((val - baseVal * 0.9) / ((endVal * 1.05) - baseVal * 0.9)) * 200;
-    points.push(i === 0 ? `M${x.toFixed(1)},${y.toFixed(1)}` : `L${x.toFixed(1)},${y.toFixed(1)}`);
-  }
-  return points.join(' ');
-}
-
 function generateFillPath(linePath: string): string {
   return linePath + ' L680,200 L0,200 Z';
 }
+
+interface ChartSnapshot {
+  timestamp: number;
+  value: number;
+}
+
+const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number }> = {
+  '1D': { period: '1d', interval: '1m', limit: 390, refreshMs: 60_000 },
+  '5D': { period: '5d', interval: '15m', limit: 260, refreshMs: 300_000 },
+  '1M': { period: '1mo', interval: '1h', limit: 260, refreshMs: 900_000 },
+  '6M': { period: '6mo', interval: '1d', limit: 260, refreshMs: 900_000 },
+  '1Y': { period: '1y', interval: '1d', limit: 260, refreshMs: 1_800_000 },
+  '3Y': { period: '3y', interval: '1wk', limit: 260, refreshMs: 3_600_000 },
+};
 
 interface RangeConfig {
   linePath: string;
@@ -106,29 +106,6 @@ const MARKET_DEFINITIONS = [
   { name: 'Forex', code: 'FX', timeZone: 'America/New_York', hours: '24 hours / 5 days', open: [17, 0], close: [17, 0], weekdays: [0, 1, 2, 3, 4, 5] },
   { name: 'Crypto', code: '24/7', timeZone: 'UTC', hours: '24 hours / 7 days', open: [0, 0], close: [24, 0], weekdays: [0, 1, 2, 3, 4, 5, 6] },
 ] as const;
-
-function buildRangeConfig(days: number, base: number, end: number, xLbls: string[]): RangeConfig {
-  const line = generateSvgPath(days, base, end);
-  const delta = end - base;
-  const pct   = (delta / base) * 100;
-  return {
-    linePath:   line,
-    fillPath:   generateFillPath(line),
-    xLabels:    xLbls,
-    yLabels:    ['260k', '245k', '230k', '215k', '200k'],
-    deltaValue: delta,
-    deltaPct:   pct,
-  };
-}
-
-const RANGE_DATA: Record<PortfolioRange, RangeConfig> = {
-  '1D': buildRangeConfig(1,   244800, 248512.90, ['9:30', '11:00', '12:30', '14:00', '16:00']),
-  '5D': buildRangeConfig(5,   241200, 248512.90, ['Mon',  'Tue',   'Wed',   'Thu',   'Fri'  ]),
-  '1M': buildRangeConfig(30,  232000, 248512.90, ['Mar 18', 'Mar 25', 'Apr 1', 'Apr 8', 'Apr 15']),
-  '6M': buildRangeConfig(182, 210000, 248512.90, ['Oct', 'Dec', 'Feb', 'Mar', 'Apr']),
-  '1Y': buildRangeConfig(365, 198000, 248512.90, ['May',  'Jul',   'Sep',   'Nov',   'Jan'  ]),
-  '3Y': buildRangeConfig(365 * 3, 142000, 248512.90, ['2022', '2023', '2024', 'Q1',  'Now' ]),
-};
 
 /* ─── Inline sparkline SVG paths ─────────────────────── */
 export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
@@ -163,6 +140,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private readonly positionSymbols = new Set<string>();
   private subscribedWatchlistSymbols = new Set<string>();
   private clientId = '';
+  private readonly historyReload$ = new Subject<void>();
 
   /* ── Account ── */
   /** Account of the signed-in user. null when the user has no account yet. */
@@ -206,16 +184,59 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   /* ── Portfolio chart ── */
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1M', '6M', '1Y', '3Y'];
   activeRange = signal<PortfolioRange>('5D');
+  private readonly holdingValueHistory = signal<ChartSnapshot[]>([]);
 
   /* ── Order form ── */
   orderSide = signal<OrderSide>('BUY');
   orderType = signal<OrderType>('LIMIT');
 
   get rangeData(): RangeConfig {
-    return RANGE_DATA[this.activeRange()];
+    const now = Date.now();
+    const rangeMs: Record<PortfolioRange, number> = {
+      '1D': 24 * 60 * 60 * 1000,
+      '5D': 5 * 24 * 60 * 60 * 1000,
+      '1M': 30 * 24 * 60 * 60 * 1000,
+      '6M': 182 * 24 * 60 * 60 * 1000,
+      '1Y': 365 * 24 * 60 * 60 * 1000,
+      '3Y': 3 * 365 * 24 * 60 * 60 * 1000,
+    };
+    const snapshots = this.holdingValueHistory().filter(snapshot => snapshot.timestamp >= now - rangeMs[this.activeRange()]);
+    const currentValue = this.holdingsValue;
+    const chartSnapshots = snapshots.length > 0
+      ? snapshots
+      : [{ timestamp: now, value: currentValue }];
+    const values = chartSnapshots.map(snapshot => snapshot.value);
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const padding = Math.max((maxValue - minValue) * 0.15, Math.max(maxValue, 1) * 0.001);
+    const chartMin = Math.max(0, minValue - padding);
+    const chartMax = maxValue + padding;
+    const valueRange = Math.max(chartMax - chartMin, 1);
+    const line = chartSnapshots.map((snapshot, index) => {
+      const x = chartSnapshots.length === 1 ? 340 : (index / (chartSnapshots.length - 1)) * 680;
+      const y = 200 - ((snapshot.value - chartMin) / valueRange) * 200;
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const firstValue = chartSnapshots[0].value;
+    const lastValue = chartSnapshots[chartSnapshots.length - 1].value;
+    const deltaValue = lastValue - firstValue;
+    const xLabels = this.chartLabels(this.activeRange(), chartSnapshots[0].timestamp, chartSnapshots[chartSnapshots.length - 1].timestamp);
+    const yLabels = [0, 0.25, 0.5, 0.75, 1].map(fraction => this.formatChartValue(chartMax - valueRange * fraction));
+    return {
+      linePath: line,
+      fillPath: generateFillPath(line),
+      xLabels,
+      yLabels,
+      deltaValue,
+      deltaPct: firstValue ? deltaValue / firstValue * 100 : 0,
+    };
   }
 
-  get currentValue(): number { return this.totalAccountValue; }
+  get holdingsValue(): number {
+    return this.positions().reduce((total, position) => total + position.marketValue, 0);
+  }
+
+  get currentValue(): number { return this.holdingsValue; }
 
   get isPositive(): boolean { return this.rangeData.deltaValue >= 0; }
 
@@ -258,9 +279,11 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
             unrealizedPct: 0,
           }));
           this.positions.set(positions);
+          this.recordHoldingValueSnapshot();
 
           const symbols = positions.map(position => position.symbol);
           if (symbols.length === 0) return;
+          this.startHistoryPolling(symbols);
 
           if (isPlatformBrowser(this.platformId)) {
             const normalizedSymbols = symbols.map(symbol => symbol.toUpperCase());
@@ -328,6 +351,8 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.priceWebsocketService.unsubscribe(Array.from(this.websocketSymbols));
+    this.historyReload$.next();
+    this.historyReload$.complete();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -356,6 +381,64 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
       const costBasis = position.avgCost * position.shares;
       return { ...position, lastPrice, marketValue, unrealizedPnl, unrealizedPct: costBasis ? unrealizedPnl / costBasis * 100 : 0 };
     }));
+  }
+
+  private recordHoldingValueSnapshot(): void {
+    const snapshot = { timestamp: Date.now(), value: this.holdingsValue };
+    this.holdingValueHistory.update(history => [...history, snapshot].slice(-500));
+  }
+
+  private startHistoryPolling(symbols: string[]): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    this.historyReload$.next();
+    const range = this.activeRange();
+    const options = RANGE_OPTIONS[range];
+    timer(0, options.refreshMs).pipe(
+      switchMap(() => this.fetchHoldingValueHistory(symbols, options)),
+      takeUntil(this.historyReload$),
+      takeUntil(this.destroy$),
+    ).subscribe(history => {
+      if (history.length > 0) {
+        this.holdingValueHistory.set(history);
+      }
+    });
+  }
+
+  private fetchHoldingValueHistory(
+    symbols: string[],
+    options: { period: string; interval: string; limit: number },
+  ) {
+    return forkJoin(symbols.map(symbol => this.stockDataService.getPriceHistory(
+      symbol, options.period, options.interval, options.limit,
+    ).pipe(catchError(() => of([]))))).pipe(
+      map(histories => {
+        const timestamps = Array.from(new Set(
+          histories.flatMap(history => history.map(point => Date.parse(point.timestamp))),
+        )).filter(timestamp => Number.isFinite(timestamp)).sort((left, right) => left - right);
+        return timestamps.map(timestamp => ({
+          timestamp,
+          value: histories.reduce((total, history, index) => {
+            const point = history.filter(candidate => Date.parse(candidate.timestamp) <= timestamp).at(-1);
+            const shares = this.positions().find(position => position.symbol === symbols[index])?.shares ?? 0;
+            return total + (point?.price ?? 0) * shares;
+          }, 0),
+        })).filter(snapshot => snapshot.value > 0);
+      }),
+    );
+  }
+
+  private chartLabels(range: PortfolioRange, start: number, end: number): string[] {
+    if (range === '1D') {
+      return [0, 0.25, 0.5, 0.75, 1].map(fraction => new Date(start + (end - start) * fraction).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+    }
+    return [0, 0.25, 0.5, 0.75, 1].map(fraction => new Date(start + (end - start) * fraction).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+  }
+
+  private formatChartValue(value: number): string {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}m`;
+    if (value >= 1000) return `${Math.round(value / 1000)}k`;
+    return Math.round(value).toString();
   }
 
   private getMarketClock(
@@ -424,6 +507,15 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   rangeTabClass(r: PortfolioRange): string {
     return this.activeRange() === r ? 'range-active' : 'range-inactive';
+  }
+
+  setActiveRange(range: PortfolioRange): void {
+    if (this.activeRange() === range) return;
+    this.activeRange.set(range);
+    const symbols = this.positions().map(position => position.symbol);
+    if (symbols.length > 0) {
+      this.startHistoryPolling(symbols);
+    }
   }
 
   pnlClass(val: number): string { return val >= 0 ? 'positive' : 'negative'; }

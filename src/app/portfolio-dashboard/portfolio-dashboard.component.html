@@ -51,6 +51,14 @@
         </div>
       </div>
 
+      <!-- Equity value -->
+      <div class="stat-card">
+        <p class="stat-label">EQUITY VALUE</p>
+        <div class="stat-row">
+          <span class="stat-value">${{ formatCurrency(holdingsValue) }}</span>
+        </div>
+      </div>
+
       <!-- Day change -->
       <div class="stat-card">
         <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
@@ -92,7 +100,7 @@
       <div class="chart-header">
         <div class="chart-left">
           <span class="chart-title">PORTFOLIO</span>
-          <span class="chart-desc">Overall value over time</span>
+          <span class="chart-desc">Overall value over time excluding settled cash</span>
           <span class="chart-range-pill">{{ activeRange() }}</span>
         </div>
         <div class="chart-right">
@@ -102,7 +110,7 @@
               *ngFor="let r of RANGES"
               class="range-tab"
               [ngClass]="rangeTabClass(r)"
-              (click)="activeRange.set(r)"
+              (click)="setActiveRange(r)"
             >{{ r }}</button>
           </div>
           <!-- Values -->
