@@ -333,12 +333,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
           error: (error) => console.error('Error loading account:', error)
     });
 
-    this.accountService.loadAccount(accountId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        error: (error) => console.error('Error loading account:', error)
-      });
-
       this.loadHoldings();
     }
 
