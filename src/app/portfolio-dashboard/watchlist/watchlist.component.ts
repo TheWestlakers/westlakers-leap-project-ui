@@ -19,6 +19,7 @@ export class WatchlistComponent implements OnInit {
   allPrices = input<{ [symbol: string]: StockPrice }>({});
   isSelectable = input(true); // When false, items can't be clicked to select
   highlightFirstItem = input(true);
+  showPricePlaceholder = input(false);
   selectedSymbol = input<string | null>(null);
 
   /* ── Outputs ── */
@@ -42,6 +43,9 @@ export class WatchlistComponent implements OnInit {
     const livePrice = this.getLivePrice(symbol);
     if (livePrice) {
       return Number(livePrice.currentPrice).toFixed(2);
+    }
+    if (this.showPricePlaceholder()) {
+      return '--';
     }
     const item = this.watchlist().find(w => w.symbol === symbol);
     return item ? item.price.toFixed(2) : '—';
