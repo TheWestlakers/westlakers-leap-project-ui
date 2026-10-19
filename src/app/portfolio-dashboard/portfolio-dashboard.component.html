@@ -6,7 +6,7 @@
   (searchSubmit)="submitTickerSearch()"
 />
 
-<section class="market-ribbon" aria-label="Market hours">
+<section class="market-ribbon" [class.simple-market-ribbon]="!themeService.isPowerView()" aria-label="Market hours">
   <div class="user-clock">
     <span class="market-eyebrow">YOUR LOCAL TIME</span>
     <strong>{{ userLocalTime }}</strong>
@@ -19,8 +19,10 @@
         <span class="market-status">{{ market.status }}</span>
       </div>
       <strong>{{ market.name }}</strong>
-      <span class="market-time">{{ market.time }}</span>
-      <span class="market-hours">{{ market.hours }}</span>
+      @if (themeService.isPowerView()) {
+        <span class="market-time">{{ market.time }}</span>
+        <span class="market-hours">{{ market.hours }}</span>
+      }
     </div>
   </div>
 </section>
