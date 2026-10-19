@@ -211,7 +211,7 @@
 }
 
 .market-clock.market-closed {
-  border-color: var(--border);
+  border-color: rgba(239,68,68,0.35);
   background: var(--bg);
 }
 
@@ -219,10 +219,20 @@
 .market-code, .market-status { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; }
 .market-code { color: var(--green); }
 .market-status { color: var(--green); }
-.market-closed .market-status { color: var(--dim); }
+.market-closed .market-code,
+.market-closed .market-status { color: #ef4444; }
 .market-clock strong { display: block; margin-top: 3px; font-size: 11px; text-align: center; }
 .market-time { display: block; margin-top: 3px; font-family: var(--font-mono); font-size: 13px; text-align: center; }
 .market-hours { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; text-align: center; white-space: nowrap; }
+
+.simple-market-ribbon .market-clock {
+  min-width: 112px;
+  padding: 9px 10px;
+}
+
+.simple-market-ribbon .market-clock strong {
+  margin-top: 6px;
+}
 
 :host:not(.light-theme) .market-ribbon {
   scrollbar-color: #252b31 #050607;
