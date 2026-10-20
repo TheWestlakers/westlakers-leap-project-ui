@@ -1,8 +1,11 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
+import { TopAnalyticsService } from '../services/top-analytics.service';
 import { TopNavComponent } from '../top-nav-admin.component';
 
 export interface NavItem {
@@ -72,7 +75,11 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   netLiqValue = 250000;
   activeNav = 'Operator Console';
   protected readonly themeService = inject(ThemeService);
-  constructor(private router: Router) {}
+  private readonly platformId = inject(PLATFORM_ID);
+  constructor(
+    private router: Router,
+    private topAnalyticsService: TopAnalyticsService,
+  ) {}
 
   navItems: NavItem[] = [
     { label: 'Operator Console', icon: 'home', active: true },
@@ -129,22 +136,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     { accountId: 'USR-9021', symbol: 'AMZN', qty: 450, gateway: 'FINRA-1B', estValue: '$78,489.00', risk: 'CLEARED (LOW RISK)', riskAlert: false },
   ];
 
-  // Replace these view models with the database analytics response when that API is available.
-  topInvestors: InvestorRanking[] = [
-    { name: 'USR-4421', value: '$211,848.00' },
-    { name: 'USR-8812', value: '$91,260.00' },
-    { name: 'USR-9021', value: '$78,489.00' },
-    { name: 'USR-2490', value: '$64,210.50' },
-    { name: 'USR-8411', value: '$52,875.25' },
-  ];
-
-  topInstruments: InstrumentRanking[] = [
-    { symbol: 'TSLA', value: '$211,848.00' },
-    { symbol: 'AAPL', value: '$91,260.00' },
-    { symbol: 'AMZN', value: '$78,489.00' },
-    { symbol: 'NVDA', value: '$66,742.80' },
-    { symbol: 'MSFT', value: '$54,318.40' },
-  ];
+  topInvestors: InvestorRanking[] = [];
+  topInstruments: InstrumentRanking[] = [];
 
   broadcastFeed: BroadcastEntry[] = [
     { time: '10:14:52', message: 'AAPL buy 150 @ $182.52' },
@@ -158,6 +151,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private tickInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
+    this.loadTopAnalytics();
     this.tickInterval = setInterval(() => {
       const [h, m, s] = this.broadcastFeed[0].time.split(':').map(Number);
       const next = new Date(0, 0, 0, h, m, s + 2);
@@ -174,6 +168,37 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         ...this.broadcastFeed.slice(0, 2),
       ];
     }, 2000);
+  }
+
+  private loadTopAnalytics(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.topAnalyticsService.getTopInvestors().subscribe({
+      next: investors => {
+        this.topInvestors = investors.map(investor => ({
+          name: `${investor.firstName} ${investor.lastName}`.trim() || String(investor.investorId),
+          value: this.formatCurrency(investor.totalValue),
+        }));
+      },
+    });
+
+    this.topAnalyticsService.getTopInstruments().subscribe({
+      next: instruments => {
+        this.topInstruments = instruments.map(instrument => ({
+          symbol: instrument.instrumentCode,
+          value: this.formatCurrency(instrument.totalValue),
+        }));
+      },
+    });
+  }
+
+  private formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(Number(value));
   }
 
   ngOnDestroy(): void {
