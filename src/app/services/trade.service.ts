@@ -67,6 +67,12 @@ export class TradeService {
     );
   }
 
+  searchInstruments(query: string): Observable<Instrument[]> {
+    return this.http.get<Instrument[]>(`${this.apiUrl}/instruments/search`, {
+      params: { q: query.trim() },
+    });
+  }
+
   createMarketTrade(request: MarketOrderRequest): Observable<TradeExecutionResponse> {
     return this.http.post<TradeExecutionResponse>(`${this.apiUrl}/trades/market`, request);
   }
