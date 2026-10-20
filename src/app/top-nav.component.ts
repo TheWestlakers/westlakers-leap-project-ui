@@ -1,9 +1,11 @@
-import { Component, ElementRef, HostListener, EventEmitter, Input, Output, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, EventEmitter, Input, Output, OnDestroy, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
+import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, takeUntil } from "rxjs";
 import { ThemeService } from "./services/theme.service";
 import { AuthService } from "./services/auth.service";
+import { Instrument, TradeService } from "./services/trade.service";
 
 const assetPathPrefix = "/assets";
 
@@ -34,13 +36,13 @@ const assetPathPrefix = "/assets";
         </div>
       </div>
 
-      <div class="bg-[#080b0d] border border-[#1e252b] flex gap-2 items-center px-3 py-2 rounded-[6px] w-[340px] flex-shrink-0">
+      <div class="relative bg-[#080b0d] border border-[#1e252b] flex gap-2 items-center px-3 py-2 rounded-[6px] w-[340px] flex-shrink-0">
         <img alt="" class="shrink-0 size-4" [src]="imgSearch" />
         <input
           class="flex-1 bg-transparent font-['Instrument_Sans'] font-normal text-[#94a3b8] text-[13px] outline-none placeholder:text-[#64748b]"
           placeholder="Enter symbol, company, or order hotkey..."
           [ngModel]="searchValue"
-          (ngModelChange)="searchValueChange.emit($event)"
+          (ngModelChange)="onSearchValueChange($event)"
           (keydown.enter)="submitSearch()"
           style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100"
         />
@@ -52,6 +54,26 @@ const assetPathPrefix = "/assets";
         >
           Enter
         </button>
+        @if (searchValue.trim() && (searchResults.length || isSearching)) {
+          <div class="absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-72 overflow-y-auto rounded-[6px] border border-[#1e252b] bg-[#11161b] shadow-xl">
+            @if (isSearching) {
+              <div class="px-3 py-2 text-[12px] text-[#64748b]">Searching...</div>
+            }
+            @for (instrument of searchResults; track instrument.instrumentId) {
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-3 border-b border-[#1e252b] px-3 py-2 text-left last:border-b-0 hover:bg-[#1e252b]"
+                (click)="selectInstrument(instrument)"
+              >
+                <span class="min-w-0">
+                  <strong class="block truncate text-[12px] text-white">{{ instrument.ticker }}</strong>
+                  <span class="block truncate text-[11px] text-[#94a3b8]">{{ instrument.name }}</span>
+                </span>
+                <span class="shrink-0 text-[10px] uppercase text-[#64748b]">Instrument</span>
+              </button>
+            }
+          </div>
+        }
       </div>
 
       <div class="flex gap-5 items-center flex-shrink-0 justify-self-end">
@@ -125,7 +147,7 @@ const assetPathPrefix = "/assets";
     </div>
   `,
 })
-export class TopNavComponent {
+export class TopNavComponent implements OnInit, OnDestroy {
   @Input({ required: true }) netLiqValue!: number;
   @Input() searchValue = "";
   @Output() searchValueChange = new EventEmitter<string>();
@@ -136,6 +158,12 @@ export class TopNavComponent {
   private readonly elementRef = inject(ElementRef);
   protected readonly themeService = inject(ThemeService);
   private readonly authService = inject(AuthService);
+  private readonly tradeService = inject(TradeService);
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchQuery$ = new Subject<string>();
+
+  searchResults: Instrument[] = [];
+  isSearching = false;
 
   searchVal = "";
 
@@ -152,6 +180,34 @@ export class TopNavComponent {
   imgBadgeAlert = `${assetPathPrefix}/bc443.svg`;
   imgChevronDown = `${assetPathPrefix}/76166.svg`;
   imgAvatar = `${assetPathPrefix}/5bbdb.png`;
+
+  ngOnInit(): void {
+    this.searchQuery$
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          if (!query) {
+            this.isSearching = false;
+            return of([] as Instrument[]);
+          }
+          this.isSearching = true;
+          return this.tradeService.searchInstruments(query).pipe(
+            catchError(() => of([] as Instrument[])),
+          );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((results) => {
+        this.searchResults = results.slice(0, 7);
+        this.isSearching = false;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   protected toggleMenu(): void {
     this.isMenuOpen.update((value) => !value);
@@ -178,6 +234,17 @@ export class TopNavComponent {
   }
 
   protected submitSearch(): void {
+    this.searchSubmit.emit();
+  }
+
+  protected onSearchValueChange(value: string): void {
+    this.searchValueChange.emit(value);
+    this.searchQuery$.next(value.trim());
+  }
+
+  protected selectInstrument(instrument: Instrument): void {
+    this.searchValueChange.emit(instrument.ticker);
+    this.searchResults = [];
     this.searchSubmit.emit();
   }
 }
