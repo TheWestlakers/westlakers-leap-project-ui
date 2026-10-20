@@ -186,7 +186,7 @@
         </div>
       } @else {
         <div class="holdings-allocation">
-          <div class="donut-chart" role="img" aria-label="Holdings allocation donut chart">
+          <div class="donut-chart" role="img" aria-label="Holdings allocation donut chart" (mouseleave)="hoveredAllocation.set(null)">
             <svg viewBox="0 0 240 240" aria-hidden="true">
               <circle class="donut-track" cx="120" cy="120" r="81" />
               <path
@@ -201,18 +201,15 @@
                 (blur)="hoveredAllocation.set(null)"
                 tabindex="0"
               >
-                <title>{{ allocation.symbol }}: ${{ formatCurrency(allocation.value) }}</title>
+                <title>{{ allocation.symbol }}: {{ allocation.shares }} shares</title>
               </path>
             </svg>
-            <div class="donut-center" aria-live="polite">
-              @if (hoveredHoldingAllocation; as allocation) {
-                <strong>${{ formatCurrency(allocation.value) }}</strong>
-                <span>{{ allocation.symbol }} · {{ allocation.percentage.toFixed(1) }}%</span>
-              } @else {
-                <strong>${{ formatCurrency(holdingsValue) }}</strong>
-                <span>TOTAL HOLDINGS</span>
-              }
-            </div>
+            @if (hoveredHoldingAllocation; as allocation) {
+              <div class="donut-center" aria-live="polite">
+                <strong>{{ allocation.shares }} SHARES</strong>
+                <span>{{ allocation.symbol }}</span>
+              </div>
+            }
           </div>
           <div class="holdings-legend" aria-label="Holdings legend">
             <h3 class="legend-heading">LEGEND</h3>
@@ -228,6 +225,7 @@
             >
               <span class="legend-swatch" [style.backgroundColor]="allocation.color"></span>
               <span class="legend-name"><strong>{{ allocation.symbol }}</strong><small>{{ allocation.name }}</small></span>
+              <span class="legend-value">${{ formatCurrency(allocation.value) }}</span>
             </div>
             @if (holdingAllocations.length === 0) {
               <span class="holdings-empty">No holdings available</span>

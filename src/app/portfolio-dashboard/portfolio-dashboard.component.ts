@@ -43,6 +43,7 @@ export interface Position {
 interface HoldingAllocation {
   symbol: string;
   name: string;
+  shares: number;
   value: number;
   percentage: number;
   path: string;
@@ -259,6 +260,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
       const allocation = {
         symbol: position.symbol,
         name: position.name,
+        shares: position.shares,
         value: position.marketValue,
         percentage,
         path: this.donutPath(startAngle, endAngle),
