@@ -196,9 +196,14 @@
           *ngFor="let side of ['BUY', 'SELL']"
           class="side-tab"
           [ngClass]="sideTabClass(side)"
+          [disabled]="side === 'SELL' && !canSell()"
+          [title]="side === 'SELL' && !canSell() ? 'You don\'t own any ' + stockSymbol() + ' shares to sell' : ''"
           (click)="setSide($any(side))"
         >{{ side }}</button>
       </div>
+      <p class="sell-hint">
+        {{ canSell() ? 'You own ' + ownedShares() + ' ' + stockSymbol() + ' shares' : 'You don\'t own any ' + stockSymbol() + ' shares' }}
+      </p>
 
       <div class="order-body">
 
