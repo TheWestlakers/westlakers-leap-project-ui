@@ -540,11 +540,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     }
 
     this.focusedTransientTicker = symbol;
+    this.selectTicker(symbol);
     this.stockDataService.focusTicker(this.clientId, symbol)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.selectTicker(symbol);
-      });
+      .subscribe();
 
     this.symbolLookup = '';
   }
