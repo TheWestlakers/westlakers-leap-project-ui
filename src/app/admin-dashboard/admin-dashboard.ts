@@ -72,7 +72,6 @@ export interface BroadcastEntry {
 })
 export class AdminDashboardComponent implements OnInit, OnDestroy {
   searchQuery = '';
-  netLiqValue = 250000;
   activeNav = 'Operator Console';
   protected readonly themeService = inject(ThemeService);
   private readonly platformId = inject(PLATFORM_ID);

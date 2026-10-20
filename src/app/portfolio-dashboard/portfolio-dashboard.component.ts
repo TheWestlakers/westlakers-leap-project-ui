@@ -31,12 +31,23 @@ export interface WatchlistItem {
 export interface Position {
   id: string;
   symbol: string;
+  name: string;
   shares: number;
   avgCost: number;
   lastPrice: number;
   marketValue: number;
   unrealizedPnl: number;
   unrealizedPct: number;
+}
+
+interface HoldingAllocation {
+  symbol: string;
+  name: string;
+  shares: number;
+  value: number;
+  percentage: number;
+  path: string;
+  color: string;
 }
 
 export type OrderSide = 'BUY' | 'SELL';
@@ -180,6 +191,8 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   /* ── Positions ── */
   readonly positions = signal<Position[]>([]);
   readonly COMPACT_LIMIT = 3;
+  readonly hoveredAllocation = signal<string | null>(null);
+  private readonly allocationColors = ['#10b981', '#38bdf8', '#f59e0b', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf', '#facc15'];
 
   /* ── Portfolio chart ── */
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1M', '6M', '1Y', '3Y'];
@@ -234,6 +247,50 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   get holdingsValue(): number {
     return this.positions().reduce((total, position) => total + position.marketValue, 0);
+  }
+
+  get holdingAllocations(): HoldingAllocation[] {
+    const total = this.holdingsValue;
+    if (total <= 0) return [];
+
+    let startAngle = -90;
+    return this.positions().map((position, index) => {
+      const percentage = position.marketValue / total * 100;
+      const endAngle = startAngle + percentage / 100 * 360;
+      const allocation = {
+        symbol: position.symbol,
+        name: position.name,
+        shares: position.shares,
+        value: position.marketValue,
+        percentage,
+        path: this.donutPath(startAngle, endAngle),
+        color: this.allocationColors[index % this.allocationColors.length],
+      };
+      startAngle = endAngle;
+      return allocation;
+    });
+  }
+
+  get hoveredHoldingAllocation(): HoldingAllocation | null {
+    const symbol = this.hoveredAllocation();
+    return this.holdingAllocations.find(allocation => allocation.symbol === symbol) ?? null;
+  }
+
+  private donutPath(startAngle: number, endAngle: number): string {
+    const outerRadius = 100;
+    const innerRadius = 62;
+    const center = 120;
+    if (endAngle - startAngle >= 359.999) {
+      return 'M 120,20 A 100,100 0 1 1 120,220 A 100,100 0 1 1 120,20 M 120,58 A 62,62 0 1 0 120,182 A 62,62 0 1 0 120,58 Z';
+    }
+    const startRadians = startAngle * Math.PI / 180;
+    const endRadians = endAngle * Math.PI / 180;
+    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+    const outerStart = `${center + outerRadius * Math.cos(startRadians)},${center + outerRadius * Math.sin(startRadians)}`;
+    const outerEnd = `${center + outerRadius * Math.cos(endRadians)},${center + outerRadius * Math.sin(endRadians)}`;
+    const innerStart = `${center + innerRadius * Math.cos(startRadians)},${center + innerRadius * Math.sin(startRadians)}`;
+    const innerEnd = `${center + innerRadius * Math.cos(endRadians)},${center + innerRadius * Math.sin(endRadians)}`;
+    return `M ${outerStart} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd} L ${innerEnd} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart} Z`;
   }
 
   get currentValue(): number { return this.holdingsValue; }

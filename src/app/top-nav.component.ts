@@ -28,12 +28,6 @@ const assetPathPrefix = "/assets";
             ACTIVE TRADER
           </p>
         </div>
-        <div class="bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.25)] flex gap-1.5 items-center px-2 py-1 rounded-[4px]">
-          <img alt="" class="size-1.5" [src]="imgLiveDot" />
-          <p class="font-['Instrument_Sans'] font-semibold text-[#10b981] text-[11px] uppercase tracking-[0.05em]" style="font-family: 'Instrument Sans', system-ui, sans-serif; font-variation-settings: 'wdth' 100">
-            Live
-          </p>
-        </div>
       </div>
 
       <div class="relative bg-[#080b0d] border border-[#1e252b] flex gap-2 items-center px-3 py-2 rounded-[6px] w-[340px] flex-shrink-0">
@@ -175,7 +169,6 @@ export class TopNavComponent implements OnInit, OnDestroy {
   protected readonly isPowerView = this.themeService.isPowerView;
 
   imgCircleX = `${assetPathPrefix}/ed609.svg`;
-  imgLiveDot = `${assetPathPrefix}/2ea7c.svg`;
   imgSearch = `${assetPathPrefix}/56f25.svg`;
   imgBadgeAlert = `${assetPathPrefix}/bc443.svg`;
   imgChevronDown = `${assetPathPrefix}/76166.svg`;
