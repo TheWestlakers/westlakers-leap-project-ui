@@ -39,7 +39,6 @@
         <p class="stat-label">TOTAL ACCOUNT VALUE</p>
         <div class="stat-row">
           <span class="stat-value">${{ formatCurrency(totalAccountValue) }}</span>
-          <span class="stat-change positive">+{{ dayChangePct }}%</span>
         </div>
       </div>
 
@@ -56,15 +55,6 @@
         <p class="stat-label">EQUITY VALUE</p>
         <div class="stat-row">
           <span class="stat-value">${{ formatCurrency(holdingsValue) }}</span>
-        </div>
-      </div>
-
-      <!-- Day change -->
-      <div class="stat-card">
-        <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
-        <div class="stat-row">
-          <span class="stat-value positive">+${{ formatCurrency(dayChange) }}</span>
-          <span class="change-pill">▲ UP</span>
         </div>
       </div>
 
