@@ -276,6 +276,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   orderExecuted = signal(false);
   isSubmittingOrder = signal(false);
   orderError = signal<string | null>(null);
+  private orderStatusResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   get estValue(): number {
     return this.orderShares() * (this.orderPrice() ?? 0);
@@ -362,6 +363,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.orderStatusResetTimer !== null) {
+      clearTimeout(this.orderStatusResetTimer);
+    }
+
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
@@ -654,6 +659,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
   
   submitOrder(): void {
+    if (this.orderStatusResetTimer !== null) {
+      clearTimeout(this.orderStatusResetTimer);
+      this.orderStatusResetTimer = null;
+    }
     this.orderError.set(null);
     this.orderSubmitted.set(false);
     this.orderExecuted.set(false);
@@ -712,12 +721,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
             next: () => {
               this.loadHoldings();
               this.isSubmittingOrder.set(false);
-              this.orderExecuted.set(true);
+              this.showOrderExecutedStatus();
             },
             error: (error) => {
               console.error('Error refreshing account after trade:', error);
               this.isSubmittingOrder.set(false);
-              this.orderExecuted.set(true);
+              this.showOrderExecutedStatus();
             }
           });
       },
@@ -729,6 +738,18 @@ export class StockTickerComponent implements OnInit, OnDestroy {
         );
       },
     });
+  }
+
+  private showOrderExecutedStatus(): void {
+    if (this.orderStatusResetTimer !== null) {
+      clearTimeout(this.orderStatusResetTimer);
+    }
+    this.orderExecuted.set(true);
+    this.orderStatusResetTimer = setTimeout(() => {
+      this.orderSubmitted.set(false);
+      this.orderExecuted.set(false);
+      this.orderStatusResetTimer = null;
+    }, 1500);
   }
 
   /* ── Style helpers ── */
