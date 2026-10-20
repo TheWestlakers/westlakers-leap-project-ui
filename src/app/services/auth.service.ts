@@ -5,11 +5,17 @@ import { Account, AccountService } from './account.service';
 
 export const TOKEN_STORAGE_KEY = 'paysprint-access-token';
 
+export enum Role {
+  Admin = 1,
+  User = 2,
+}
+
 export interface CurrentUser {
   userId: number;
   email: string;
   firstName: string;
   lastName: string;
+  roleId: Role;
   accounts: Account[];
 }
 
@@ -44,6 +50,9 @@ export class AuthService {
 
   readonly currentUser = signal<CurrentUser | null>(null);
   readonly activeAccount = computed(() => this.currentUser()?.accounts[0] ?? null);
+  readonly isAdmin = computed(() => this.currentUser()?.roleId === Role.Admin);
+  /** Landing page for the signed-in user's role. */
+  readonly homeUrl = computed(() => this.isAdmin() ? '/admin-dashboard' : '/portfolio');
   readonly displayName = computed(() => {
     const user = this.currentUser();
     if (!user) return '';
