@@ -658,6 +658,20 @@
 
 .tab-inactive:hover { border-color: var(--border-mid); }
 
+.side-tab:disabled,
+.side-tab:disabled:hover {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border);
+}
+
+.sell-hint {
+  margin: 0;
+  padding: 0 8px 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .tab-buy {
   background: rgba(16,185,129,0.1);
   border: 1px solid var(--green);
