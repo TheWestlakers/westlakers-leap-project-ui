@@ -1,7 +1,6 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
@@ -15,8 +14,8 @@ import { AuthService } from '../services/auth.service';
 })
 export class Login {
   private readonly fb = inject(FormBuilder);
-  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly themeService = inject(ThemeService);
   private readonly auth = inject(AuthService);
 
@@ -47,15 +46,14 @@ export class Login {
       next: () => {
         this.isSubmitting.set(false);
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-        // The role guards bounce a returnUrl that belongs to the other role back to this user's home page
-        this.router.navigateByUrl(returnUrl?.startsWith('/') ? returnUrl : this.auth.homeUrl());
+        const destination = returnUrl?.startsWith('/') && !returnUrl.startsWith('//')
+          ? returnUrl
+          : '/portfolio';
+        void this.router.navigateByUrl(destination);
       },
-      error: (error: HttpErrorResponse) => {
+      error: () => {
         this.isSubmitting.set(false);
-        this.auth.logout();
-        this.serverError.set(error.status === 401
-          ? 'Incorrect email or password. Please try again.'
-          : 'Unable to sign in right now. Please try again later.');
+        this.serverError.set('Incorrect email or password. Please try again.');
       },
     });
   }
