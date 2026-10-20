@@ -47,7 +47,8 @@ export class Login {
       next: () => {
         this.isSubmitting.set(false);
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-        this.router.navigateByUrl(returnUrl?.startsWith('/') ? returnUrl : '/portfolio');
+        // The role guards bounce a returnUrl that belongs to the other role back to this user's home page
+        this.router.navigateByUrl(returnUrl?.startsWith('/') ? returnUrl : this.auth.homeUrl());
       },
       error: (error: HttpErrorResponse) => {
         this.isSubmitting.set(false);
