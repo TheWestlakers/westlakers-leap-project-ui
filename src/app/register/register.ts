@@ -1,34 +1,9 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
-
-/** Date of birth must be a valid date before today */
-function pastDateValidator(control: AbstractControl<string>): ValidationErrors | null {
-  if (!control.value) return null;
-  const date = new Date(`${control.value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return { invalidDate: true };
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date < today ? null : { notInPast: true };
-}
-
-/** Cash amounts can have at most 2 decimal places (mirrors the BFF's @Digits check). */
-function centsValidator(control: AbstractControl<number | null>): ValidationErrors | null {
-  if (control.value === null || control.value === undefined) return null;
-  return /^\d+(\.\d{1,2})?$/.test(String(control.value)) ? null : { cents: true };
-}
-
-/** IDs match the account_types rows seeded by the BFF (data.sql). */
-const ACCOUNT_TYPES = [
-  { id: 1, label: 'Individual' },
-  { id: 2, label: 'Health' },
-  { id: 3, label: 'Retirement' },
-  { id: 4, label: 'Corporate' },
-] as const;
 
 @Component({
   selector: 'app-register',
@@ -39,30 +14,18 @@ const ACCOUNT_TYPES = [
 })
 export class Register {
     private readonly fb = inject(FormBuilder);
+    private readonly router = inject(Router);
     protected readonly themeService = inject(ThemeService);
     private readonly auth = inject(AuthService);
-    //private readonly router = inject(Router);
-
-  protected readonly maxDateOfBirth = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
   protected readonly form = this.fb.nonNullable.group({
-    firstName: ['', [Validators.required, Validators.maxLength(50)]],
-    lastName: ['', [Validators.required, Validators.maxLength(50)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
-    phoneNumber: ['', [Validators.required, Validators.pattern(/^[0-9]{10,15}$/)]],
-    dateOfBirth: ['', [Validators.required, pastDateValidator]],
-    taxId: ['', [Validators.pattern(/^[0-9]{9}$/)]],
-    accountTypeId: [null as number | null, [Validators.required]],
-    settledCash: [null as number | null, [Validators.required, Validators.min(0), centsValidator]],
   });
-
-  protected readonly accountTypes = ACCOUNT_TYPES;
 
   protected readonly showPassword = signal(false);
   protected readonly isSubmitting = signal(false);
   protected readonly serverError = signal<string | null>(null);
-  protected readonly registrationComplete = signal(false);
 
   protected togglePasswordVisibility(): void {
     this.showPassword.update((value) => !value);
@@ -77,29 +40,15 @@ export class Register {
     }
 
     this.isSubmitting.set(true);
-    const { firstName, lastName, email, password, phoneNumber, dateOfBirth, taxId, accountTypeId, settledCash } = this.form.getRawValue();
-    this.auth.register({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim(),
-      password,
-      phoneNumber,
-      dateOfBirth,
-      taxId: taxId || null,
-      // Both are guaranteed non-null by the required validators checked above
-      accountTypeId: Number(accountTypeId),
-      settledCash: Number(settledCash),
-    }).subscribe({
+    const { email, password } = this.form.getRawValue();
+    this.auth.register(email, password).subscribe({
       next: () => {
         this.isSubmitting.set(false);
-        this.registrationComplete.set(true);
+        this.router.navigateByUrl('/login');
       },
-      error: (error: HttpErrorResponse) => {
+      error: () => {
         this.isSubmitting.set(false);
-        // 400s carry a user-facing message (e.g. duplicate email); anything else may contain internal details
-        this.serverError.set(error.status === 400 && error.error?.message
-          ? error.error.message
-          : 'Unable to complete registration. Please check your details and try again.');
+        this.serverError.set('Registration failed. Please try again.');
       },
     });
   }
