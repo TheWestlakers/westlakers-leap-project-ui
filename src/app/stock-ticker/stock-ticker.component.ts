@@ -79,6 +79,53 @@ function formatTooltipDate(timestamp: string): string {
   });
 }
 
+interface InstrumentMarket {
+  timeZone: string;
+  openMinutes: number;
+  closeMinutes: number;
+}
+
+const US_MARKET: InstrumentMarket = {
+  timeZone: 'America/New_York',
+  openMinutes: 9 * 60 + 30,
+  closeMinutes: 16 * 60,
+};
+
+const INDIAN_MARKET: InstrumentMarket = {
+  timeZone: 'Asia/Kolkata',
+  openMinutes: 9 * 60 + 15,
+  closeMinutes: 15 * 60 + 30,
+};
+
+const LONDON_MARKET: InstrumentMarket = {
+  timeZone: 'Europe/London',
+  openMinutes: 8 * 60,
+  closeMinutes: 16 * 60 + 30,
+};
+
+function marketForTicker(ticker: string): InstrumentMarket {
+  const normalizedTicker = ticker.toUpperCase();
+  if (normalizedTicker.endsWith('.NS') || normalizedTicker.endsWith('.BO')) return INDIAN_MARKET;
+  if (normalizedTicker.endsWith('.L')) return LONDON_MARKET;
+  return US_MARKET;
+}
+
+function isWeekdayAndWithinHours(now: Date, market: InstrumentMarket): boolean {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: market.timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values['weekday']);
+  const minutes = Number(values['hour']) * 60 + Number(values['minute']);
+
+  return weekday >= 1 && weekday <= 5 &&
+    minutes >= market.openMinutes && minutes < market.closeMinutes;
+}
+
 const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number; bucketMs: number }> = {
   '1D': { period: '1d', interval: '1m', limit: 390, refreshMs: 60_000, bucketMs: 60_000 },
   '5D': { period: '5d', interval: '15m', limit: 260, refreshMs: 300_000, bucketMs: 900_000 },
@@ -282,6 +329,9 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     this.holdings().find(holding => holding.symbol === this.selectedTicker())?.shares ?? 0
   );
   canSell = computed(() => this.ownedShares() > 0);
+  isMarketOpen = computed(() =>
+    isWeekdayAndWithinHours(this.systemTime(), marketForTicker(this.selectedTicker()))
+  );
 
   // Fall back to BUY when the user switches to a ticker they don't own (or sells out).
   private readonly resetSideWhenNotOwned = effect(() => {
