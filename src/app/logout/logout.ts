@@ -13,16 +13,13 @@ import { AuthService } from '../services/auth.service';
 })
 export class Logout {
   private readonly router = inject(Router);
-  private readonly auth = inject(AuthService);
   protected readonly themeService = inject(ThemeService);
 
   constructor() {
-    this.auth.clearAuth();
-    void this.router.navigateByUrl('/login');
+    inject(AuthService).logout();
   }
 
   protected signInAgain(): void {
-    this.auth.clearAuth();
     this.router.navigateByUrl('/login');
   }
 }
