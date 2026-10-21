@@ -69,9 +69,9 @@
         <span class="w-[60px] text-right">SIDE</span>
         <span class="w-[70px] text-right">QTY</span>
         <span class="w-[80px] text-right">LIMIT PRICE</span>
+        <span class="w-[90px] text-right">EXECUTION PRICE</span>
         <span class="cash-impact-column w-[100px] text-right">EST. CASH IMPACT</span>
         <span class="status-column w-[120px] text-center">STATUS</span>
-        <span class="audit-hash-column w-[220px] shrink-0 text-center">AUDIT HASH</span>
       </div>
 
       <!-- Table Body -->
@@ -82,7 +82,7 @@
             [ngClass]="idx % 2 === 0 ? 'bg-[#11161b]' : 'bg-[#080b0d]'"
           >
             <p class="font-['Geist_Mono:Bold'] font-bold text-white w-[120px] truncate" title="{{ record.orderReference }}">
-              {{ record.orderReference.substring(0, 12) }}...
+              {{ record.orderReference.substring(0, 12) }}
             </p>
             <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] w-[150px] truncate" style="font-variation-settings: 'wdth' 100">
               {{ record.clientName }}
@@ -110,8 +110,17 @@
             <p class="font-['Geist_Mono:Regular'] font-normal text-white w-[70px] text-right">
               {{ record.executionResult.executedQuantity }}
             </p>
-            <p class="font-['Geist_Mono:Regular'] font-normal text-white w-[80px] text-right">
-              {{ record.orderDecision.limitPrice === undefined ? "—" : ('$' + record.orderDecision.limitPrice.toFixed(2)) }}
+            <p
+              class="font-['Geist_Mono:Regular'] font-normal text-white w-[80px] text-right"
+              [class.limit-price-na]="record.orderDecision.limitPrice === undefined || record.orderDecision.limitPrice === 0"
+            >
+              {{ record.orderDecision.limitPrice === undefined || record.orderDecision.limitPrice === 0 ? "N/A" : ('$' + record.orderDecision.limitPrice.toFixed(4)) }}
+            </p>
+            <p
+              class="font-['Geist_Mono:Regular'] font-normal text-white w-[90px] text-right"
+              [class.execution-price-na]="record.pricingDecision.executionPrice === null || record.pricingDecision.executionPrice === 0"
+            >
+              {{ record.pricingDecision.executionPrice === null || record.pricingDecision.executionPrice === 0 ? "N/A" : ('$' + record.pricingDecision.executionPrice.toFixed(4)) }}
             </p>
             <p
               class="cash-impact-column font-['Geist_Mono:SemiBold'] font-semibold w-[100px] text-right"
@@ -127,16 +136,17 @@
                     ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]'
                       : record.executionResult.status === 'PENDING'
                       ? 'bg-[rgba(245,158,11,0.1)] text-[#fbbf24]'
+                      : record.executionResult.status === 'CANCELLED'
+                      ? 'bg-[rgba(100,116,139,0.1)] text-[#94a3b8]'
                       : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
                 "
                         [class.status-rejected]="record.executionResult.status === 'REJECTED'"
+                        [class.status-pending]="record.executionResult.status === 'PENDING'"
+                        [class.status-cancelled]="record.executionResult.status === 'CANCELLED'"
               >
                 {{ record.executionResult.status }}
               </span>
             </div>
-            <p class="audit-hash-column font-['Geist_Mono:Regular'] font-normal text-[#3e8914] w-[220px] shrink-0 text-center truncate text-[10px]" title="{{ record.immutableHash }}">
-              {{ record.immutableHash || "—" }}
-            </p>
           </div>
         }
       </div>

@@ -13,6 +13,7 @@ export interface TradingVolume {
   side: 'BUY' | 'SELL';
   quantity: number;
   limitPrice: number | null;
+  executionPrice: number | null;
   executedAt: string | null;
   accountType: string;
   firstName: string | null;

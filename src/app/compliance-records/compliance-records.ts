@@ -133,9 +133,10 @@ export class ComplianceRecordsComponent implements OnInit {
     const timestamp = volume.executedAt ?? volume.createdAt;
     const price = volume.limitPrice;
     const quantity = Number(volume.quantity);
+    const isMarketOrder = price === 0;
 
     return {
-      orderReference: `ORD-${volume.orderId}`,
+      orderReference: `${isMarketOrder ? "M" : "L"}-${volume.orderId}`,
       clientId: String(volume.accountId),
       clientName: [volume.firstName, volume.lastName].filter(Boolean).join(" ") || `Account ${volume.accountId}`,
       timestamp: timestamp ? new Date(timestamp) : new Date(0),
@@ -146,8 +147,8 @@ export class ComplianceRecordsComponent implements OnInit {
         limitPrice: volume.limitPrice ?? undefined,
       },
       pricingDecision: {
-        executionPrice: price,
-        priceSource: volume.limitPrice === null ? "MARKET" : "LIMIT",
+        executionPrice: volume.executionPrice,
+        priceSource: isMarketOrder ? "MARKET" : "LIMIT",
       },
       executionResult: {
         status: volume.orderStatus === "PENDING" || volume.orderStatus === "EXECUTED" || volume.orderStatus === "CANCELLED" || volume.orderStatus === "REJECTED"
@@ -155,7 +156,7 @@ export class ComplianceRecordsComponent implements OnInit {
           : "UNKNOWN",
         statusId: volume.orderStatusId,
         executedQuantity: quantity,
-        executedPrice: price,
+        executedPrice: volume.executionPrice,
         executionTime: timestamp ? new Date(timestamp) : new Date(0),
       },
       cashAndHoldingChange: {
