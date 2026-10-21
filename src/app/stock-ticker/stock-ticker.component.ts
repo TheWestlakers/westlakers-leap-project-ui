@@ -220,7 +220,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   readonly dayChangePct      =      1.42;
   private readonly authService = inject(AuthService);
   /** Account of the signed-in user; null when the user has no account yet. */
-  private get accountId(): number | null {
+  get accountId(): number | null {
     return this.authService.activeAccount()?.accountId ?? null;
   }
 
@@ -379,9 +379,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.systemTime.set(new Date()));
 
-    this.stockDataService.syncWatchlist(this.clientId, this.watchlistSymbols())
-      .pipe(takeUntil(this.destroy$))
-      .subscribe();
+    const watchlistAccountId = this.accountId;
+    if (watchlistAccountId !== null) {
+      this.stockDataService.syncWatchlist(this.clientId, watchlistAccountId, this.watchlistSymbols())
+        .pipe(takeUntil(this.destroy$))
+        .subscribe();
+    }
 
     this.priceWebsocketService.getPriceUpdates()
       .pipe(takeUntil(this.destroy$))
@@ -568,9 +571,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     const normalized = symbols.map(symbol => symbol.toUpperCase());
     this.watchlistSymbols.set(normalized);
 
-    this.stockDataService.syncWatchlist(this.clientId, normalized)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe();
+    const accountId = this.accountId;
+    if (accountId !== null) {
+      this.stockDataService.syncWatchlist(this.clientId, accountId, normalized)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe();
+    }
 
     if (this.focusedTransientTicker && normalized.includes(this.focusedTransientTicker)) {
       this.stockDataService.unfocusTicker(this.clientId, this.focusedTransientTicker)

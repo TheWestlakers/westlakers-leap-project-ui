@@ -12,10 +12,10 @@ import { StockPrice } from '../../services/stock-data.service';
   styleUrls: ['./watchlist.component.css']
 })
 export class WatchlistComponent implements OnInit {
-  private readonly watchlistStorageKey = 'wl.watchlist.items';
   private readonly platformId = inject(PLATFORM_ID);
 
   /* ── Inputs ── */
+  accountId = input<number | null>(null);
   allPrices = input<{ [symbol: string]: StockPrice }>({});
   isSelectable = input(true); // When false, items can't be clicked to select
   highlightFirstItem = input(true);
@@ -110,7 +110,7 @@ export class WatchlistComponent implements OnInit {
       return;
     }
 
-    localStorage.setItem(this.watchlistStorageKey, JSON.stringify(this.watchlist()));
+    localStorage.setItem(this.getWatchlistStorageKey(), JSON.stringify(this.watchlist()));
   }
 
   private restoreWatchlist(): void {
@@ -118,7 +118,7 @@ export class WatchlistComponent implements OnInit {
       return;
     }
 
-    const raw = localStorage.getItem(this.watchlistStorageKey);
+    const raw = localStorage.getItem(this.getWatchlistStorageKey());
     if (!raw) {
       return;
     }
@@ -138,5 +138,9 @@ export class WatchlistComponent implements OnInit {
     } catch {
       // Ignore malformed local storage and continue with defaults.
     }
+  }
+
+  private getWatchlistStorageKey(): string {
+    return `wl.watchlist.items.account.${this.accountId() ?? 'anonymous'}`;
   }
 }

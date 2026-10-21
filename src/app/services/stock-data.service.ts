@@ -285,7 +285,7 @@ export class StockDataService {
   /**
    * Sync the full watchlist for a client so backend keeps persistent subscription ownership.
    */
-  syncWatchlist(clientId: string, symbols: string[]): Observable<{ tickers: string[]; count: number }> {
+  syncWatchlist(clientId: string, accountId: number, symbols: string[]): Observable<{ tickers: string[]; count: number }> {
     const tickers = Array.from(new Set(
       (symbols || [])
         .map(symbol => symbol?.trim().toUpperCase())
@@ -294,7 +294,7 @@ export class StockDataService {
 
     return this.http.post<{ tickers: string[]; count: number }>(
       `${this.apiUrl}/tickers/watchlist/sync`,
-      { clientId, tickers }
+      { clientId, accountId, tickers }
     ).pipe(
       catchError(error => {
         console.error('Error syncing watchlist:', error);
