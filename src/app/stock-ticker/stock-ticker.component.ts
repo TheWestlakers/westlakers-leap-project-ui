@@ -7,7 +7,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
-import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
+import { OrderSide, OrderType, PortfolioRange } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
@@ -259,7 +259,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   holdings = signal<HoldingPosition[]>([]);
   
   // Tickers tracked by the shared watchlist component
-  watchlistSymbols = signal<string[]>(INITIAL_WATCHLIST.map(item => item.symbol));
+  watchlistSymbols = signal<string[]>([]);
   
   // Loading and error states
   isLoadingPrices = signal(false);
@@ -406,12 +406,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .subscribe(() => this.systemTime.set(new Date()));
 
     const accountId = this.accountId;
-    if (accountId !== null) {
-      this.stockDataService.syncWatchlist(this.clientId, accountId, this.watchlistSymbols())
-        .pipe(takeUntil(this.destroy$))
-        .subscribe();
-    }
-
     this.priceWebsocketService.getPriceUpdates()
       .pipe(takeUntil(this.destroy$))
       .subscribe(update => this.applyPriceUpdate(update));
