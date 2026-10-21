@@ -309,8 +309,8 @@
 }
 
 .simple-summary {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -615,7 +615,9 @@
 
 .simple-view-layout {
   position: relative;
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   padding-right: 338px;
   overflow: visible;
 }
@@ -628,7 +630,7 @@
 
 .simple-view-layout .center-col {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .simple-view-layout .right-rail {
@@ -655,6 +657,27 @@
 .simple-positions .col-mkt {
   flex: 1;
 }
+
+.holdings-allocation { display: flex; align-items: center; justify-content: center; gap: 64px; padding: 32px 40px 40px; min-height: 420px; }
+.donut-chart { position: relative; width: 360px; min-width: 360px; height: 360px; }
+.donut-chart svg { width: 100%; height: 100%; overflow: visible; }
+.donut-track { fill: none; stroke: var(--border); stroke-width: 38; }
+.donut-segment { cursor: pointer; outline: none; stroke: var(--surface); stroke-width: 2; transition: opacity 0.15s, transform 0.15s; transform-origin: 120px 120px; }
+.donut-segment:hover, .donut-segment:focus, .donut-segment-active { opacity: 0.78; transform: scale(1.035); }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; text-align: center; }
+.donut-center strong { font-family: var(--font-mono); font-size: 17px; }
+.donut-center span { margin-top: 4px; color: var(--dim); font-size: 9px; letter-spacing: 0.06em; }
+.holdings-legend { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.legend-heading { margin: 0 0 4px 8px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
+.holding-legend-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 5px; cursor: pointer; outline: none; transition: background 0.15s; }
+.holding-legend-item:hover, .holding-legend-item:focus, .holding-legend-active { background: var(--surface-hi); }
+.legend-swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+.legend-name { display: flex; flex-direction: column; min-width: 0; }
+.legend-name { flex: 1; }
+.legend-name strong { font-family: var(--font-mono); font-size: 12px; }
+.legend-name small { color: var(--dim); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.legend-value { color: var(--text); font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+.holdings-empty { color: var(--muted); font-size: 12px; padding: 12px 8px; }
 
 /* ─── Right rail ──────────────────────────────────────── */
 .right-rail {
@@ -700,9 +723,14 @@
   .simple-view-layout .left-rail {
     display: flex;
   }
+
 }
 
 @media (max-width: 640px) {
   .nav-search { display: none; }
   .chart-header { flex-direction: column; align-items: flex-start; }
+  .simple-summary { grid-template-columns: minmax(0, 1fr); }
+  .holdings-allocation { flex-direction: column; gap: 12px; padding: 16px; }
+  .donut-chart { width: 190px; min-width: 190px; height: 190px; }
+  .holdings-legend { width: 100%; }
 }

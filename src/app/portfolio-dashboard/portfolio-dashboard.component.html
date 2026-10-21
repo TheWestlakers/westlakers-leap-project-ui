@@ -39,7 +39,6 @@
         <p class="stat-label">TOTAL ACCOUNT VALUE</p>
         <div class="stat-row">
           <span class="stat-value">${{ formatCurrency(totalAccountValue) }}</span>
-          <span class="stat-change positive">+{{ dayChangePct }}%</span>
         </div>
       </div>
 
@@ -59,15 +58,6 @@
         </div>
       </div>
 
-      <!-- Day change -->
-      <div class="stat-card">
-        <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
-        <div class="stat-row">
-          <span class="stat-value positive">+${{ formatCurrency(dayChange) }}</span>
-          <span class="change-pill">▲ UP</span>
-        </div>
-      </div>
-
       <!-- WATCHLIST COMPONENT -->
       <app-watchlist
       [allPrices]="allPrices()"
@@ -80,7 +70,7 @@
         <div class="simple-account-value">
           <p class="stat-label">TOTAL VALUE</p>
           <p class="simple-value">${{ formatCurrency(totalAccountValue) }}</p>
-          <p class="simple-day-change positive">Today +${{ formatCurrency(dayChange) }} ({{ dayChangePct }}%)</p>
+          <!-- <p class="simple-day-change positive">Today +${{ formatCurrency(dayChange) }} ({{ dayChangePct }}%)</p> -->
         </div>
         <div class="simple-account-value">
           <p class="stat-label">SETTLED CASH</p>
@@ -174,33 +164,75 @@
         </div>
       </div>
 
-      <!-- Table header -->
-      <div class="pos-table-header">
-        <span class="col-symbol">SYMBOL</span>
-        <span class="col-shares">SHARES</span>
-        <span class="col-avg">AVG COST</span>
-        <span class="col-last">LAST PRICE</span>
-        <span class="col-mkt">MKT VALUE</span>
-        <span class="col-pnl">UNREALIZED P&amp;L</span>
-      </div>
-
-      <!-- Rows — show first 3 in compact mode, scrollable -->
-      <div class="pos-rows compact-scroll">
-        <div
-          *ngFor="let pos of positions(); let i = index"
-          class="pos-row"
-          [ngClass]="rowBg(i)"
-        >
-          <span class="col-symbol pos-symbol">{{ pos.symbol }}</span>
-          <span class="col-shares pos-mono">{{ pos.shares }}</span>
-          <span class="col-avg pos-mono muted">${{ pos.avgCost.toFixed(2) }}</span>
-          <span class="col-last pos-mono">${{ pos.lastPrice.toFixed(2) }}</span>
-          <span class="col-mkt pos-mono">${{ formatCurrency(pos.marketValue) }}</span>
-          <span class="col-pnl pos-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">
-            {{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}
-          </span>
+      @if (themeService.isPowerView()) {
+        <div class="pos-table-header">
+          <span class="col-symbol">SYMBOL</span>
+          <span class="col-shares">SHARES</span>
+          <span class="col-avg">AVG COST</span>
+          <span class="col-last">LAST PRICE</span>
+          <span class="col-mkt">MKT VALUE</span>
+          <span class="col-pnl">UNREALIZED P&amp;L</span>
         </div>
-      </div>
+
+        <div class="pos-rows compact-scroll">
+          <div *ngFor="let pos of positions(); let i = index" class="pos-row" [ngClass]="rowBg(i)">
+            <span class="col-symbol pos-symbol">{{ pos.symbol }}</span>
+            <span class="col-shares pos-mono">{{ pos.shares }}</span>
+            <span class="col-avg pos-mono muted">${{ pos.avgCost.toFixed(2) }}</span>
+            <span class="col-last pos-mono">${{ pos.lastPrice.toFixed(2) }}</span>
+            <span class="col-mkt pos-mono">${{ formatCurrency(pos.marketValue) }}</span>
+            <span class="col-pnl pos-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">{{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}</span>
+          </div>
+        </div>
+      } @else {
+        <div class="holdings-allocation">
+          <div class="donut-chart" role="img" aria-label="Holdings allocation donut chart" (mouseleave)="hoveredAllocation.set(null)">
+            <svg viewBox="0 0 240 240" aria-hidden="true">
+              <circle class="donut-track" cx="120" cy="120" r="81" />
+              <path
+                *ngFor="let allocation of holdingAllocations"
+                class="donut-segment"
+                [class.donut-segment-active]="hoveredAllocation() === allocation.symbol"
+                [attr.d]="allocation.path"
+                [attr.fill]="allocation.color"
+                (mouseenter)="hoveredAllocation.set(allocation.symbol)"
+                (mouseleave)="hoveredAllocation.set(null)"
+                (focus)="hoveredAllocation.set(allocation.symbol)"
+                (blur)="hoveredAllocation.set(null)"
+                tabindex="0"
+              >
+                <title>{{ allocation.symbol }}: {{ allocation.shares }} shares</title>
+              </path>
+            </svg>
+            @if (hoveredHoldingAllocation; as allocation) {
+              <div class="donut-center" aria-live="polite">
+                <strong>{{ allocation.shares }} SHARES</strong>
+                <span>{{ allocation.symbol }}</span>
+              </div>
+            }
+          </div>
+          <div class="holdings-legend" aria-label="Holdings legend">
+            <h3 class="legend-heading">LEGEND</h3>
+            <div
+              *ngFor="let allocation of holdingAllocations"
+              class="holding-legend-item"
+              [class.holding-legend-active]="hoveredAllocation() === allocation.symbol"
+              (mouseenter)="hoveredAllocation.set(allocation.symbol)"
+              (mouseleave)="hoveredAllocation.set(null)"
+              (focus)="hoveredAllocation.set(allocation.symbol)"
+              (blur)="hoveredAllocation.set(null)"
+              tabindex="0"
+            >
+              <span class="legend-swatch" [style.backgroundColor]="allocation.color"></span>
+              <span class="legend-name"><strong>{{ allocation.symbol }}</strong><small>{{ allocation.name }}</small></span>
+              <span class="legend-value">${{ formatCurrency(allocation.value) }}</span>
+            </div>
+            @if (holdingAllocations.length === 0) {
+              <span class="holdings-empty">No holdings available</span>
+            }
+          </div>
+        </div>
+      }
     </div>
 
   </main>

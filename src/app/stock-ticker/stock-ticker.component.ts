@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, signal, computed, effect, inject, OnDestroy } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -276,6 +276,19 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   orderExecuted = signal(false);
   isSubmittingOrder = signal(false);
   orderError = signal<string | null>(null);
+
+  /** Shares of the selected ticker held in the active account. */
+  ownedShares = computed(() =>
+    this.holdings().find(holding => holding.symbol === this.selectedTicker())?.shares ?? 0
+  );
+  canSell = computed(() => this.ownedShares() > 0);
+
+  // Fall back to BUY when the user switches to a ticker they don't own (or sells out).
+  private readonly resetSideWhenNotOwned = effect(() => {
+    if (this.orderSide() === 'SELL' && !this.canSell()) {
+      this.orderSide.set('BUY');
+    }
+  });
 
   get estValue(): number {
     return this.orderShares() * (this.orderPrice() ?? 0);
@@ -631,7 +644,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   /* ── Order actions ── */
-  setSide(side: OrderSide): void { this.orderSide.set(side); }
+  setSide(side: OrderSide): void {
+    if (side === 'SELL' && !this.canSell()) return;
+    this.orderSide.set(side);
+  }
   setOrderType(type: OrderType): void {
     this.orderType.set(type);
     if (type === 'LIMIT') {
