@@ -201,6 +201,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
   private readonly historyReload$ = new Subject<void>();
+  private orderFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   private clientId = '';
   private focusedTransientTicker: string | null = null;
   private websocketSymbols = new Set<string>();
@@ -425,6 +426,8 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearOrderFeedbackTimer();
+
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
@@ -718,8 +721,25 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   decrementShares(): void { this.orderShares.update(n => Math.max(1, n - 1)); }
   toggleExtHours(): void { this.orderExtHours.update(v => !v); }
 
-  
+  private clearOrderFeedbackTimer(): void {
+    if (this.orderFeedbackTimer !== null) {
+      clearTimeout(this.orderFeedbackTimer);
+      this.orderFeedbackTimer = null;
+    }
+  }
+
+  private scheduleOrderFeedbackReset(): void {
+    this.clearOrderFeedbackTimer();
+    this.orderFeedbackTimer = setTimeout(() => {
+      this.orderSubmitted.set(false);
+      this.orderExecuted.set(false);
+      this.orderError.set(null);
+      this.orderFeedbackTimer = null;
+    }, 1500);
+  }
+
   submitOrder(): void {
+    this.clearOrderFeedbackTimer();
     this.orderError.set(null);
     this.orderSubmitted.set(false);
     this.orderExecuted.set(false);
@@ -732,11 +752,13 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
     if (accountId === null) {
       this.orderError.set('No trading account is linked to your profile yet.');
+      this.scheduleOrderFeedbackReset();
       return;
     }
 
     if (orderPrice === null) {
       this.orderError.set('Order price is unavailable.');
+      this.scheduleOrderFeedbackReset();
       return;
     }
 
@@ -779,11 +801,13 @@ export class StockTickerComponent implements OnInit, OnDestroy {
               this.loadHoldings();
               this.isSubmittingOrder.set(false);
               this.orderExecuted.set(true);
+              this.scheduleOrderFeedbackReset();
             },
             error: (error) => {
               console.error('Error refreshing account after trade:', error);
               this.isSubmittingOrder.set(false);
               this.orderExecuted.set(true);
+              this.scheduleOrderFeedbackReset();
             }
           });
       },
@@ -793,6 +817,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
           error.error?.details || error.error?.message || error.message ||
           `Unable to create the ${orderType.toLowerCase()} order.`
         );
+        this.scheduleOrderFeedbackReset();
       },
     });
   }
