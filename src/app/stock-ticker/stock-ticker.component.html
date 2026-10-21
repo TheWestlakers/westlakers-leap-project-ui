@@ -258,27 +258,10 @@
           </div>
         </div>
 
-        <!-- Extended hours -->
-        <button class="ext-hours-row" (click)="toggleExtHours()">
-          <div class="checkbox" [class.checkbox-checked]="orderExtHours()">
-            <span *ngIf="orderExtHours()" class="check-mark">✓</span>
-          </div>
-          <span class="ext-label">Allow Extended Hours trading (EXT)</span>
-        </button>
-
         <!-- Calculator -->
         <div class="calc-panel">
           <div class="calc-row">
-            <span class="calc-label">EST. VALUE</span>
-            <span class="calc-value">${{ formatCurrency(estValue) }}</span>
-          </div>
-          <div class="calc-row">
-            <span class="calc-label">EST. FEES</span>
-            <span class="calc-dim">$0.00 (COMMISSION-FREE)</span>
-          </div>
-          <div class="calc-divider"></div>
-          <div class="calc-row">
-            <span class="calc-label-muted">TOTAL COST</span>
+            <span class="calc-label-muted">TOTAL EST. COST</span>
             <span class="calc-total">${{ formatCurrency(estValue) }}</span>
           </div>
         </div>
