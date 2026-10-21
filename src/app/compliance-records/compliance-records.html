@@ -66,7 +66,7 @@
         <span class="w-[150px]">CLIENT</span>
         <span class="w-[150px]">TIMESTAMP</span>
         <span class="w-[80px]">SYMBOL</span>
-        <span class="w-[60px] text-right">SIDE</span>
+        <span class="w-[60px] text-center">SIDE</span>
         <span class="w-[70px] text-right">QTY</span>
         <span class="w-[80px] text-right">LIMIT PRICE</span>
         <span class="status-column w-[120px] text-center">STATUS</span>
@@ -93,16 +93,9 @@
             <p class="font-['Geist_Mono:Bold'] font-bold text-white w-[80px]">
               {{ record.orderDecision.symbol }}
             </p>
-            <div class="w-[60px] text-right">
+            <div class="w-[60px] text-center">
               <span
-                class="status-badge px-2 py-1 rounded text-[10px] font-semibold inline-block"
-                [ngClass]="
-                  record.orderDecision.side === 'BUY'
-                    ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]'
-                    : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
-                "
-                [class.side-buy-badge]="record.orderDecision.side === 'BUY'"
-                [class.side-sell-badge]="record.orderDecision.side === 'SELL'"
+                class="side-badge text-[10px] font-semibold text-[#94a3b8]"
               >
                 {{ record.orderDecision.side }}
               </span>
@@ -143,10 +136,10 @@
             </p>
             <p
               class="cash-impact-column font-['Geist_Mono:SemiBold'] font-semibold w-[100px] text-right"
-              [ngClass]="record.cashAndHoldingChange.cashImpact >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'"
+              [ngClass]="(record.cashAndHoldingChange.cashImpact ?? 0) >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'"
               [class.cash-impact-na]="isCashImpactUnavailable(record)"
             >
-              {{ record.cashAndHoldingChange.cashImpact >= 0 ? "+" : "" }}${{ record.cashAndHoldingChange.cashImpact | number: '1.2-2' }}
+              {{ (record.cashAndHoldingChange.cashImpact ?? 0) >= 0 ? "+" : "" }}${{ (record.cashAndHoldingChange.cashImpact ?? 0) | number: '1.2-2' }}
             </p>
           </div>
         }

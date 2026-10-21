@@ -207,12 +207,6 @@
   color: #64748b !important;
 }
 
-:host.light-theme .side-buy-badge {
-  background-color: #e8f5e9 !important;
-  color: #047857 !important;
-}
-
-:host.light-theme .side-sell-badge,
 :host.light-theme .status-rejected {
   background-color: #fee2e2 !important;
   color: #dc2626 !important;
@@ -306,13 +300,19 @@
   letter-spacing: 0.02em;
 }
 
+.side-badge {
+  letter-spacing: 0.02em;
+  color: #94a3b8 !important;
+}
+
 .limit-price-na,
-.execution-price-na,
+:host.light-theme .execution-price-na,
 :host.light-theme .cash-impact-na,
 :host.light-theme .limit-price-na {
   color: #64748b !important;
 }
 
+.execution-price-na,
 .cash-impact-na {
   color: #64748b !important;
 }
@@ -329,12 +329,6 @@
 }
 
 /* These specific rules come after the generic badge theme so each state wins. */
-:host.light-theme .compliance-page .status-badge.side-buy-badge {
-  background-color: #e8f5e9 !important;
-  color: #047857 !important;
-}
-
-:host.light-theme .compliance-page .status-badge.side-sell-badge,
 :host.light-theme .compliance-page .status-badge.status-rejected {
   background-color: #fee2e2 !important;
   color: #dc2626 !important;
@@ -352,5 +346,9 @@
 
 :host.light-theme .compliance-page .status-badge.status-cancelled {
   background-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+:host.light-theme .compliance-page .side-badge {
   color: #64748b !important;
 }

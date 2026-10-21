@@ -171,8 +171,8 @@ export class ComplianceRecordsComponent implements OnInit {
           || volume.orderStatus === "CANCELLED" || volume.orderStatus === "REJECTED"
           ? 0
           : volume.side === "BUY"
-            ? quantity * volume.executionPrice
-            : -quantity * volume.executionPrice,
+            ? -quantity * volume.executionPrice
+            : quantity * volume.executionPrice,
         holdingSymbol: volume.instrumentCode,
         holdingQuantityChange: volume.side === "BUY" ? quantity : -quantity,
         holdingAveragePrice: price,
