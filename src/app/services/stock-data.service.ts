@@ -303,6 +303,17 @@ export class StockDataService {
     );
   }
 
+  getAccountWatchlist(accountId: number): Observable<{ tickers: string[]; count: number }> {
+    return this.http.get<{ tickers: string[]; count: number }>(
+      `${this.apiUrl}/accounts/${accountId}/watchlist`
+    ).pipe(
+      catchError(error => {
+        console.error('Error loading account watchlist:', error);
+        return of({ tickers: [], count: 0 });
+      })
+    );
+  }
+
   /**
    * Register a focused ticker for this specific frontend client.
    */

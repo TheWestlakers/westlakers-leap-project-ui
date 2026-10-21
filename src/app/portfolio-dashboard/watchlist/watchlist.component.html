@@ -47,18 +47,30 @@
 
   <!-- Add form -->
   <div *ngIf="isEditingWatchlist()" class="wl-add-form">
-    <input
-      class="wl-input"
-      placeholder="SYMBOL"
-      [(ngModel)]="newSymbol"
-      (keydown.enter)="addWatchlistItem()"
-    />
-    <input
-      class="wl-input"
-      placeholder="Company name (optional)"
-      [(ngModel)]="newName"
-      (keydown.enter)="addWatchlistItem()"
-    />
+    <div class="wl-search-wrap">
+      <input
+        class="wl-input"
+        placeholder="Symbol or company name"
+        [ngModel]="newSymbol"
+        (ngModelChange)="onSearchValueChange($event)"
+        (keydown.enter)="addWatchlistItem()"
+      />
+      <div *ngIf="newSymbol.trim() && (searchResults.length || isSearching)" class="wl-search-results">
+        <div *ngIf="isSearching" class="wl-search-status">Searching...</div>
+        <button
+          *ngFor="let instrument of searchResults"
+          type="button"
+          class="wl-search-result"
+          (click)="selectInstrument(instrument)"
+        >
+          <span>
+            <strong>{{ instrument.ticker }}</strong>
+            <small>{{ instrument.name }}</small>
+          </span>
+          <em>Instrument</em>
+        </button>
+      </div>
+    </div>
     <button class="wl-add-btn" (click)="addWatchlistItem()">+ ADD TO WATCHLIST</button>
   </div>
 </div>

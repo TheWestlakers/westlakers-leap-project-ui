@@ -379,13 +379,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.systemTime.set(new Date()));
 
-    const watchlistAccountId = this.accountId;
-    if (watchlistAccountId !== null) {
-      this.stockDataService.syncWatchlist(this.clientId, watchlistAccountId, this.watchlistSymbols())
-        .pipe(takeUntil(this.destroy$))
-        .subscribe();
-    }
-
     this.priceWebsocketService.getPriceUpdates()
       .pipe(takeUntil(this.destroy$))
       .subscribe(update => this.applyPriceUpdate(update));
