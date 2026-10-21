@@ -308,7 +308,12 @@
 
 .limit-price-na,
 .execution-price-na,
+:host.light-theme .cash-impact-na,
 :host.light-theme .limit-price-na {
+  color: #64748b !important;
+}
+
+.cash-impact-na {
   color: #64748b !important;
 }
 

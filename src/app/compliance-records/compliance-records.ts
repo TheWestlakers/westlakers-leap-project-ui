@@ -129,6 +129,13 @@ export class ComplianceRecordsComponent implements OnInit {
     );
   }
 
+  isCashImpactUnavailable(record: ComplianceRecord): boolean {
+    return record.executionResult.status === "CANCELLED"
+      || record.executionResult.status === "REJECTED"
+      || record.executionResult.executedPrice === null
+      || record.executionResult.executedPrice === 0;
+  }
+
   private toComplianceRecord(volume: TradingVolume): ComplianceRecord {
     const timestamp = volume.executedAt ?? volume.createdAt;
     const price = volume.limitPrice;
@@ -160,7 +167,12 @@ export class ComplianceRecordsComponent implements OnInit {
         executionTime: timestamp ? new Date(timestamp) : new Date(0),
       },
       cashAndHoldingChange: {
-        cashImpact: price === null ? null : volume.side === "BUY" ? -quantity * price : quantity * price,
+        cashImpact: volume.executionPrice === null || volume.executionPrice === 0
+          || volume.orderStatus === "CANCELLED" || volume.orderStatus === "REJECTED"
+          ? 0
+          : volume.side === "BUY"
+            ? quantity * volume.executionPrice
+            : -quantity * volume.executionPrice,
         holdingSymbol: volume.instrumentCode,
         holdingQuantityChange: volume.side === "BUY" ? quantity : -quantity,
         holdingAveragePrice: price,
