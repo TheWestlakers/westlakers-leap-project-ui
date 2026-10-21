@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { EMPTY, Observable, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { EMPTY, Observable, catchError, finalize, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { Account, AccountService } from './account.service';
 
 export const TOKEN_STORAGE_KEY = 'token';
@@ -55,11 +55,14 @@ export class AuthService {
     }
   }
 
-  login(email: string, password: string): Observable<AuthTokens> {
+  login(email: string, password: string): Observable<CurrentUser> {
     return this.http.post<AuthTokens>('/api/auth/login', {
         email,
         password
-    }).pipe(tap((tokens) => this.storeTokens(tokens)));
+    }).pipe(
+      tap((tokens) => this.storeTokens(tokens)),
+      switchMap(() => this.loadCurrentUser()),
+    );
   }
 
   refresh(): Observable<AuthTokens> {

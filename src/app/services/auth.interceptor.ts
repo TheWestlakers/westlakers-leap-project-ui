@@ -9,15 +9,19 @@ const hasRetried = new HttpContextToken<boolean>(() => false);
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  const isAuthRequest = request.url.includes('/api/auth/');
+  const isPublicAuthRequest = [
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/refresh',
+  ].some((url) => request.url.endsWith(url));
   const token = auth.getToken();
-  const authenticatedRequest = !isAuthRequest && token
+  const authenticatedRequest = !isPublicAuthRequest && token
     ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : request;
 
   return next(authenticatedRequest).pipe(
     catchError((error: unknown) => {
-      if (isAuthRequest || !(error instanceof HttpErrorResponse) || error.status !== 401 || request.context.get(hasRetried)) {
+      if (isPublicAuthRequest || !(error instanceof HttpErrorResponse) || error.status !== 401 || request.context.get(hasRetried)) {
         return throwError(() => error);
       }
 

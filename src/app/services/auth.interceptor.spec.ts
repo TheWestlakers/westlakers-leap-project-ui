@@ -53,6 +53,16 @@ describe('authInterceptor', () => {
     expect(navigateByUrl).not.toHaveBeenCalled();
   });
 
+  it('attaches the token to the current-user request', () => {
+    const response = firstValueFrom(TestBed.inject(HttpClient).get('/api/auth/me'));
+    const request = http.expectOne('/api/auth/me');
+
+    expect(request.request.headers.get('Authorization')).toBe('Bearer expired-token');
+    request.flush({ userId: 1 });
+
+    return expect(response).resolves.toEqual({ userId: 1 });
+  });
+
   it('clears auth and redirects when refresh fails', async () => {
     const response = firstValueFrom(TestBed.inject(HttpClient).get('/api/portfolio'));
     http.expectOne('/api/portfolio').flush(null, { status: 401, statusText: 'Unauthorized' });

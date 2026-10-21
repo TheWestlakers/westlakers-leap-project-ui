@@ -37,14 +37,33 @@ describe('AuthService', () => {
     const request = http.expectOne('/api/auth/login');
     request.flush({ token: 'access-token', refreshToken: 'refresh-token' });
 
+    const currentUserRequest = http.expectOne('/api/auth/me');
+    currentUserRequest.flush({
+      userId: 1,
+      email: 'user@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      roleId: 2,
+      accounts: [],
+    });
+
     expect(service.getToken()).toBe('access-token');
     expect(service.getRefreshToken()).toBe('refresh-token');
+    expect(service.currentUser()?.email).toBe('user@example.com');
   });
 
   it('refreshes proactively before the access token expires', () => {
     vi.useFakeTimers();
     service.login('user@example.com', 'password').subscribe();
     http.expectOne('/api/auth/login').flush({ token: 'access-token', refreshToken: 'refresh-token' });
+    http.expectOne('/api/auth/me').flush({
+      userId: 1,
+      email: 'user@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      roleId: 2,
+      accounts: [],
+    });
 
     vi.advanceTimersByTime(55_000);
 
