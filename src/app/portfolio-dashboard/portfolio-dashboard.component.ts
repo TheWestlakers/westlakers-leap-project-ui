@@ -12,6 +12,7 @@ import { AccountService } from '../services/account.service';
 import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { HoldingService } from '../services/holding.service';
+import { TradeService } from '../services/trade.service';
 import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
 import { forkJoin, interval, of, Subject, timer } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
@@ -145,6 +146,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly holdingService = inject(HoldingService);
   private readonly authService = inject(AuthService);
+  private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
   private readonly websocketSymbols = new Set<string>();
   private readonly positionSymbols = new Set<string>();
