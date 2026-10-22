@@ -18,6 +18,10 @@ interface ChatMessage {
   host: { '[class.light-theme]': '!themeService.isDarkMode()' },
   styles: `
     :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
       --font-mono:   'Geist Mono', 'Courier New', monospace;
       --font-sans:   'Instrument Sans', system-ui, sans-serif;
     }

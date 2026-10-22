@@ -905,8 +905,8 @@
 
 /* ─── AI Assistant Widget ──────────────────────────────── */
 .ai-assistant-widget {
-  flex: 1;
-  min-height: 300px;
+  flex: none;
+  height: 480px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
