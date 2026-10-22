@@ -325,6 +325,10 @@
 .chart-watchlist-btn:focus-visible { border-color: var(--green); }
 .chart-watchlist-btn:disabled { color: var(--muted); cursor: default; }
 
+.chart-watchlist-btn-remove { color: var(--red); }
+.chart-watchlist-btn-remove:hover:not(:disabled),
+.chart-watchlist-btn-remove:focus-visible { border-color: var(--red); }
+
 .chart-title {
   font-family: var(--font-mono);
   font-size: 17px;

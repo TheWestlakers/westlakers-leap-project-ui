@@ -75,9 +75,9 @@
           <button
             type="button"
             class="chart-watchlist-btn"
-            [disabled]="watchlistSymbols().includes(stockSymbol())"
-            (click)="watchlist.addWatchlistItem(stockSymbol(), stockName())"
-          >{{ watchlistSymbols().includes(stockSymbol()) ? '✓ In watchlist' : '+ Add to watchlist' }}</button>
+            [class.chart-watchlist-btn-remove]="watchlistSymbols().includes(stockSymbol())"
+            (click)="watchlistSymbols().includes(stockSymbol()) ? watchlist.removeWatchlistItem(stockSymbol()) : watchlist.addWatchlistItem(stockSymbol(), stockName())"
+          >{{ watchlistSymbols().includes(stockSymbol()) ? '− Remove from watchlist' : '+ Add to watchlist' }}</button>
         </div>
           <!-- Range filters -->
           <div class="range-tabs">
