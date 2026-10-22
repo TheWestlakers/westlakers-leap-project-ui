@@ -106,7 +106,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let record of complianceRecords; let idx = index" [class.striped-row]="idx % 2 === 1">
+            <tr *ngFor="let record of complianceRecords(); let idx = index" [class.striped-row]="idx % 2 === 1">
               <td class="record-reference" [title]="record.orderReference">{{ record.orderReference.substring(0, 12) }}</td>
               <td class="record-client" [title]="record.clientName">{{ record.clientName }}</td>
               <td class="record-time">{{ record.placementTime | date: 'MM/dd HH:mm:ss.SSS' }}</td>
@@ -131,7 +131,7 @@
                 {{ (record.cashAndHoldingChange.cashImpact ?? 0) >= 0 ? '+' : '' }}${{ (record.cashAndHoldingChange.cashImpact ?? 0) | number: '1.2-2' }}
               </td>
             </tr>
-            <tr *ngIf="complianceRecords.length === 0">
+            <tr *ngIf="complianceRecords().length === 0">
               <td class="empty-records" colspan="11">No compliance records available.</td>
             </tr>
           </tbody>

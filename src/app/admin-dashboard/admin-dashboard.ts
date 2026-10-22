@@ -123,7 +123,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     },
   ];
 
-  complianceRecords: ComplianceRecord[] = [];
+  readonly complianceRecords = signal<ComplianceRecord[]>([]);
 
   readonly topInvestors = signal<InvestorRanking[]>([]);
   readonly topInstruments = signal<InstrumentRanking[]>([]);
@@ -191,9 +191,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
     this.tradingVolumeService.getTradingVolumes(0).subscribe({
       next: response => {
-        this.complianceRecords = response.content
+        this.complianceRecords.set(response.content
           .slice(0, 5)
-          .map(volume => this.toComplianceRecord(volume));
+          .map(volume => this.toComplianceRecord(volume)));
       },
     });
   }
