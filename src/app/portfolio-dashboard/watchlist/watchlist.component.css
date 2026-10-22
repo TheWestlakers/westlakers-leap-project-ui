@@ -41,22 +41,14 @@
   flex-direction: column;
   max-height: 300px;
   overflow-y: auto;
-  scrollbar-color: #252b31 #050607;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
   scrollbar-width: thin;
 }
 
 .wl-items::-webkit-scrollbar { width: 8px; }
-.wl-items::-webkit-scrollbar-track { background: #050607; }
-.wl-items::-webkit-scrollbar-thumb { background: #252b31; border-radius: 4px; }
-.wl-items::-webkit-scrollbar-thumb:hover { background: #343c44; }
-
-:host-context(.light-theme) .wl-items {
-  scrollbar-color: #94a3b8 #e2e8f0;
-}
-
-:host-context(.light-theme) .wl-items::-webkit-scrollbar-track { background: #e2e8f0; }
-:host-context(.light-theme) .wl-items::-webkit-scrollbar-thumb { background: #94a3b8; }
-:host-context(.light-theme) .wl-items::-webkit-scrollbar-thumb:hover { background: #64748b; }
+.wl-items::-webkit-scrollbar-track { background: var(--app-scrollbar-track); }
+.wl-items::-webkit-scrollbar-thumb { background: var(--app-scrollbar-thumb); border-radius: 4px; }
+.wl-items::-webkit-scrollbar-thumb:hover { background: var(--app-scrollbar-thumb-hover); }
 
 .wl-item {
   position: relative;
@@ -145,25 +137,20 @@
   border: 1px solid #34404a;
   border-radius: 4px;
   box-shadow: 0 10px 24px rgb(0 0 0 / 45%);
-  scrollbar-color: #3f4b55 #080b0d;
+  scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
   scrollbar-width: thin;
 }
 
 .wl-search-results::-webkit-scrollbar { width: 8px; }
-.wl-search-results::-webkit-scrollbar-track { background: #080b0d; }
-.wl-search-results::-webkit-scrollbar-thumb { background: #3f4b55; border-radius: 4px; }
-.wl-search-results::-webkit-scrollbar-thumb:hover { background: #56636e; }
+.wl-search-results::-webkit-scrollbar-track { background: var(--app-scrollbar-track); }
+.wl-search-results::-webkit-scrollbar-thumb { background: var(--app-scrollbar-thumb); border-radius: 4px; }
+.wl-search-results::-webkit-scrollbar-thumb:hover { background: var(--app-scrollbar-thumb-hover); }
 
 :host-context(.light-theme) .wl-search-results {
   background: #ffffff;
   border-color: #b8c5d4;
   box-shadow: 0 10px 24px rgb(15 23 42 / 22%);
-  scrollbar-color: #94a3b8 #e2e8f0;
 }
-
-:host-context(.light-theme) .wl-search-results::-webkit-scrollbar-track { background: #e2e8f0; }
-:host-context(.light-theme) .wl-search-results::-webkit-scrollbar-thumb { background: #94a3b8; }
-:host-context(.light-theme) .wl-search-results::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 .wl-search-status {
   padding: 8px 10px;

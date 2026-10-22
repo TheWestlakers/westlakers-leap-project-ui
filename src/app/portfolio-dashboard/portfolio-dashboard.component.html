@@ -182,7 +182,7 @@
             <span class="col-avg pos-mono muted">${{ pos.avgCost.toFixed(2) }}</span>
             <span class="col-last pos-mono">${{ pos.lastPrice.toFixed(2) }}</span>
             <span class="col-mkt pos-mono">${{ formatCurrency(pos.marketValue) }}</span>
-            <span class="col-pnl pos-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">{{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}</span>
+            <span class="col-pnl pos-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)" [title]="formatPnl(pos.unrealizedPnl, pos.unrealizedPct)">{{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}</span>
           </div>
         </div>
       } @else {

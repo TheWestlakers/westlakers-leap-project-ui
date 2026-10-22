@@ -7,15 +7,21 @@ export class ThemeService {
   readonly isDarkMode = signal<boolean>(this.loadThemePreference());
   readonly isPowerView = signal<boolean>(this.loadPowerViewPreference());
 
+  constructor() {
+    this.syncDocumentTheme();
+  }
+
   toggleTheme(): void {
     const newValue = !this.isDarkMode();
     this.isDarkMode.set(newValue);
     this.saveThemePreference(newValue);
+    this.syncDocumentTheme();
   }
 
   setDarkMode(isDark: boolean): void {
     this.isDarkMode.set(isDark);
     this.saveThemePreference(isDark);
+    this.syncDocumentTheme();
   }
 
   togglePowerView(): void {
@@ -37,6 +43,13 @@ export class ThemeService {
       return; // Can't save on server
     }
     localStorage.setItem('paysprint-theme-dark', isDark.toString());
+  }
+
+  private syncDocumentTheme(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    document.documentElement.classList.toggle('light-theme', !this.isDarkMode());
   }
 
   private loadPowerViewPreference(): boolean {

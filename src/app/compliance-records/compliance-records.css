@@ -267,28 +267,6 @@
 
 /* Optional: Add custom styles here if Tailwind classes need enhancement */
 
-/* Scrollbar styling for the table body */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--surface);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #2a3035;
-}
-
-:host.light-theme ::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e0;
-}
-
 /* Truncate with ellipsis utility for order reference */
 .truncate {
   overflow: hidden;
