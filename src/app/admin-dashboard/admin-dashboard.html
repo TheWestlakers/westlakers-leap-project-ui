@@ -75,42 +75,68 @@
       </section>
     </div>
 
-    <!-- PENDING ORDER QUEUE -->
+    <!-- LATEST COMPLIANCE RECORDS -->
     <div class="queue-widget">
       <div class="queue-header">
         <div class="queue-title-group">
           <span class="queue-icon">▦</span>
           <span class="queue-title">ORDER HISTORY COMPLIANCE RECORDS</span>
+          <span class="queue-badge">LATEST 5</span>
         </div>
         <button class="view-all-btn" (click)="navigateToCompliance()">
           VIEW FULL COMPLIANCE RECORDS
           <span class="arrow-icon">→</span>
         </button>
       </div>
-      <table class="queue-table">
-        <thead>
-          <tr>
-            <th>ACCOUNT ID</th>
-            <th>ORDER SYMBOL</th>
-            <th>QTY</th>
-            <th>GATEWAY</th>
-            <th>ORDER EST. VALUE</th>
-            <th>RISK EVALUATION</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let order of pendingOrders">
-            <td class="account-id">{{ order.accountId }}</td>
-            <td class="symbol">{{ order.symbol }}</td>
-            <td class="qty">{{ order.qty | number }}</td>
-            <td class="gateway">{{ order.gateway }}</td>
-            <td class="est-value">{{ order.estValue }}</td>
-            <td class="risk" [class.risk-ok]="!order.riskAlert" [class.risk-alert]="order.riskAlert">
-              {{ order.risk }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="queue-table-wrap">
+        <table class="queue-table compliance-queue-table">
+          <thead>
+            <tr>
+              <th>ORDER REF</th>
+              <th>CLIENT</th>
+              <th>TIME PLACED</th>
+              <th>TIME EXECUTED</th>
+              <th>SYMBOL</th>
+              <th class="centered">SIDE</th>
+              <th class="numeric">QTY</th>
+              <th class="numeric">LIMIT PRICE</th>
+              <th class="centered">STATUS</th>
+              <th>EXECUTION PRICE</th>
+              <th class="numeric">EST. CASH IMPACT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let record of complianceRecords(); let idx = index" [class.striped-row]="idx % 2 === 1">
+              <td class="record-reference" [title]="record.orderReference">{{ record.orderReference.substring(0, 12) }}</td>
+              <td class="record-client" [title]="record.clientName">{{ record.clientName }}</td>
+              <td class="record-time">{{ record.placementTime | date: 'MM/dd HH:mm:ss.SSS' }}</td>
+              <td class="record-time">{{ record.executionTime | date: 'MM/dd HH:mm:ss.SSS' }}</td>
+              <td class="record-symbol">{{ record.orderDecision.symbol }}</td>
+              <td class="record-side centered">{{ record.orderDecision.side }}</td>
+              <td class="numeric">{{ record.executionResult.executedQuantity }}</td>
+              <td class="numeric" [class.value-unavailable]="record.orderDecision.limitPrice === undefined || record.orderDecision.limitPrice === 0">
+                {{ record.orderDecision.limitPrice === undefined || record.orderDecision.limitPrice === 0 ? 'N/A' : ('$' + record.orderDecision.limitPrice.toFixed(4)) }}
+              </td>
+              <td class="centered">
+                <span class="record-status" [ngClass]="'status-' + record.executionResult.status.toLowerCase()">
+                  {{ record.executionResult.status }}
+                </span>
+              </td>
+              <td [class.value-unavailable]="record.pricingDecision.executionPrice === null || record.pricingDecision.executionPrice === 0">
+                {{ record.pricingDecision.executionPrice === null || record.pricingDecision.executionPrice === 0 ? 'N/A' : ('$' + record.pricingDecision.executionPrice.toFixed(4)) }}
+              </td>
+              <td class="numeric record-cash-impact"
+                [class.negative]="(record.cashAndHoldingChange.cashImpact ?? 0) < 0"
+                [class.value-unavailable]="isCashImpactUnavailable(record)">
+                {{ (record.cashAndHoldingChange.cashImpact ?? 0) >= 0 ? '+' : '' }}${{ (record.cashAndHoldingChange.cashImpact ?? 0) | number: '1.2-2' }}
+              </td>
+            </tr>
+            <tr *ngIf="complianceRecords().length === 0">
+              <td class="empty-records" colspan="11">No compliance records available.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </main>
