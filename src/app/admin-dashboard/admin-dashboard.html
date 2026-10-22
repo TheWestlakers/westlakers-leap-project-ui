@@ -28,7 +28,7 @@
         <div class="leaderboard-header">
           <div>
             <h2 class="leaderboard-title">TOP 5 INVESTORS</h2>
-            <p class="leaderboard-desc">Highest current order value</p>
+            <p class="leaderboard-desc">Highest all-time traded value</p>
           </div>
           <button class="view-all-btn" (click)="navigateToInvestors()">
             ALL INVESTORS
@@ -37,7 +37,7 @@
         </div>
         <table class="leaderboard-table">
           <thead>
-            <tr><th>RANK</th><th>INVESTOR</th><th class="numeric">ORDER VALUE</th></tr>
+            <tr><th>RANK</th><th>INVESTOR</th><th class="numeric">TRADED VALUE</th></tr>
           </thead>
           <tbody>
             <tr *ngFor="let investor of topInvestors; let i = index">
@@ -53,7 +53,7 @@
         <div class="leaderboard-header">
           <div>
             <h2 class="leaderboard-title">TOP 5 INSTRUMENTS</h2>
-            <p class="leaderboard-desc">Highest current traded value</p>
+            <p class="leaderboard-desc">Highest all-time traded value</p>
           </div>
           <button class="view-all-btn" (click)="navigateToInstruments()">
             ALL INSTRUMENTS

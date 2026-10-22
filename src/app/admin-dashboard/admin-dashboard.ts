@@ -5,7 +5,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
-import { TopAnalyticsService } from '../services/top-analytics.service';
+import { TopAnalyticsService, instrumentDisplayName, investorDisplayName } from '../services/top-analytics.service';
 import { TopNavComponent } from '../top-nav-admin.component';
 
 export interface NavItem {
@@ -177,7 +177,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.topAnalyticsService.getTopInvestors().subscribe({
       next: investors => {
         this.topInvestors = investors.map(investor => ({
-          name: `${investor.firstName} ${investor.lastName}`.trim() || String(investor.investorId),
+          name: investorDisplayName(investor),
           value: this.formatCurrency(investor.totalValue),
         }));
       },
@@ -186,7 +186,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.topAnalyticsService.getTopInstruments().subscribe({
       next: instruments => {
         this.topInstruments = instruments.map(instrument => ({
-          symbol: instrument.instrumentCode,
+          symbol: instrumentDisplayName(instrument),
           value: this.formatCurrency(instrument.totalValue),
         }));
       },
