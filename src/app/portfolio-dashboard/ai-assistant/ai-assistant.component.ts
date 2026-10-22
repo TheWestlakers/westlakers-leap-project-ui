@@ -2,7 +2,7 @@ import { Component, ElementRef, afterRenderEffect, signal, viewChild, inject } f
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ThemeService } from "../../services/theme.service";
-import { aiAssistantReplies } from "../../data/mock-data";
+import { AiAssistantService, AssistantQuestion } from "../../services/ai-assistant.service";
 
 interface ChatMessage {
   sender: "bot" | "user";
@@ -18,6 +18,10 @@ interface ChatMessage {
   host: { '[class.light-theme]': '!themeService.isDarkMode()' },
   styles: `
     :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
       --font-mono:   'Geist Mono', 'Courier New', monospace;
       --font-sans:   'Instrument Sans', system-ui, sans-serif;
     }
@@ -35,7 +39,7 @@ interface ChatMessage {
         </span>
       </div>
 
-      <div #scrollEl class="flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
+      <div #scrollEl class="ai-chat-scroll flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
         @for (msg of messages(); track $index) {
           <div class="flex flex-col gap-1" [ngClass]="msg.sender === 'user' ? 'items-end' : 'items-start'">
             <div
@@ -59,10 +63,24 @@ interface ChatMessage {
         }
       </div>
 
+      <div class="flex flex-wrap gap-1.5 px-3 pb-3 shrink-0">
+        @for (question of questions; track question.id) {
+          <button
+            type="button"
+            (click)="askQuestion(question)"
+            [disabled]="isTyping()"
+            class="border border-[#2b363e] rounded-[5px] px-2 py-1 font-normal text-[11px] text-[#a7b3be] hover:border-[#3e8914] hover:text-white disabled:opacity-50 transition-colors cursor-pointer"
+            style="font-family: var(--font-sans)"
+          >
+            {{ question.label }}
+          </button>
+        }
+      </div>
+
       <div class="border-t border-[#1e252b] flex gap-2 items-center p-3 shrink-0">
         <input
           class="bg-[#080b0d] border border-[#1e252b] flex-1 rounded-[6px] px-3 py-2 font-normal text-[12px] text-white outline-none focus:border-[#3e8914] transition-colors"
-          placeholder="Ask about your portfolio..."
+          placeholder="Ask a general trading question..."
           style="font-family: var(--font-sans)"
           [ngModel]="draft()"
           (ngModelChange)="draft.set($event)"
@@ -80,13 +98,22 @@ interface ChatMessage {
 })
 export class AiAssistantComponent {
   protected readonly themeService = inject(ThemeService);
+  private readonly assistantService = inject(AiAssistantService);
   draft = signal("");
   isTyping = signal(false);
-  private replyIndex = 0;
   private scrollEl = viewChild<ElementRef<HTMLDivElement>>("scrollEl");
 
+  readonly questions: AssistantQuestion[] = [
+    { id: "market-order", label: "Market trade", prompt: "What is a market trade?" },
+    { id: "limit-order", label: "Limit trade", prompt: "What is a limit trade?" },
+    { id: "stop-order", label: "Stop trade", prompt: "What is a stop trade?" },
+    { id: "bid-ask", label: "Bid and ask", prompt: "What do bid and ask prices mean?" },
+    { id: "market-hours", label: "Market hours", prompt: "What are regular market hours?" },
+    { id: "diversification", label: "Diversification", prompt: "What does diversification mean?" },
+  ];
+
   messages = signal<ChatMessage[]>([
-    { sender: "bot", text: "Hi! I'm your AI trading assistant. Ask me about your portfolio, positions, or market prices.", time: this.now() },
+    { sender: "bot", text: "Hi! Choose a topic below to learn general trading concepts. I cannot provide investment recommendations, price predictions, or portfolio advice.", time: this.now() },
   ]);
 
   constructor() {
@@ -110,26 +137,42 @@ export class AiAssistantComponent {
     }
   }
 
-  sendMessage() {
+  askQuestion(question: AssistantQuestion): void {
+    this.submitQuestion(question.prompt, question.id);
+  }
+
+  sendMessage(): void {
     const text = this.draft().trim();
     if (!text) return;
 
-    this.messages.update((msgs) => [...msgs, { sender: "user", text, time: this.now() }]);
+    this.submitQuestion(text);
+  }
+
+  private submitQuestion(displayText: string, questionId?: string): void {
+    if (this.isTyping()) return;
+
+    this.messages.update((msgs) => [...msgs, { sender: "user", text: displayText, time: this.now() }]);
     this.draft.set("");
-    // Scroll after user message is added
     this.scrollToBottom();
-    
+
     this.isTyping.set(true);
 
-    const reply = aiAssistantReplies[this.replyIndex % aiAssistantReplies.length];
-    this.replyIndex++;
+    const response$ = this.assistantService.ask(displayText, questionId);
 
-    setTimeout(() => {
-      this.isTyping.set(false);
-      this.messages.update((msgs) => [...msgs, { sender: "bot", text: reply, time: this.now() }]);
-      // Scroll after bot reply is added
-      this.scrollToBottom();
-    }, 900);
+    response$.subscribe({
+      next: (reply) => this.addBotMessage(reply),
+      error: (err) => {
+        console.error("AI assistant request failed", err.status, err.error);
+        this.addBotMessage("I couldn't reach the assistant right now. Please try again shortly.");
+      },
+    });
+  }
+
+
+  private addBotMessage(text: string): void {
+    this.isTyping.set(false);
+    this.messages.update((msgs) => [...msgs, { sender: "bot", text, time: this.now() }]);
+    this.scrollToBottom();
   }
 
   private now(): string {

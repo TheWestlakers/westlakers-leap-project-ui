@@ -7,7 +7,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
-import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
+import { OrderSide, OrderType, PortfolioRange } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
@@ -77,6 +77,80 @@ function formatTooltipDate(timestamp: string): string {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+interface InstrumentMarket {
+  timeZone: string;
+  openMinutes: number;
+  closeMinutes: number;
+  schedule: 'WEEKDAY_SESSION' | 'FOREX' | 'CRYPTO';
+}
+
+const US_MARKET: InstrumentMarket = {
+  timeZone: 'America/New_York',
+  openMinutes: 9 * 60 + 30,
+  closeMinutes: 16 * 60,
+  schedule: 'WEEKDAY_SESSION',
+};
+
+const INDIAN_MARKET: InstrumentMarket = {
+  timeZone: 'Asia/Kolkata',
+  openMinutes: 9 * 60 + 15,
+  closeMinutes: 15 * 60 + 30,
+  schedule: 'WEEKDAY_SESSION',
+};
+
+const LONDON_MARKET: InstrumentMarket = {
+  timeZone: 'Europe/London',
+  openMinutes: 8 * 60,
+  closeMinutes: 16 * 60 + 30,
+  schedule: 'WEEKDAY_SESSION',
+};
+
+const FOREX_MARKET: InstrumentMarket = {
+  timeZone: 'America/New_York',
+  openMinutes: 17 * 60,
+  closeMinutes: 17 * 60,
+  schedule: 'FOREX',
+};
+
+const CRYPTO_MARKET: InstrumentMarket = {
+  timeZone: 'UTC',
+  openMinutes: 0,
+  closeMinutes: 24 * 60,
+  schedule: 'CRYPTO',
+};
+
+function marketForTicker(ticker: string): InstrumentMarket {
+  const normalizedTicker = ticker.toUpperCase();
+  if (normalizedTicker.endsWith('=X') || normalizedTicker.includes('/')) return FOREX_MARKET;
+  if (/(?:-USD|-USDT|-USDC)$/.test(normalizedTicker)) return CRYPTO_MARKET;
+  if (normalizedTicker.endsWith('.NS') || normalizedTicker.endsWith('.BO')) return INDIAN_MARKET;
+  if (normalizedTicker.endsWith('.L')) return LONDON_MARKET;
+  return US_MARKET;
+}
+
+function isWeekdayAndWithinHours(now: Date, market: InstrumentMarket): boolean {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: market.timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values['weekday']);
+  const minutes = Number(values['hour']) * 60 + Number(values['minute']);
+
+  if (market.schedule === 'CRYPTO') return true;
+  if (market.schedule === 'FOREX') {
+    return (weekday === 0 && minutes >= market.openMinutes) ||
+      (weekday >= 1 && weekday <= 4) ||
+      (weekday === 5 && minutes < market.closeMinutes);
+  }
+
+  return weekday >= 1 && weekday <= 5 &&
+    minutes >= market.openMinutes && minutes < market.closeMinutes;
 }
 
 const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number; bucketMs: number }> = {
@@ -172,7 +246,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   readonly dayChangePct      =      1.42;
   private readonly authService = inject(AuthService);
   /** Account of the signed-in user; null when the user has no account yet. */
-  private get accountId(): number | null {
+  get accountId(): number | null {
     return this.authService.activeAccount()?.accountId ?? null;
   }
 
@@ -185,7 +259,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   holdings = signal<HoldingPosition[]>([]);
   
   // Tickers tracked by the shared watchlist component
-  watchlistSymbols = signal<string[]>(INITIAL_WATCHLIST.map(item => item.symbol));
+  watchlistSymbols = signal<string[]>([]);
   
   // Loading and error states
   isLoadingPrices = signal(false);
@@ -282,6 +356,9 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     this.holdings().find(holding => holding.symbol === this.selectedTicker())?.shares ?? 0
   );
   canSell = computed(() => this.ownedShares() > 0);
+  isMarketOpen = computed(() =>
+    isWeekdayAndWithinHours(this.systemTime(), marketForTicker(this.selectedTicker()))
+  );
 
   // Fall back to BUY when the user switches to a ticker they don't own (or sells out).
   private readonly resetSideWhenNotOwned = effect(() => {
@@ -328,17 +405,13 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.systemTime.set(new Date()));
 
-    this.stockDataService.syncWatchlist(this.clientId, this.watchlistSymbols())
-      .pipe(takeUntil(this.destroy$))
-      .subscribe();
-
+    const accountId = this.accountId;
     this.priceWebsocketService.getPriceUpdates()
       .pipe(takeUntil(this.destroy$))
       .subscribe(update => this.applyPriceUpdate(update));
     this.syncWebsocketSubscriptions();
     this.startHistoryPolling();
 
-    const accountId = this.accountId;
     if (accountId !== null) {
       this.accountService.loadAccount(accountId)
         .pipe(takeUntil(this.destroy$))
@@ -515,9 +588,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     const normalized = symbols.map(symbol => symbol.toUpperCase());
     this.watchlistSymbols.set(normalized);
 
-    this.stockDataService.syncWatchlist(this.clientId, normalized)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe();
+    const accountId = this.accountId;
+    if (accountId !== null) {
+      this.stockDataService.syncWatchlist(this.clientId, accountId, normalized)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe();
+    }
 
     if (this.focusedTransientTicker && normalized.includes(this.focusedTransientTicker)) {
       this.stockDataService.unfocusTicker(this.clientId, this.focusedTransientTicker)

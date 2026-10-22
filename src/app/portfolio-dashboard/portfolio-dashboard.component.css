@@ -668,15 +668,22 @@
 .donut-center strong { font-family: var(--font-mono); font-size: 17px; }
 .donut-center span { margin-top: 4px; color: var(--dim); font-size: 9px; letter-spacing: 0.06em; }
 .holdings-legend { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.legend-heading { margin: 0 0 4px 8px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
-.holding-legend-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 5px; cursor: pointer; outline: none; transition: background 0.15s; }
+.legend-column-headings,
+.holding-legend-item { display: grid; grid-template-columns: 9px minmax(0, 1fr) 110px 100px; align-items: center; column-gap: 9px; }
+.legend-column-headings { padding: 0 8px 4px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
+.legend-column-headings span:first-child { grid-column: 2; }
+.legend-column-headings span:nth-child(2) { grid-column: 3; text-align: left; }
+.legend-column-headings span:last-child { grid-column: 4; text-align: left; }
+.holding-legend-item { padding: 7px 8px; border-radius: 5px; cursor: pointer; outline: none; transition: background 0.15s; }
 .holding-legend-item:hover, .holding-legend-item:focus, .holding-legend-active { background: var(--surface-hi); }
 .legend-swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
 .legend-name { display: flex; flex-direction: column; min-width: 0; }
 .legend-name { flex: 1; }
 .legend-name strong { font-family: var(--font-mono); font-size: 12px; }
 .legend-name small { color: var(--dim); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.legend-value { color: var(--text); font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+.legend-pnl { min-width: 0; text-align: left; font-family: var(--font-mono); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.legend-pnl-positive { color: var(--green); }
+.legend-value { color: var(--text); font-family: var(--font-mono); font-size: 12px; text-align: left; white-space: nowrap; }
 .holdings-empty { color: var(--muted); font-size: 12px; padding: 12px 8px; }
 
 /* ─── Right rail ──────────────────────────────────────── */
@@ -692,8 +699,8 @@
 
 /* ─── AI Assistant Widget ──────────────────────────────── */
 .ai-assistant-widget {
-  flex: 1;
-  min-height: 300px;
+  flex: none;
+  height: 480px;
   overflow: hidden;
   display: flex;
   flex-direction: column;

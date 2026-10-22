@@ -12,6 +12,7 @@ import { AccountService } from '../services/account.service';
 import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { HoldingService } from '../services/holding.service';
+import { TradeService } from '../services/trade.service';
 import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
 import { forkJoin, interval, of, Subject, timer } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
@@ -46,6 +47,7 @@ interface HoldingAllocation {
   shares: number;
   value: number;
   percentage: number;
+  unrealizedPct: number;
   path: string;
   color: string;
 }
@@ -111,7 +113,6 @@ interface MarketClock {
 const MARKET_DEFINITIONS = [
   { name: 'NYSE', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
   { name: 'Nasdaq', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
-  { name: 'Cboe US', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
   { name: 'London', code: 'UK', timeZone: 'Europe/London', hours: '08:00 - 16:30', open: [8, 0], close: [16, 30], weekdays: [1, 2, 3, 4, 5] },
   { name: 'NSE / BSE', code: 'IN', timeZone: 'Asia/Kolkata', hours: '09:15 - 15:30', open: [9, 15], close: [15, 30], weekdays: [1, 2, 3, 4, 5] },
   { name: 'Forex', code: 'FX', timeZone: 'America/New_York', hours: '24 hours / 5 days', open: [17, 0], close: [17, 0], weekdays: [0, 1, 2, 3, 4, 5] },
@@ -146,6 +147,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private readonly priceWebsocketService = inject(PriceWebsocketService);
   private readonly holdingService = inject(HoldingService);
   private readonly authService = inject(AuthService);
+  private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
   private readonly websocketSymbols = new Set<string>();
   private readonly positionSymbols = new Set<string>();
@@ -155,7 +157,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   /* ── Account ── */
   /** Account of the signed-in user. null when the user has no account yet. */
-  private get accountId(): number | null {
+  get accountId(): number | null {
     return this.authService.activeAccount()?.accountId ?? null;
   }
   readonly dayChange         =   3480.12;
@@ -263,6 +265,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
         shares: position.shares,
         value: position.marketValue,
         percentage,
+        unrealizedPct: position.unrealizedPct,
         path: this.donutPath(startAngle, endAngle),
         color: this.allocationColors[index % this.allocationColors.length],
       };
@@ -386,7 +389,10 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   onWatchlistSymbolsChange(symbols: string[]): void {
     const normalized = Array.from(new Set(symbols.map(symbol => symbol.toUpperCase())));
 
-    this.stockDataService.syncWatchlist(this.clientId, normalized)
+    const accountId = this.accountId;
+    if (accountId === null) return;
+
+    this.stockDataService.syncWatchlist(this.clientId, accountId, normalized)
       .pipe(takeUntil(this.destroy$))
       .subscribe();
 

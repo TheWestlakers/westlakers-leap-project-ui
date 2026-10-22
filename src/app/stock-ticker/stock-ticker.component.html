@@ -33,16 +33,6 @@
       <p class="stat-label">AVAILABLE BUYING POWER</p>
       <div class="stat-row">
         <span class="stat-value">${{ formatCurrency(buyingPower) }}</span>
-        <span class="stat-margin">MARGIN x2.0</span>
-      </div>
-    </div>
-
-    <!-- Day change -->
-    <div class="stat-card">
-      <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
-      <div class="stat-row">
-        <span class="stat-value positive">+${{ formatCurrency(dayChange) }}</span>
-        <span class="change-pill">▲ UP</span>
       </div>
     </div>
 
@@ -57,6 +47,7 @@
     </div>
 
     <app-watchlist
+      [accountId]="accountId"
       [allPrices]="allPrices()"
       [isSelectable]="true"
       [selectedSymbol]="selectedTicker()"
@@ -185,9 +176,12 @@
       <div class="order-header">
         <div class="order-title-group">
           <span class="order-zap">⚡</span>
-          <span class="order-title">ORDER ENTRY</span>
+          <span class="order-title" style="line-height:1.2">
+            ORDER ENTRY<br>
+            <span *ngIf="!isMarketOpen()" class="order-ref">MARKET CLOSED</span>
+          </span>
         </div>
-        <span class="order-ref">{{ stockSymbol() }}</span>
+        <span class="order-ref" style="font-size:14px;color:#fff;font-weight:600">{{ stockSymbol() }}</span>
       </div>
 
       <!-- BUY / SELL tabs -->
@@ -196,8 +190,8 @@
           *ngFor="let side of ['BUY', 'SELL']"
           class="side-tab"
           [ngClass]="sideTabClass(side)"
-          [disabled]="side === 'SELL' && !canSell()"
-          [title]="side === 'SELL' && !canSell() ? 'You don\'t own any ' + stockSymbol() + ' shares to sell' : ''"
+          [disabled]="!isMarketOpen() || (side === 'SELL' && !canSell())"
+          [title]="!isMarketOpen() ? 'The market for ' + stockSymbol() + ' is closed' : side === 'SELL' && !canSell() ? 'You don\'t own any ' + stockSymbol() + ' shares to sell' : ''"
           (click)="setSide($any(side))"
         >{{ side }}</button>
       </div>
@@ -206,16 +200,6 @@
       </p>
 
       <div class="order-body">
-
-        <!-- Symbol -->
-        <div class="order-field-row">
-          <span class="field-label">SYMBOL</span>
-          <input
-            class="symbol-input"
-            [value]="orderSymbol()"
-            readonly
-          />
-        </div>
 
         <!-- Order type -->
         <div class="order-field">
@@ -266,27 +250,10 @@
           </div>
         </div>
 
-        <!-- Extended hours -->
-        <button class="ext-hours-row" (click)="toggleExtHours()">
-          <div class="checkbox" [class.checkbox-checked]="orderExtHours()">
-            <span *ngIf="orderExtHours()" class="check-mark">✓</span>
-          </div>
-          <span class="ext-label">Allow Extended Hours trading (EXT)</span>
-        </button>
-
         <!-- Calculator -->
         <div class="calc-panel">
           <div class="calc-row">
-            <span class="calc-label">EST. VALUE</span>
-            <span class="calc-value">${{ formatCurrency(estValue) }}</span>
-          </div>
-          <div class="calc-row">
-            <span class="calc-label">EST. FEES</span>
-            <span class="calc-dim">$0.00 (COMMISSION-FREE)</span>
-          </div>
-          <div class="calc-divider"></div>
-          <div class="calc-row">
-            <span class="calc-label-muted">TOTAL COST</span>
+            <span class="calc-label-muted">TOTAL EST. COST</span>
             <span class="calc-total">${{ formatCurrency(estValue) }}</span>
           </div>
         </div>
@@ -296,7 +263,10 @@
           class="submit-btn"
           [ngClass]="submitClass"
           (click)="submitOrder()"
-          [disabled]="isSubmittingOrder()"
+          [disabled]="isSubmittingOrder() || !isMarketOpen()"
+          [style.filter]="!isMarketOpen() ? 'grayscale(1)' : null"
+          [style.opacity]="!isMarketOpen() ? 0.5 : null"
+          [title]="!isMarketOpen() ? 'The market for ' + stockSymbol() + ' is closed' : ''"
         >{{ isSubmittingOrder() ? 'SUBMITTING...' : submitLabel }}</button>
 
         <p *ngIf="orderError()" class="order-error">{{ orderError() }}</p>

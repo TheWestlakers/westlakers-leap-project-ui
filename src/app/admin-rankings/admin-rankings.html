@@ -13,7 +13,7 @@
       <div class="panel-header">
         <div>
           <h2>{{ title }}</h2>
-          <p>{{ entries.length }} ranked records</p>
+          <p>{{ loading() ? 'Loading…' : totalElements() + ' ranked records' }}</p>
         </div>
         <span class="ranked-label">RANKED</span>
       </div>
@@ -27,13 +27,28 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let entry of entries; let i = index">
-            <td class="rank">{{ i + 1 | number: '2.0-0' }}</td>
+          <tr *ngFor="let entry of entries(); let i = index">
+            <td class="rank">{{ currentPage() * pageSize + i + 1 | number: '2.0-0' }}</td>
             <td class="entry-name">{{ entry.name }}</td>
             <td class="numeric entry-value">{{ entry.value | currency: 'USD': 'symbol': '1.2-2' }}</td>
           </tr>
+          <tr *ngIf="!loading() && !error() && entries().length === 0">
+            <td class="table-state" colspan="3">No ranked {{ rankingType }} yet.</td>
+          </tr>
+          <tr *ngIf="error()">
+            <td class="table-state table-error" colspan="3">
+              {{ error() }}
+              <button class="pager-button" (click)="loadPage(currentPage())">RETRY</button>
+            </td>
+          </tr>
         </tbody>
       </table>
+
+      <div class="pager" *ngIf="totalPages() > 1">
+        <button class="pager-button" (click)="previousPage()" [disabled]="loading() || currentPage() === 0">← PREV</button>
+        <span class="pager-label">PAGE {{ currentPage() + 1 }} OF {{ totalPages() }}</span>
+        <button class="pager-button" (click)="nextPage()" [disabled]="loading() || currentPage() >= totalPages() - 1">NEXT →</button>
+      </div>
     </section>
   </main>
 </div>

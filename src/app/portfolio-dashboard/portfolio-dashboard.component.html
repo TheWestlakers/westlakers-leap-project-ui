@@ -60,6 +60,7 @@
 
       <!-- WATCHLIST COMPONENT -->
       <app-watchlist
+      [accountId]="accountId"
       [allPrices]="allPrices()"
       [isSelectable]="false"
       [highlightFirstItem]="false"
@@ -206,13 +207,22 @@
             </svg>
             @if (hoveredHoldingAllocation; as allocation) {
               <div class="donut-center" aria-live="polite">
-                <strong>{{ allocation.shares }} SHARES</strong>
-                <span>{{ allocation.symbol }}</span>
+                <strong>{{ allocation.symbol }}</strong>
+                <span>{{ allocation.shares }} SHARES</span>
+              </div>
+            } @else {
+              <div class="donut-center" aria-live="polite">
+                <strong>${{ formatCurrency(currentValue) }}</strong>
+                <span>CURRENT ASSET VALUE</span>
               </div>
             }
           </div>
-          <div class="holdings-legend" aria-label="Holdings legend">
-            <h3 class="legend-heading">LEGEND</h3>
+          <div class="holdings-legend" aria-label="Holdings legend" (mouseleave)="hoveredAllocation.set(null)">
+            <div class="legend-column-headings" aria-hidden="true">
+              <span>TICKER</span>
+              <span>UNREALIZED P&amp;L</span>
+              <span>CURRENT VALUE</span>
+            </div>
             <div
               *ngFor="let allocation of holdingAllocations"
               class="holding-legend-item"
@@ -225,6 +235,15 @@
             >
               <span class="legend-swatch" [style.backgroundColor]="allocation.color"></span>
               <span class="legend-name"><strong>{{ allocation.symbol }}</strong><small>{{ allocation.name }}</small></span>
+              <span
+                class="legend-pnl"
+                [class.legend-pnl-positive]="allocation.unrealizedPct >= 0"
+                [class.negative]="allocation.unrealizedPct < 0"
+                [attr.aria-label]="`${allocation.unrealizedPct >= 0 ? 'Positive' : 'Negative'} unrealized profit and loss`"
+              >
+                <span aria-hidden="true">{{ allocation.unrealizedPct >= 0 ? '&#8593;' : '&#8595;' }}</span>
+                {{ allocation.unrealizedPct >= 0 ? '+' : '' }}{{ allocation.unrealizedPct.toFixed(2) }}%
+              </span>
               <span class="legend-value">${{ formatCurrency(allocation.value) }}</span>
             </div>
             @if (holdingAllocations.length === 0) {

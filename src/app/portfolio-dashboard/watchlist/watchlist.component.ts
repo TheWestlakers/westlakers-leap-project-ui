@@ -1,8 +1,11 @@
-import { Component, signal, input, output, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import { Component, signal, input, output, OnInit, OnDestroy, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WatchlistItem, SPARKLINE_PATHS, INITIAL_WATCHLIST } from '../portfolio-dashboard.component';
-import { StockPrice } from '../../services/stock-data.service';
+import { StockDataService, StockPrice } from '../../services/stock-data.service';
+import { Instrument, TradeService } from '../../services/trade.service';
+import { Subject, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-watchlist',
@@ -11,11 +14,15 @@ import { StockPrice } from '../../services/stock-data.service';
   templateUrl: './watchlist.component.html',
   styleUrls: ['./watchlist.component.css']
 })
-export class WatchlistComponent implements OnInit {
-  private readonly watchlistStorageKey = 'wl.watchlist.items';
+export class WatchlistComponent implements OnInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly stockDataService = inject(StockDataService);
+  private readonly tradeService = inject(TradeService);
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchQuery$ = new Subject<string>();
 
   /* ── Inputs ── */
+  accountId = input<number | null>(null);
   allPrices = input<{ [symbol: string]: StockPrice }>({});
   isSelectable = input(true); // When false, items can't be clicked to select
   highlightFirstItem = input(true);
@@ -27,15 +34,65 @@ export class WatchlistComponent implements OnInit {
   watchlistSymbolsChange = output<string[]>();
 
   /* ── Watchlist state ── */
-  watchlist = signal<WatchlistItem[]>(INITIAL_WATCHLIST);
+  watchlist = signal<WatchlistItem[]>([]);
   isEditingWatchlist = signal(false);
   newSymbol = '';
   newName   = '';
+  searchResults: Instrument[] = [];
+  isSearching = false;
+  selectedInstrument: Instrument | null = null;
   readonly sparklinePaths = SPARKLINE_PATHS;
 
   ngOnInit(): void {
-    this.restoreWatchlist();
-    this.emitWatchlistSymbols();
+    this.searchQuery$
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          if (!query) {
+            this.isSearching = false;
+            return of([] as Instrument[]);
+          }
+          this.isSearching = true;
+          return this.tradeService.searchInstruments(query).pipe(
+            catchError(() => of([] as Instrument[])),
+          );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((results) => {
+        this.searchResults = results.slice(0, 7);
+        this.isSearching = false;
+      });
+
+    if (!isPlatformBrowser(this.platformId) || this.accountId() === null) {
+      return;
+    }
+
+    this.stockDataService.getAccountWatchlist(this.accountId()!)
+      .subscribe(({ tickers }) => {
+        const defaultsBySymbol = new Map(INITIAL_WATCHLIST.map(item => [item.symbol, item]));
+        const items = tickers.map((symbol, index) => {
+          const normalizedSymbol = symbol.toUpperCase();
+          const existing = defaultsBySymbol.get(normalizedSymbol);
+          return existing ?? {
+            symbol: normalizedSymbol,
+            name: normalizedSymbol,
+            price: 0,
+            change: 0,
+            positive: true,
+            sparkKey: (Object.keys(SPARKLINE_PATHS) as WatchlistItem['sparkKey'][])[index % Object.keys(SPARKLINE_PATHS).length],
+          };
+        });
+        console.info(`Loaded ${items.length} watchlist ticker(s) from account_watchlist for account ${this.accountId()}`);
+        this.watchlist.set(items);
+        this.emitWatchlistSymbols();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /* ── Get live price or fallback to static price ── */
@@ -71,12 +128,11 @@ export class WatchlistComponent implements OnInit {
 
   removeWatchlistItem(symbol: string): void {
     this.watchlist.update(list => list.filter(i => i.symbol !== symbol));
-    this.persistWatchlist();
     this.emitWatchlistSymbols();
   }
 
   addWatchlistItem(): void {
-    const sym = this.newSymbol.trim().toUpperCase();
+    const sym = (this.selectedInstrument?.ticker ?? this.newSymbol).trim().toUpperCase();
     if (!sym) return;
     const price   = Math.round((100 + Math.random() * 400) * 100) / 100;
     const change  = Math.round((Math.random() * 6 - 3) * 100) / 100;
@@ -84,12 +140,27 @@ export class WatchlistComponent implements OnInit {
     const sparkKey = keys[Math.floor(Math.random() * keys.length)];
     this.watchlist.update(list => [
       ...list,
-      { symbol: sym, name: this.newName.trim() || sym, price, change, positive: change >= 0, sparkKey },
+      { symbol: sym, name: this.selectedInstrument?.name ?? (this.newName.trim() || sym), price, change, positive: change >= 0, sparkKey },
     ]);
-    this.persistWatchlist();
     this.emitWatchlistSymbols();
     this.newSymbol = '';
     this.newName   = '';
+    this.selectedInstrument = null;
+    this.searchResults = [];
+  }
+
+  onSearchValueChange(value: string): void {
+    this.newSymbol = value;
+    this.newName = '';
+    this.selectedInstrument = null;
+    this.searchQuery$.next(value.trim());
+  }
+
+  selectInstrument(instrument: Instrument): void {
+    this.selectedInstrument = instrument;
+    this.newSymbol = instrument.ticker;
+    this.newName = instrument.name;
+    this.searchResults = [];
   }
 
   onItemClick(symbol: string): void {
@@ -105,38 +176,4 @@ export class WatchlistComponent implements OnInit {
     this.watchlistSymbolsChange.emit(this.watchlist().map(item => item.symbol));
   }
 
-  private persistWatchlist(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    localStorage.setItem(this.watchlistStorageKey, JSON.stringify(this.watchlist()));
-  }
-
-  private restoreWatchlist(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    const raw = localStorage.getItem(this.watchlistStorageKey);
-    if (!raw) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as WatchlistItem[];
-      if (!Array.isArray(parsed)) {
-        return;
-      }
-
-      const valid = parsed.filter(item => !!item?.symbol)
-        .map(item => ({ ...item, symbol: item.symbol.toUpperCase() }));
-
-      if (valid.length > 0) {
-        this.watchlist.set(valid);
-      }
-    } catch {
-      // Ignore malformed local storage and continue with defaults.
-    }
-  }
 }

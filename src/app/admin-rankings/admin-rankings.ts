@@ -1,40 +1,22 @@
-import { CommonModule, Location } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { CommonModule, Location, isPlatformBrowser } from '@angular/common';
+import { Component, DestroyRef, OnInit, PLATFORM_ID, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
+import { Observable, Subscription, map } from 'rxjs';
 import { ThemeService } from '../services/theme.service';
+import {
+  RankingPage,
+  TopAnalyticsService,
+  instrumentDisplayName,
+  investorDisplayName,
+} from '../services/top-analytics.service';
 
 interface RankingEntry {
   name: string;
   value: number;
 }
 
-const allInvestors: RankingEntry[] = [
-  { name: 'USR-4421', value: 211848 },
-  { name: 'USR-8812', value: 91260 },
-  { name: 'USR-9021', value: 78489 },
-  { name: 'USR-2490', value: 64210.5 },
-  { name: 'USR-8411', value: 52875.25 },
-  { name: 'USR-1377', value: 49120 },
-  { name: 'USR-6234', value: 44780.75 },
-  { name: 'USR-5108', value: 39842.1 },
-  { name: 'USR-7742', value: 36210 },
-  { name: 'USR-3186', value: 31995.5 },
-  { name: 'USR-6901', value: 28450 },
-  { name: 'USR-2054', value: 25118.2 },
-];
-
-const allInstruments: RankingEntry[] = [
-  { name: 'TSLA', value: 211848 },
-  { name: 'AAPL', value: 91260 },
-  { name: 'AMZN', value: 78489 },
-  { name: 'NVDA', value: 66742.8 },
-  { name: 'MSFT', value: 54318.4 },
-  { name: 'GOOGL', value: 49880.25 },
-  { name: 'META', value: 42115.6 },
-  { name: 'AMD', value: 38942.1 },
-  { name: 'NFLX', value: 31780 },
-  { name: 'INTC', value: 26350.75 },
-];
+const PAGE_SIZE = 20;
 
 @Component({
   selector: 'app-admin-rankings',
@@ -44,23 +26,101 @@ const allInstruments: RankingEntry[] = [
   styleUrl: './admin-rankings.css',
   host: { '[class.light-theme]': '!themeService.isDarkMode()' },
 })
-export class AdminRankingsComponent {
+export class AdminRankingsComponent implements OnInit {
   protected readonly themeService = inject(ThemeService);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
+  private readonly topAnalyticsService = inject(TopAnalyticsService);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
+  private pageRequest?: Subscription;
 
   readonly rankingType = this.route.snapshot.paramMap.get('rankingType') === 'instruments'
     ? 'instruments'
     : 'investors';
   readonly title = this.rankingType === 'instruments' ? 'ALL INSTRUMENTS' : 'ALL INVESTORS';
   readonly description = this.rankingType === 'instruments'
-    ? 'All instruments ranked by current traded value'
-    : 'All investors ranked by current order value';
+    ? 'All instruments ranked by all-time traded value'
+    : 'All investors ranked by all-time traded value';
   readonly columnLabel = this.rankingType === 'instruments' ? 'SYMBOL' : 'INVESTOR';
-  readonly valueLabel = this.rankingType === 'instruments' ? 'TRADED VALUE' : 'ORDER VALUE';
-  readonly entries = this.rankingType === 'instruments' ? allInstruments : allInvestors;
+  readonly valueLabel = 'TRADED VALUE';
+  readonly pageSize = PAGE_SIZE;
+
+  readonly entries = signal<RankingEntry[]>([]);
+  readonly currentPage = signal(0);
+  readonly totalPages = signal(0);
+  readonly totalElements = signal(0);
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+
+  ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.loadPage(0);
+  }
+
+  loadPage(page: number): void {
+    this.pageRequest?.unsubscribe();
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.pageRequest = this.fetchPage(page)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: result => {
+          this.entries.set(result.content);
+          this.currentPage.set(result.page);
+          this.totalPages.set(result.totalPages);
+          this.totalElements.set(result.totalElements);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.entries.set([]);
+          this.error.set(`Unable to load ${this.rankingType}. Please try again.`);
+          this.loading.set(false);
+        },
+      });
+  }
+
+  previousPage(): void {
+    if (this.currentPage() > 0) {
+      this.loadPage(this.currentPage() - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages() - 1) {
+      this.loadPage(this.currentPage() + 1);
+    }
+  }
 
   goBack(): void {
     this.location.back();
+  }
+
+  private fetchPage(page: number): Observable<RankingPage<RankingEntry>> {
+    if (this.rankingType === 'instruments') {
+      return this.topAnalyticsService.getInstrumentRankings(page, PAGE_SIZE).pipe(
+        map(result => ({
+          ...result,
+          content: result.content.map(instrument => ({
+            name: instrumentDisplayName(instrument),
+            value: Number(instrument.totalValue),
+          })),
+        })),
+      );
+    }
+
+    return this.topAnalyticsService.getInvestorRankings(page, PAGE_SIZE).pipe(
+      map(result => ({
+        ...result,
+        content: result.content.map(investor => ({
+          name: investorDisplayName(investor),
+          value: Number(investor.totalValue),
+        })),
+      })),
+    );
   }
 }
