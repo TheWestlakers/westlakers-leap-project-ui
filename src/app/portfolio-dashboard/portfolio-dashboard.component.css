@@ -536,9 +536,11 @@
 
 /* Table header */
 .pos-table-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 88px 76px repeat(3, minmax(0, 1fr)) minmax(120px, 1.2fr);
   align-items: center;
   padding: 10px 16px;
+  column-gap: 12px;
   font-size: 11px;
   font-weight: 600;
   color: var(--dim);
@@ -581,9 +583,11 @@
 }
 
 .pos-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 88px 76px repeat(3, minmax(0, 1fr)) minmax(120px, 1.2fr);
   align-items: center;
   padding: 12px 16px;
+  column-gap: 12px;
   border-bottom: 1px solid var(--border);
   transition: background 0.12s;
 }
@@ -595,12 +599,16 @@
 .row-odd  { background: var(--bg); }
 
 /* Column widths — shared between header and rows */
-.col-symbol { width: 80px; flex-shrink: 0; }
-.col-shares { width: 70px; flex-shrink: 0; text-align: right; }
-.col-avg    { width: 90px; flex-shrink: 0; text-align: right; }
-.col-last   { width: 90px; flex-shrink: 0; text-align: right; }
-.col-mkt    { width: 110px; flex-shrink: 0; text-align: right; }
-.col-pnl    { flex: 1; text-align: right; }
+.col-symbol,
+.col-shares,
+.col-avg,
+.col-last,
+.col-mkt { min-width: 0; }
+.col-shares,
+.col-avg,
+.col-last,
+.col-mkt,
+.col-pnl { text-align: left; }
 
 .pos-symbol { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
 .pos-mono   { font-family: var(--font-mono); font-size: 13px; }
@@ -669,7 +677,7 @@
 .donut-center span { margin-top: 4px; color: var(--dim); font-size: 9px; letter-spacing: 0.06em; }
 .holdings-legend { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .legend-column-headings,
-.holding-legend-item { display: grid; grid-template-columns: 9px minmax(0, 1fr) 110px 100px; align-items: center; column-gap: 9px; }
+.holding-legend-item { display: grid; grid-template-columns: 9px repeat(3, minmax(0, 1fr)); align-items: center; column-gap: 9px; }
 .legend-column-headings { padding: 0 8px 4px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
 .legend-column-headings span:first-child { grid-column: 2; }
 .legend-column-headings span:nth-child(2) { grid-column: 3; text-align: left; }

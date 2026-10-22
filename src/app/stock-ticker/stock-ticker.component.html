@@ -33,6 +33,16 @@
       <p class="stat-label">AVAILABLE BUYING POWER</p>
       <div class="stat-row">
         <span class="stat-value">${{ formatCurrency(buyingPower) }}</span>
+        <span class="stat-margin">MARGIN x2.0</span>
+      </div>
+    </div>
+
+    <!-- Day change -->
+    <div class="stat-card">
+      <p class="stat-label">TODAY'S CHANGE (P&amp;L)</p>
+      <div class="stat-row">
+        <span class="stat-value positive">+${{ formatCurrency(dayChange) }}</span>
+        <span class="change-pill">▲ UP</span>
       </div>
     </div>
 
@@ -47,6 +57,7 @@
     </div>
 
     <app-watchlist
+      #watchlist
       [accountId]="accountId"
       [allPrices]="allPrices()"
       [isSelectable]="true"
@@ -65,12 +76,19 @@
     <div class="chart-widget">
       <div class="chart-header">
         <div class="chart-left">
-          <span class="chart-title">{{ stockSymbol() }}</span>
-          <span class="chart-desc">{{ stockName() }} — Stock price over time</span>
-          <span class="chart-system-time">{{ formatSystemTime(systemTime()) }}</span>
-          <span class="chart-range-pill">{{ activeRange() }}</span>
+          <div class="chart-identity">
+            <span class="chart-title">{{ stockSymbol() }}</span>
+            <span class="chart-desc">{{ stockName() }} — Stock price over time</span>
+            <span class="chart-system-time">{{ formatSystemTime(systemTime()) }}</span>
+            <span class="chart-range-pill">{{ activeRange() }}</span>
+          </div>
+          <button
+            type="button"
+            class="chart-watchlist-btn"
+            [disabled]="watchlistSymbols().includes(stockSymbol())"
+            (click)="watchlist.addWatchlistItem(stockSymbol(), stockName())"
+          >{{ watchlistSymbols().includes(stockSymbol()) ? '✓ In watchlist' : '+ Add to watchlist' }}</button>
         </div>
-        <div class="chart-right">
           <!-- Range filters -->
           <div class="range-tabs">
             <button
@@ -95,7 +113,6 @@
               <span class="chart-period">{{ activeRange() === '1D' ? 'TODAY' : 'OVER ' + activeRange() }}</span>
             </div>
           </div>
-        </div>
       </div>
 
       <div class="chart-body">
@@ -249,10 +266,27 @@
           </div>
         </div>
 
+        <!-- Extended hours -->
+        <button class="ext-hours-row" (click)="toggleExtHours()">
+          <div class="checkbox" [class.checkbox-checked]="orderExtHours()">
+            <span *ngIf="orderExtHours()" class="check-mark">✓</span>
+          </div>
+          <span class="ext-label">Allow Extended Hours trading (EXT)</span>
+        </button>
+
         <!-- Calculator -->
         <div class="calc-panel">
           <div class="calc-row">
-            <span class="calc-label-muted">TOTAL EST. COST</span>
+            <span class="calc-label">EST. VALUE</span>
+            <span class="calc-value">${{ formatCurrency(estValue) }}</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">EST. FEES</span>
+            <span class="calc-dim">$0.00 (COMMISSION-FREE)</span>
+          </div>
+          <div class="calc-divider"></div>
+          <div class="calc-row">
+            <span class="calc-label-muted">TOTAL COST</span>
             <span class="calc-total">${{ formatCurrency(estValue) }}</span>
           </div>
         </div>

@@ -110,11 +110,11 @@
           [ngClass]="rowBg(i)"
         >
           <td class="td-symbol">{{ pos.symbol }}</td>
-          <td class="td-mono td-right">{{ pos.shares }}</td>
-          <td class="td-mono td-right td-muted">${{ pos.avgCost.toFixed(2) }}</td>
-          <td class="td-mono td-right">${{ pos.lastPrice.toFixed(2) }}</td>
-          <td class="td-mono td-right">${{ formatCurrency(pos.marketValue) }}</td>
-          <td class="td-mono td-right td-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">
+          <td class="td-mono">{{ pos.shares }}</td>
+          <td class="td-mono td-muted">${{ pos.avgCost.toFixed(2) }}</td>
+          <td class="td-mono">${{ pos.lastPrice.toFixed(2) }}</td>
+          <td class="td-mono">${{ formatCurrency(pos.marketValue) }}</td>
+          <td class="td-mono td-pnl" [ngClass]="pnlClass(pos.unrealizedPnl)">
             {{ formatPnl(pos.unrealizedPnl, pos.unrealizedPct) }}
           </td>
           <td class="td-sector">{{ pos.sector }}</td>

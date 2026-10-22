@@ -377,6 +377,7 @@
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   vertical-align: middle;
+  text-align: left;
 }
 
 .pos-table tr:last-child td { border-bottom: none; }
@@ -393,13 +394,11 @@
 }
 
 .td-mono { font-family: var(--font-mono); }
-.td-right { text-align: right; }
 .td-muted { color: var(--muted); }
 
 .td-pnl {
   font-weight: 600;
   white-space: nowrap;
-  text-align: right;
 }
 
 .td-sector {
