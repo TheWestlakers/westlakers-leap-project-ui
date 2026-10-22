@@ -39,7 +39,7 @@ interface ChatMessage {
         </span>
       </div>
 
-      <div #scrollEl class="flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
+      <div #scrollEl class="ai-chat-scroll flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
         @for (msg of messages(); track $index) {
           <div class="flex flex-col gap-1" [ngClass]="msg.sender === 'user' ? 'items-end' : 'items-start'">
             <div
