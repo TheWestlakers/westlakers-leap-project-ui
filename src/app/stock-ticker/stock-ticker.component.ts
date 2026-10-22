@@ -228,6 +228,8 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
   private readonly historyReload$ = new Subject<void>();
+  private orderErrorTimer: ReturnType<typeof setTimeout> | null = null;
+  private orderSuccessTimer: ReturnType<typeof setTimeout> | null = null;
   private clientId = '';
   private focusedTransientTicker: string | null = null;
   private websocketSymbols = new Set<string>();
@@ -448,6 +450,9 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearOrderErrorTimer();
+    this.clearOrderSuccessTimer();
+
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
@@ -535,6 +540,8 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   selectTicker(ticker: string): void {
     const upperTicker = ticker.toUpperCase();
     const currentTicker = this.selectedTicker();
+
+    this.clearOrderError();
 
     if (currentTicker !== upperTicker) {
       this.releaseTransientFocus(currentTicker);
@@ -744,9 +751,51 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   decrementShares(): void { this.orderShares.update(n => Math.max(1, n - 1)); }
   toggleExtHours(): void { this.orderExtHours.update(v => !v); }
 
+  private clearOrderErrorTimer(): void {
+    if (this.orderErrorTimer !== null) {
+      clearTimeout(this.orderErrorTimer);
+      this.orderErrorTimer = null;
+    }
+  }
+
+  private clearOrderError(): void {
+    this.clearOrderErrorTimer();
+    this.orderError.set(null);
+  }
+
+  private showOrderError(message: string): void {
+    this.clearOrderErrorTimer();
+    this.orderError.set(message);
+    this.orderErrorTimer = setTimeout(() => {
+      this.orderError.set(null);
+      this.orderErrorTimer = null;
+    }, 4000);
+  }
+
+  private clearOrderSuccessTimer(): void {
+    if (this.orderSuccessTimer !== null) {
+      clearTimeout(this.orderSuccessTimer);
+      this.orderSuccessTimer = null;
+    }
+  }
+
+  private scheduleOrderSuccessReset(): void {
+    this.clearOrderSuccessTimer();
+    this.orderSuccessTimer = setTimeout(() => {
+      this.orderSubmitted.set(false);
+      this.orderExecuted.set(false);
+      this.orderSuccessTimer = null;
+    }, 1500);
+  }
+
   
   submitOrder(): void {
-    this.orderError.set(null);
+    this.clearOrderError();
+    this.clearOrderSuccessTimer();
+    if (!this.isMarketOpen()) {
+      return;
+    }
+
     this.orderSubmitted.set(false);
     this.orderExecuted.set(false);
 
@@ -757,12 +806,12 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     const accountId = this.accountId;
 
     if (accountId === null) {
-      this.orderError.set('No trading account is linked to your profile yet.');
+      this.showOrderError('No trading account is linked to your profile yet.');
       return;
     }
 
     if (orderPrice === null) {
-      this.orderError.set('Order price is unavailable.');
+      this.showOrderError('Order price is unavailable.');
       return;
     }
 
@@ -805,17 +854,19 @@ export class StockTickerComponent implements OnInit, OnDestroy {
               this.loadHoldings();
               this.isSubmittingOrder.set(false);
               this.orderExecuted.set(true);
+              this.scheduleOrderSuccessReset();
             },
             error: (error) => {
               console.error('Error refreshing account after trade:', error);
               this.isSubmittingOrder.set(false);
               this.orderExecuted.set(true);
+              this.scheduleOrderSuccessReset();
             }
           });
       },
       error: (error: { error?: { message?: string; details?: string }; message?: string }) => {
         this.isSubmittingOrder.set(false);
-        this.orderError.set(
+        this.showOrderError(
           error.error?.details || error.error?.message || error.message ||
           `Unable to create the ${orderType.toLowerCase()} order.`
         );
