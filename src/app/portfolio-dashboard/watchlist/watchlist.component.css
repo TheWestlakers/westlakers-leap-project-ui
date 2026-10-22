@@ -36,7 +36,27 @@
 
 .wl-edit-btn:hover { color: var(--text); }
 
-.wl-items { display: flex; flex-direction: column; }
+.wl-items {
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-color: #252b31 #050607;
+  scrollbar-width: thin;
+}
+
+.wl-items::-webkit-scrollbar { width: 8px; }
+.wl-items::-webkit-scrollbar-track { background: #050607; }
+.wl-items::-webkit-scrollbar-thumb { background: #252b31; border-radius: 4px; }
+.wl-items::-webkit-scrollbar-thumb:hover { background: #343c44; }
+
+:host-context(.light-theme) .wl-items {
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+:host-context(.light-theme) .wl-items::-webkit-scrollbar-track { background: #e2e8f0; }
+:host-context(.light-theme) .wl-items::-webkit-scrollbar-thumb { background: #94a3b8; }
+:host-context(.light-theme) .wl-items::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 .wl-item {
   position: relative;
@@ -44,6 +64,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  height: 60px;
+  min-height: 60px;
+  box-sizing: border-box;
+  flex-shrink: 0;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   transition: background 0.12s;

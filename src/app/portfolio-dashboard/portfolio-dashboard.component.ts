@@ -47,6 +47,7 @@ interface HoldingAllocation {
   shares: number;
   value: number;
   percentage: number;
+  unrealizedPct: number;
   path: string;
   color: string;
 }
@@ -113,7 +114,7 @@ const MARKET_DEFINITIONS = [
   { name: 'NYSE', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
   { name: 'Nasdaq', code: 'US', timeZone: 'America/New_York', hours: '09:30 - 16:00', open: [9, 30], close: [16, 0], weekdays: [1, 2, 3, 4, 5] },
   { name: 'London', code: 'UK', timeZone: 'Europe/London', hours: '08:00 - 16:30', open: [8, 0], close: [16, 30], weekdays: [1, 2, 3, 4, 5] },
-  { name: 'NSE', code: 'IN', timeZone: 'Asia/Kolkata', hours: '09:15 - 15:30', open: [9, 15], close: [15, 30], weekdays: [1, 2, 3, 4, 5] },
+  { name: 'NSE / BSE', code: 'IN', timeZone: 'Asia/Kolkata', hours: '09:15 - 15:30', open: [9, 15], close: [15, 30], weekdays: [1, 2, 3, 4, 5] },
   { name: 'Forex', code: 'FX', timeZone: 'America/New_York', hours: '24 hours / 5 days', open: [17, 0], close: [17, 0], weekdays: [0, 1, 2, 3, 4, 5] },
   { name: 'Crypto', code: '24/7', timeZone: 'UTC', hours: '24 hours / 7 days', open: [0, 0], close: [24, 0], weekdays: [0, 1, 2, 3, 4, 5, 6] },
 ] as const;
@@ -264,6 +265,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
         shares: position.shares,
         value: position.marketValue,
         percentage,
+        unrealizedPct: position.unrealizedPct,
         path: this.donutPath(startAngle, endAngle),
         color: this.allocationColors[index % this.allocationColors.length],
       };
