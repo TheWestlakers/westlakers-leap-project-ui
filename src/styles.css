@@ -1,3 +1,37 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+.queue-table-wrap { width: 100%; overflow-x: auto; }
+.compliance-queue-table { min-width: 1050px; table-layout: fixed; font-size: 10px; }
+.compliance-queue-table th,
+.compliance-queue-table td { padding: 10px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compliance-queue-table th { font-size: 9px; letter-spacing: 0.04em; }
+.compliance-queue-table th:nth-child(1), .compliance-queue-table td:nth-child(1),
+.compliance-queue-table th:nth-child(2), .compliance-queue-table td:nth-child(2),
+.compliance-queue-table th:nth-child(3), .compliance-queue-table td:nth-child(3),
+.compliance-queue-table th:nth-child(4), .compliance-queue-table td:nth-child(4) { width: 11%; }
+.compliance-queue-table th:nth-child(5), .compliance-queue-table td:nth-child(5) { width: 6%; }
+.compliance-queue-table th:nth-child(6), .compliance-queue-table td:nth-child(6),
+.compliance-queue-table th:nth-child(7), .compliance-queue-table td:nth-child(7) { width: 5%; }
+.compliance-queue-table th:nth-child(8), .compliance-queue-table td:nth-child(8),
+.compliance-queue-table th:nth-child(9), .compliance-queue-table td:nth-child(9) { width: 8%; }
+.compliance-queue-table th:nth-child(10), .compliance-queue-table td:nth-child(10) { width: 11%; }
+.compliance-queue-table th:nth-child(11), .compliance-queue-table td:nth-child(11) { width: 13%; }
+.compliance-queue-table .numeric { text-align: right; }
+.compliance-queue-table .centered { text-align: center; }
+.compliance-queue-table .record-reference, .compliance-queue-table .record-symbol { font-weight: 700; }
+.compliance-queue-table .record-reference, .compliance-queue-table .record-time,
+.compliance-queue-table .record-cash-impact, .compliance-queue-table td:nth-child(7),
+.compliance-queue-table td:nth-child(8), .compliance-queue-table td:nth-child(10) { font-family: var(--font-mono); }
+.compliance-queue-table .record-status { display: inline-block; max-width: 100%; padding: 4px 6px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; font-size: 9px; font-weight: 600; }
+.compliance-queue-table .status-executed { background: rgba(16,185,129,.1); color: var(--green); }
+.compliance-queue-table .status-pending { background: rgba(245,158,11,.1); color: #fbbf24; }
+.compliance-queue-table .status-cancelled { background: rgba(100,116,139,.1); color: var(--text-muted); }
+.compliance-queue-table .status-rejected, .compliance-queue-table .status-unknown { background: rgba(239,68,68,.1); color: var(--red); }
+.compliance-queue-table .record-cash-impact { color: var(--green); }
+.compliance-queue-table .record-cash-impact.negative { color: var(--red); }
+.compliance-queue-table .value-unavailable { color: var(--text-dim); }
+.compliance-queue-table .empty-records { padding: 24px; color: var(--text-muted); text-align: center; }
+.compliance-queue-table tr.striped-row td { background: var(--bg); }
+.compliance-queue-table tr.striped-row:hover td { background: var(--surface-alt); }
