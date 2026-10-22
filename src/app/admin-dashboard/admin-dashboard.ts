@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { isPlatformBrowser } from '@angular/common';
@@ -135,8 +135,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     { accountId: 'USR-9021', symbol: 'AMZN', qty: 450, gateway: 'FINRA-1B', estValue: '$78,489.00', risk: 'CLEARED (LOW RISK)', riskAlert: false },
   ];
 
-  topInvestors: InvestorRanking[] = [];
-  topInstruments: InstrumentRanking[] = [];
+  readonly topInvestors = signal<InvestorRanking[]>([]);
+  readonly topInstruments = signal<InstrumentRanking[]>([]);
 
   broadcastFeed: BroadcastEntry[] = [
     { time: '10:14:52', message: 'AAPL buy 150 @ $182.52' },
@@ -176,19 +176,19 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
     this.topAnalyticsService.getTopInvestors().subscribe({
       next: investors => {
-        this.topInvestors = investors.map(investor => ({
+        this.topInvestors.set(investors.map(investor => ({
           name: investorDisplayName(investor),
           value: this.formatCurrency(investor.totalValue),
-        }));
+        })));
       },
     });
 
     this.topAnalyticsService.getTopInstruments().subscribe({
       next: instruments => {
-        this.topInstruments = instruments.map(instrument => ({
+        this.topInstruments.set(instruments.map(instrument => ({
           symbol: instrumentDisplayName(instrument),
           value: this.formatCurrency(instrument.totalValue),
-        }));
+        })));
       },
     });
   }
