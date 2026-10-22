@@ -191,9 +191,9 @@ export class OpenPositionsComponent implements OnInit, OnDestroy {
   }
 
   formatPnl(pnl: number, pct: number): string {
-    const sign   = pnl >= 0 ? '+' : '';
-    const absVal = Math.abs(pnl).toLocaleString('en-US', { minimumFractionDigits: 2 });
-    return `${sign}${absVal} (${sign}${pct.toFixed(2)}%)`;
+    const sign = pnl >= 0 ? '+' : '-';
+    const pctSign = pct >= 0 ? '+' : '';
+    return `${sign}$${this.formatCurrency(Math.abs(pnl))} (${pctSign}${pct.toFixed(2)}%)`;
   }
 
   /** Width % of the largest market value for the bar chart */

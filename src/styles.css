@@ -2,6 +2,44 @@
 
 @import 'tailwindcss';
 
+:root {
+	--app-scrollbar-track: #050607;
+	--app-scrollbar-thumb: #252b31;
+	--app-scrollbar-thumb-hover: #343c44;
+	color-scheme: dark;
+	scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+	scrollbar-width: thin;
+}
+
+.light-theme {
+	--app-scrollbar-track: #e2e8f0;
+	--app-scrollbar-thumb: #94a3b8;
+	--app-scrollbar-thumb-hover: #64748b;
+	color-scheme: light;
+}
+
+* {
+	scrollbar-color: var(--app-scrollbar-thumb) var(--app-scrollbar-track);
+	scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+	background: var(--app-scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+	background: var(--app-scrollbar-thumb);
+	border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background: var(--app-scrollbar-thumb-hover);
+}
 .queue-table-wrap { width: 100%; overflow-x: auto; }
 .compliance-queue-table { min-width: 1050px; table-layout: fixed; font-size: 10px; }
 .compliance-queue-table th,
