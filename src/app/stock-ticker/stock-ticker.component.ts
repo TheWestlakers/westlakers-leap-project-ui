@@ -7,7 +7,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TopNavComponent } from '../top-nav.component';
 import { AiAssistantComponent } from '../portfolio-dashboard/ai-assistant/ai-assistant.component';
 import { WatchlistComponent } from '../portfolio-dashboard/watchlist/watchlist.component';
-import { OrderSide, OrderType, PortfolioRange, INITIAL_WATCHLIST } from '../portfolio-dashboard/portfolio-dashboard.component';
+import { OrderSide, OrderType, PortfolioRange } from '../portfolio-dashboard/portfolio-dashboard.component';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
@@ -83,28 +83,48 @@ interface InstrumentMarket {
   timeZone: string;
   openMinutes: number;
   closeMinutes: number;
+  schedule: 'WEEKDAY_SESSION' | 'FOREX' | 'CRYPTO';
 }
 
 const US_MARKET: InstrumentMarket = {
   timeZone: 'America/New_York',
   openMinutes: 9 * 60 + 30,
   closeMinutes: 16 * 60,
+  schedule: 'WEEKDAY_SESSION',
 };
 
 const INDIAN_MARKET: InstrumentMarket = {
   timeZone: 'Asia/Kolkata',
   openMinutes: 9 * 60 + 15,
   closeMinutes: 15 * 60 + 30,
+  schedule: 'WEEKDAY_SESSION',
 };
 
 const LONDON_MARKET: InstrumentMarket = {
   timeZone: 'Europe/London',
   openMinutes: 8 * 60,
   closeMinutes: 16 * 60 + 30,
+  schedule: 'WEEKDAY_SESSION',
+};
+
+const FOREX_MARKET: InstrumentMarket = {
+  timeZone: 'America/New_York',
+  openMinutes: 17 * 60,
+  closeMinutes: 17 * 60,
+  schedule: 'FOREX',
+};
+
+const CRYPTO_MARKET: InstrumentMarket = {
+  timeZone: 'UTC',
+  openMinutes: 0,
+  closeMinutes: 24 * 60,
+  schedule: 'CRYPTO',
 };
 
 function marketForTicker(ticker: string): InstrumentMarket {
   const normalizedTicker = ticker.toUpperCase();
+  if (normalizedTicker.endsWith('=X') || normalizedTicker.includes('/')) return FOREX_MARKET;
+  if (/(?:-USD|-USDT|-USDC)$/.test(normalizedTicker)) return CRYPTO_MARKET;
   if (normalizedTicker.endsWith('.NS') || normalizedTicker.endsWith('.BO')) return INDIAN_MARKET;
   if (normalizedTicker.endsWith('.L')) return LONDON_MARKET;
   return US_MARKET;
@@ -121,6 +141,13 @@ function isWeekdayAndWithinHours(now: Date, market: InstrumentMarket): boolean {
   const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
   const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values['weekday']);
   const minutes = Number(values['hour']) * 60 + Number(values['minute']);
+
+  if (market.schedule === 'CRYPTO') return true;
+  if (market.schedule === 'FOREX') {
+    return (weekday === 0 && minutes >= market.openMinutes) ||
+      (weekday >= 1 && weekday <= 4) ||
+      (weekday === 5 && minutes < market.closeMinutes);
+  }
 
   return weekday >= 1 && weekday <= 5 &&
     minutes >= market.openMinutes && minutes < market.closeMinutes;
@@ -201,7 +228,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   private readonly tradeService = inject(TradeService);
   private readonly destroy$ = new Subject<void>();
   private readonly historyReload$ = new Subject<void>();
-  private orderFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   private clientId = '';
   private focusedTransientTicker: string | null = null;
   private websocketSymbols = new Set<string>();
@@ -233,7 +259,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   holdings = signal<HoldingPosition[]>([]);
   
   // Tickers tracked by the shared watchlist component
-  watchlistSymbols = signal<string[]>(INITIAL_WATCHLIST.map(item => item.symbol));
+  watchlistSymbols = signal<string[]>([]);
   
   // Loading and error states
   isLoadingPrices = signal(false);
@@ -379,13 +405,13 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.systemTime.set(new Date()));
 
+    const accountId = this.accountId;
     this.priceWebsocketService.getPriceUpdates()
       .pipe(takeUntil(this.destroy$))
       .subscribe(update => this.applyPriceUpdate(update));
     this.syncWebsocketSubscriptions();
     this.startHistoryPolling();
 
-    const accountId = this.accountId;
     if (accountId !== null) {
       this.accountService.loadAccount(accountId)
         .pipe(takeUntil(this.destroy$))
@@ -422,8 +448,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.clearOrderFeedbackTimer();
-
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
@@ -720,25 +744,8 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   decrementShares(): void { this.orderShares.update(n => Math.max(1, n - 1)); }
   toggleExtHours(): void { this.orderExtHours.update(v => !v); }
 
-  private clearOrderFeedbackTimer(): void {
-    if (this.orderFeedbackTimer !== null) {
-      clearTimeout(this.orderFeedbackTimer);
-      this.orderFeedbackTimer = null;
-    }
-  }
-
-  private scheduleOrderFeedbackReset(): void {
-    this.clearOrderFeedbackTimer();
-    this.orderFeedbackTimer = setTimeout(() => {
-      this.orderSubmitted.set(false);
-      this.orderExecuted.set(false);
-      this.orderError.set(null);
-      this.orderFeedbackTimer = null;
-    }, 1500);
-  }
-
+  
   submitOrder(): void {
-    this.clearOrderFeedbackTimer();
     this.orderError.set(null);
     this.orderSubmitted.set(false);
     this.orderExecuted.set(false);
@@ -751,13 +758,11 @@ export class StockTickerComponent implements OnInit, OnDestroy {
 
     if (accountId === null) {
       this.orderError.set('No trading account is linked to your profile yet.');
-      this.scheduleOrderFeedbackReset();
       return;
     }
 
     if (orderPrice === null) {
       this.orderError.set('Order price is unavailable.');
-      this.scheduleOrderFeedbackReset();
       return;
     }
 
@@ -800,13 +805,11 @@ export class StockTickerComponent implements OnInit, OnDestroy {
               this.loadHoldings();
               this.isSubmittingOrder.set(false);
               this.orderExecuted.set(true);
-              this.scheduleOrderFeedbackReset();
             },
             error: (error) => {
               console.error('Error refreshing account after trade:', error);
               this.isSubmittingOrder.set(false);
               this.orderExecuted.set(true);
-              this.scheduleOrderFeedbackReset();
             }
           });
       },
@@ -816,7 +819,6 @@ export class StockTickerComponent implements OnInit, OnDestroy {
           error.error?.details || error.error?.message || error.message ||
           `Unable to create the ${orderType.toLowerCase()} order.`
         );
-        this.scheduleOrderFeedbackReset();
       },
     });
   }
