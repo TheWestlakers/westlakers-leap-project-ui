@@ -40,7 +40,7 @@
             <tr><th>RANK</th><th>INVESTOR</th><th class="numeric">TRADED VALUE</th></tr>
           </thead>
           <tbody>
-            <tr *ngFor="let investor of topInvestors; let i = index">
+            <tr *ngFor="let investor of topInvestors(); let i = index">
               <td class="rank">{{ i + 1 | number: '2.0-0' }}</td>
               <td class="leaderboard-name">{{ investor.name }}</td>
               <td class="numeric leaderboard-value">{{ investor.value }}</td>
@@ -65,7 +65,7 @@
             <tr><th>RANK</th><th>SYMBOL</th><th class="numeric">TRADED VALUE</th></tr>
           </thead>
           <tbody>
-            <tr *ngFor="let instrument of topInstruments; let i = index">
+            <tr *ngFor="let instrument of topInstruments(); let i = index">
               <td class="rank">{{ i + 1 | number: '2.0-0' }}</td>
               <td class="leaderboard-name">{{ instrument.symbol }}</td>
               <td class="numeric leaderboard-value">{{ instrument.value }}</td>
