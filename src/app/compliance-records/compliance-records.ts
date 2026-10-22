@@ -3,6 +3,7 @@ import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { PLATFORM_ID } from "@angular/core";
 import { Location } from "@angular/common";
 import { ThemeService } from "../services/theme.service";
+import { TradingVolume, TradingVolumeService } from "../services/trading-volume.service";
 
 const assetPathPrefix = "/assets";
 const RECORDS_PER_PAGE = 20;
@@ -11,7 +12,8 @@ export interface ComplianceRecord {
   orderReference: string;
   clientId: string;
   clientName: string;
-  timestamp: Date;
+  placementTime: Date;
+  executionTime: Date;
   orderDecision: {
     symbol: string;
     side: "BUY" | "SELL";
@@ -19,22 +21,23 @@ export interface ComplianceRecord {
     limitPrice?: number;
   };
   pricingDecision: {
-    executionPrice: number;
+    executionPrice: number | null;
     priceSource: "MARKET" | "LIMIT" | "MANUAL";
     appliedMarkup?: number;
   };
   executionResult: {
-    status: "ACCEPTED" | "PARTIALLY_FILLED" | "FILLED" | "REJECTED" | "CANCELLED";
+    status: "PENDING" | "EXECUTED" | "CANCELLED" | "REJECTED" | "UNKNOWN";
+    statusId: string | null;
     executedQuantity: number;
-    executedPrice: number;
+    executedPrice: number | null;
     executionTime: Date;
     executionVenue?: string;
   };
   cashAndHoldingChange: {
-    cashImpact: number;
+    cashImpact: number | null;
     holdingSymbol: string;
     holdingQuantityChange: number;
-    holdingAveragePrice: number;
+    holdingAveragePrice: number | null;
     marketValueImpact: number;
   };
   recordedAt: Date;
@@ -56,91 +59,38 @@ export class ComplianceRecordsComponent implements OnInit {
   paginatedRecords = signal<ComplianceRecord[]>([]);
   currentPage = signal(1);
   totalPages = signal(1);
+  totalRecords = signal(0);
   imgFileText = `${assetPathPrefix}/file-text.svg`;
   Math = Math; // Make Math available in template
 
-  constructor(private location: Location) {}
+  constructor(
+    private location: Location,
+    private tradingVolumeService: TradingVolumeService,
+  ) {}
 
   ngOnInit() {
-    // Load mock data on component initialization
-    // TO IMPLEMENT ACTUAL BACKEND:
-    // Replace the line below with:
-    // this.complianceService.getRecords().subscribe(data => this.loadRecords(data));
-    const allData = this.generateMockComplianceRecords(100); // Simulate 100 total records
-    this.loadRecords(allData);
-  }
-
-  generateMockComplianceRecords(count: number = 20): ComplianceRecord[] {
-    const symbols = ["AAPL", "MSFT", "TSLA", "AMZN", "GOOGL", "META", "NVDA", "AMD"];
-    const clients = [
-      { id: "CLI001", name: "Acme Corp Trading" },
-      { id: "CLI002", name: "Tech Venture Fund" },
-      { id: "CLI003", name: "Global Asset Management" },
-      { id: "CLI004", name: "Quantum Trading LLC" },
-    ];
-
-    const records: ComplianceRecord[] = [];
-    const baseTime = new Date();
-
-    for (let i = 0; i < count; i++) {
-      const randomClient = clients[Math.floor(Math.random() * clients.length)];
-      const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-      const quantity = Math.floor(Math.random() * 500) + 10;
-      const side = Math.random() > 0.5 ? "BUY" : "SELL";
-      const basePrice = Math.floor(Math.random() * 300) + 50;
-      const executionPrice = basePrice + (Math.random() - 0.5) * 10;
-
-      const timestamp = new Date(baseTime);
-      timestamp.setMinutes(timestamp.getMinutes() - i * 15);
-
-      const executionTime = new Date(timestamp);
-      executionTime.setSeconds(executionTime.getSeconds() + Math.floor(Math.random() * 120));
-
-      const executedQuantity = Math.random() > 0.1 ? quantity : Math.floor(quantity * 0.8);
-      const cashImpact = side === "BUY" ? -quantity * executionPrice : quantity * executionPrice;
-
-      records.push({
-        orderReference: `ORD-${Date.now()}-${i.toString().padStart(4, "0")}`,
-        clientId: randomClient.id,
-        clientName: randomClient.name,
-        timestamp,
-        orderDecision: {
-          symbol,
-          side,
-          quantity,
-          limitPrice: Math.random() > 0.5 ? basePrice : undefined,
-        },
-        pricingDecision: {
-          executionPrice,
-          priceSource: Math.random() > 0.4 ? "MARKET" : "LIMIT",
-          appliedMarkup: Math.random() * 0.5,
-        },
-        executionResult: {
-          status: Math.random() > 0.05 ? "FILLED" : ["PARTIALLY_FILLED", "REJECTED"][Math.floor(Math.random() * 2)] as any,
-          executedQuantity,
-          executedPrice: executionPrice,
-          executionTime,
-          executionVenue: ["NYSE", "NASDAQ", "OTC"][Math.floor(Math.random() * 3)],
-        },
-        cashAndHoldingChange: {
-          cashImpact,
-          holdingSymbol: symbol,
-          holdingQuantityChange: side === "BUY" ? executedQuantity : -executedQuantity,
-          holdingAveragePrice: basePrice,
-          marketValueImpact: executedQuantity * executionPrice,
-        },
-        recordedAt: new Date(executionTime),
-        immutableHash: `HASH-${Math.random().toString(36).substring(2, 15)}`,
-      });
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
     }
 
-    return records;
+    this.loadPage(1);
+    this.loadAllRecords();
   }
 
-  loadRecords(data: ComplianceRecord[]): void {
-    this.allRecords.set(data);
-    this.totalPages.set(Math.ceil(data.length / RECORDS_PER_PAGE));
-    this.goToPage(1);
+  loadPage(page: number): void {
+    this.tradingVolumeService.getTradingVolumes(page - 1).subscribe((response) => {
+      const records = response.content.map((volume) => this.toComplianceRecord(volume));
+      this.paginatedRecords.set(records);
+      this.currentPage.set(response.page + 1);
+      this.totalPages.set(Math.max(response.totalPages, 1));
+      this.totalRecords.set(response.totalElements);
+    });
+  }
+
+  loadAllRecords(): void {
+    this.tradingVolumeService.getAllTradingVolumes().subscribe((volumes) => {
+      this.allRecords.set(volumes.map((volume) => this.toComplianceRecord(volume)));
+    });
   }
 
   goToPage(page: number): void {
@@ -170,10 +120,68 @@ export class ComplianceRecordsComponent implements OnInit {
   }
 
   getAcceptedCount(): number {
-    return this.allRecords().filter((r) => r.executionResult.status === "FILLED" || r.executionResult.status === "PARTIALLY_FILLED").length;
+    return this.totalRecords();
   }
 
   getTotalCashImpact(): number {
-    return this.allRecords().reduce((sum, record) => sum + record.cashAndHoldingChange.cashImpact, 0);
+    return this.allRecords().reduce(
+      (sum, record) => sum + (record.cashAndHoldingChange.cashImpact ?? 0),
+      0,
+    );
+  }
+
+  isCashImpactUnavailable(record: ComplianceRecord): boolean {
+    return record.executionResult.status === "CANCELLED"
+      || record.executionResult.status === "REJECTED"
+      || record.executionResult.executedPrice === null
+      || record.executionResult.executedPrice === 0;
+  }
+
+  private toComplianceRecord(volume: TradingVolume): ComplianceRecord {
+    const placementTime = volume.createdAt ? new Date(volume.createdAt) : new Date(0);
+    const executionTime = volume.executedAt ? new Date(volume.executedAt) : new Date(0);
+    const price = volume.limitPrice;
+    const quantity = Number(volume.quantity);
+    const isMarketOrder = price === 0;
+
+    return {
+      orderReference: `${isMarketOrder ? "M" : "L"}-${volume.orderId}`,
+      clientId: String(volume.accountId),
+      clientName: [volume.firstName, volume.lastName].filter(Boolean).join(" ") || `Account ${volume.accountId}`,
+      placementTime,
+      executionTime,
+      orderDecision: {
+        symbol: volume.instrumentCode,
+        side: volume.side,
+        quantity,
+        limitPrice: volume.limitPrice ?? undefined,
+      },
+      pricingDecision: {
+        executionPrice: volume.executionPrice,
+        priceSource: isMarketOrder ? "MARKET" : "LIMIT",
+      },
+      executionResult: {
+        status: volume.orderStatus === "PENDING" || volume.orderStatus === "EXECUTED" || volume.orderStatus === "CANCELLED" || volume.orderStatus === "REJECTED"
+          ? volume.orderStatus
+          : "UNKNOWN",
+        statusId: volume.orderStatusId,
+        executedQuantity: quantity,
+        executedPrice: volume.executionPrice,
+        executionTime,
+      },
+      cashAndHoldingChange: {
+        cashImpact: volume.executionPrice === null || volume.executionPrice === 0
+          || volume.orderStatus === "CANCELLED" || volume.orderStatus === "REJECTED"
+          ? 0
+          : volume.side === "BUY"
+            ? -quantity * volume.executionPrice
+            : quantity * volume.executionPrice,
+        holdingSymbol: volume.instrumentCode,
+        holdingQuantityChange: volume.side === "BUY" ? quantity : -quantity,
+        holdingAveragePrice: price,
+        marketValueImpact: price === null ? 0 : quantity * price,
+      },
+      recordedAt: placementTime,
+    };
   }
 }

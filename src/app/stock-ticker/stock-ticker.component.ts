@@ -815,6 +815,11 @@ export class StockTickerComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (orderType === 'LIMIT' && orderPrice < 0.0001) {
+      this.orderError.set('Limit price must be at least $0.0001.');
+      return;
+    }
+
     this.isSubmittingOrder.set(true);
     this.tradeService.getInstrumentByTicker(this.orderSymbol()).pipe(
       switchMap(instrument => orderType === 'LIMIT'

@@ -1,11 +1,14 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemeService } from '../services/theme.service';
+
 import { TopAnalyticsService, instrumentDisplayName, investorDisplayName } from '../services/top-analytics.service';
+import { TradingVolume, TradingVolumeService } from '../services/trading-volume.service';
+import { ComplianceRecord } from '../compliance-records/compliance-records';
 import { TopNavComponent } from '../top-nav-admin.component';
 
 export interface NavItem {
@@ -35,16 +38,6 @@ export interface RiskAlert {
   time: string;
   title: string;
   body: string;
-}
-
-export interface PendingOrder {
-  accountId: string;
-  symbol: string;
-  qty: number;
-  gateway: string;
-  estValue: string;
-  risk: string;
-  riskAlert: boolean;
 }
 
 export interface InvestorRanking {
@@ -78,6 +71,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private topAnalyticsService: TopAnalyticsService,
+    private tradingVolumeService: TradingVolumeService,
   ) {}
 
   navItems: NavItem[] = [
@@ -129,14 +123,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     },
   ];
 
-  pendingOrders: PendingOrder[] = [
-    { accountId: 'USR-8812', symbol: 'AAPL', qty: 500, gateway: 'FINRA-1B', estValue: '$91,260.00', risk: 'CLEARED (LOW RISK)', riskAlert: false },
-    { accountId: 'USR-4421', symbol: 'TSLA', qty: 1200, gateway: 'APEX-S', estValue: '$211,848.00', risk: 'ALERT: MARGIN LIMIT EXCEEDED', riskAlert: true },
-    { accountId: 'USR-9021', symbol: 'AMZN', qty: 450, gateway: 'FINRA-1B', estValue: '$78,489.00', risk: 'CLEARED (LOW RISK)', riskAlert: false },
-  ];
+  readonly complianceRecords = signal<ComplianceRecord[]>([]);
 
-  topInvestors: InvestorRanking[] = [];
-  topInstruments: InstrumentRanking[] = [];
+  readonly topInvestors = signal<InvestorRanking[]>([]);
+  readonly topInstruments = signal<InstrumentRanking[]>([]);
 
   broadcastFeed: BroadcastEntry[] = [
     { time: '10:14:52', message: 'AAPL buy 150 @ $182.52' },
@@ -151,6 +141,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadTopAnalytics();
+    this.loadComplianceRecords();
     this.tickInterval = setInterval(() => {
       const [h, m, s] = this.broadcastFeed[0].time.split(':').map(Number);
       const next = new Date(0, 0, 0, h, m, s + 2);
@@ -176,21 +167,90 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
     this.topAnalyticsService.getTopInvestors().subscribe({
       next: investors => {
-        this.topInvestors = investors.map(investor => ({
+        this.topInvestors.set(investors.map(investor => ({
           name: investorDisplayName(investor),
           value: this.formatCurrency(investor.totalValue),
-        }));
+        })));
       },
     });
 
     this.topAnalyticsService.getTopInstruments().subscribe({
       next: instruments => {
-        this.topInstruments = instruments.map(instrument => ({
+        this.topInstruments.set(instruments.map(instrument => ({
           symbol: instrumentDisplayName(instrument),
           value: this.formatCurrency(instrument.totalValue),
-        }));
+        })));
       },
     });
+  }
+
+  private loadComplianceRecords(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.tradingVolumeService.getTradingVolumes(0).subscribe({
+      next: response => {
+        this.complianceRecords.set(response.content
+          .slice(0, 5)
+          .map(volume => this.toComplianceRecord(volume)));
+      },
+    });
+  }
+
+  private toComplianceRecord(volume: TradingVolume): ComplianceRecord {
+    const placementTime = volume.createdAt ? new Date(volume.createdAt) : new Date(0);
+    const executionTime = volume.executedAt ? new Date(volume.executedAt) : new Date(0);
+    const quantity = Number(volume.quantity);
+    const isMarketOrder = volume.limitPrice === 0;
+
+    return {
+      orderReference: `${isMarketOrder ? 'M' : 'L'}-${volume.orderId}`,
+      clientId: String(volume.accountId),
+      clientName: [volume.firstName, volume.lastName].filter(Boolean).join(' ') || `Account ${volume.accountId}`,
+      placementTime,
+      executionTime,
+      orderDecision: {
+        symbol: volume.instrumentCode,
+        side: volume.side,
+        quantity,
+        limitPrice: volume.limitPrice ?? undefined,
+      },
+      pricingDecision: {
+        executionPrice: volume.executionPrice,
+        priceSource: isMarketOrder ? 'MARKET' : 'LIMIT',
+      },
+      executionResult: {
+        status: volume.orderStatus === 'PENDING' || volume.orderStatus === 'EXECUTED'
+          || volume.orderStatus === 'CANCELLED' || volume.orderStatus === 'REJECTED'
+          ? volume.orderStatus
+          : 'UNKNOWN',
+        statusId: volume.orderStatusId,
+        executedQuantity: quantity,
+        executedPrice: volume.executionPrice,
+        executionTime,
+      },
+      cashAndHoldingChange: {
+        cashImpact: volume.executionPrice === null || volume.executionPrice === 0
+          || volume.orderStatus === 'CANCELLED' || volume.orderStatus === 'REJECTED'
+          ? 0
+          : volume.side === 'BUY'
+            ? -quantity * volume.executionPrice
+            : quantity * volume.executionPrice,
+        holdingSymbol: volume.instrumentCode,
+        holdingQuantityChange: volume.side === 'BUY' ? quantity : -quantity,
+        holdingAveragePrice: volume.limitPrice,
+        marketValueImpact: volume.limitPrice === null ? 0 : quantity * volume.limitPrice,
+      },
+      recordedAt: placementTime,
+    };
+  }
+
+  isCashImpactUnavailable(record: ComplianceRecord): boolean {
+    return record.executionResult.status === 'CANCELLED'
+      || record.executionResult.status === 'REJECTED'
+      || record.executionResult.executedPrice === null
+      || record.executionResult.executedPrice === 0;
   }
 
   private formatCurrency(value: number): string {
