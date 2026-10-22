@@ -62,6 +62,25 @@ const assetPathPrefix = "/assets";
                   ></span>
                 </button>
               </div>
+              <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
+                <span>Lebron mode</span>
+                <button
+                  type="button"
+                  role="switch"
+                  [attr.aria-checked]="isLebronMode()"
+                  aria-label="Toggle Lebron mode"
+                  (click)="toggleLebronMode()"
+                  class="relative h-5 w-9 shrink-0 rounded-full transition-colors"
+                  [class.bg-[#3e8914]]="isLebronMode()"
+                  [class.bg-[#4b5563]]="!isLebronMode()"
+                >
+                  <span
+                    class="absolute left-0.5 top-0.5 size-4 rounded-full bg-white transition-transform"
+                    [class.translate-x-4]="isLebronMode()"
+                    [class.translate-x-0]="!isLebronMode()"
+                  ></span>
+                </button>
+              </div>
               <div class="mx-2 my-1 h-px bg-[#1e252b]"></div>
               <button
                 type="button"
@@ -84,6 +103,7 @@ export class TopNavComponent {
 
   protected readonly isMenuOpen = signal(false);
   protected readonly isDarkMode = this.themeService.isDarkMode;
+  protected readonly isLebronMode = this.themeService.isLebronMode;
 
   imgCircleX = `${assetPathPrefix}/ed609.svg`;
   imgChevronDown = `${assetPathPrefix}/76166.svg`;
@@ -101,6 +121,10 @@ export class TopNavComponent {
 
   protected toggleTheme(): void {
     this.themeService.toggleTheme();
+  }
+
+  protected toggleLebronMode(): void {
+    this.themeService.toggleLebronMode();
   }
 
   protected logout(): void {

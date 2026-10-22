@@ -1,3 +1,109 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+
+/* ─── Lebron mode (Lakers purple & gold) ─────────────────────────────
+   Toggled by ThemeService via the `lebron-mode` class on <html>.
+   Custom properties are forced with !important so they beat the
+   per-component :host / .light-theme definitions. Gain/loss green and
+   red are intentionally left alone. */
+html.lebron-mode {
+  --lal-purple-900: #12081f;
+  --lal-purple-800: #1f0f36;
+  --lal-purple-700: #2b1549;
+  --lal-purple-600: #3f2068;
+  --lal-purple-500: #552583;
+  --lal-gold:       #fdb927;
+  --lal-gold-hi:    #ffcb52;
+  --lal-on-gold:    #1f0f36;
+  --lal-muted:      #d8c6f0;
+  --lal-dim:        #a98fcc;
+
+  background-color: var(--lal-purple-900);
+}
+
+html.lebron-mode body {
+  background-color: var(--lal-purple-900);
+}
+
+html.lebron-mode * {
+  --bg:               var(--lal-purple-900) !important;
+  --surface:          var(--lal-purple-800) !important;
+  --surface-hi:       var(--lal-purple-700) !important;
+  --surface-alt:      var(--lal-purple-700) !important;
+  --border:           var(--lal-purple-600) !important;
+  --border-mid:       var(--lal-purple-500) !important;
+  --text:             #ffffff !important;
+  --text-primary:     #ffffff !important;
+  --muted:            var(--lal-muted) !important;
+  --text-muted:       var(--lal-muted) !important;
+  --dim:              var(--lal-dim) !important;
+  --text-dim:         var(--lal-dim) !important;
+  --green-dk:         var(--lal-gold) !important;
+  --ring-color:       var(--lal-gold) !important;
+  --chart-tooltip-bg: var(--lal-purple-500) !important;
+  --chart-tooltip-text: #ffffff !important;
+
+  --nav-bg:           var(--lal-purple-500) !important;
+  --nav-border:       var(--lal-gold) !important;
+  --nav-input-bg:     var(--lal-purple-800) !important;
+  --nav-text:         #ffffff !important;
+  --nav-text-muted:   var(--lal-muted) !important;
+  --nav-dim:          var(--lal-dim) !important;
+  --nav-menu-bg:      var(--lal-purple-800) !important;
+  --nav-menu-hover:   var(--lal-purple-600) !important;
+  --nav-green:        var(--lal-gold) !important;
+
+  --ai-bg:            var(--lal-purple-800) !important;
+  --ai-border:        var(--lal-purple-600) !important;
+  --ai-input-bg:      var(--lal-purple-900) !important;
+  --ai-text:          #ffffff !important;
+  --ai-text-muted:    var(--lal-muted) !important;
+  --ai-text-dim:      var(--lal-dim) !important;
+  --ai-bot-bg:        var(--lal-purple-900) !important;
+  --ai-user-bg:       var(--lal-purple-500) !important;
+  --ai-accent:        var(--lal-gold) !important;
+  --ai-accent-dark:   var(--lal-gold) !important;
+}
+
+/* Hardcoded Tailwind palette classes used across templates */
+html.lebron-mode .bg-\[\#080b0d\],
+html.lebron-mode .bg-\[\#080B0D\] { background-color: var(--lal-purple-900) !important; }
+html.lebron-mode .bg-\[\#11161b\] { background-color: var(--lal-purple-800) !important; }
+html.lebron-mode .bg-\[\#161d24\],
+html.lebron-mode .hover\:bg-\[\#161d24\]:hover { background-color: var(--lal-purple-700) !important; }
+html.lebron-mode .bg-\[\#1e252b\],
+html.lebron-mode .bg-\[\#1E252B\],
+html.lebron-mode .hover\:bg-\[\#1e252b\]:hover { background-color: var(--lal-purple-600) !important; }
+html.lebron-mode .bg-\[\#4b5563\],
+html.lebron-mode .bg-\[\#64748b\] { background-color: var(--lal-purple-500) !important; }
+
+html.lebron-mode .border-\[\#1e252b\],
+html.lebron-mode .border-\[\#2b363e\] { border-color: var(--lal-purple-600) !important; }
+html.lebron-mode .border-\[\#2d3748\] { border-color: var(--lal-purple-500) !important; }
+html.lebron-mode .hover\:border-\[\#3e8914\]:hover,
+html.lebron-mode .focus\:border-\[\#3e8914\]:focus { border-color: var(--lal-gold) !important; }
+
+html.lebron-mode .text-\[\#94a3b8\],
+html.lebron-mode .text-\[\#a7b3be\],
+html.lebron-mode .text-\[\#e2e8f0\] { color: var(--lal-muted) !important; }
+html.lebron-mode .text-\[\#64748b\] { color: var(--lal-dim) !important; }
+
+/* Brand accent: green → Lakers gold */
+html.lebron-mode .text-\[\#3e8914\] { color: var(--lal-gold) !important; }
+html.lebron-mode .bg-\[\#3e8914\] {
+  background-color: var(--lal-gold) !important;
+  color: var(--lal-on-gold) !important;
+}
+html.lebron-mode .bg-\[\#3e8914\].text-white,
+html.lebron-mode .bg-\[\#3e8914\] .text-white { color: var(--lal-on-gold) !important; }
+html.lebron-mode .bg-\[\#3e8914\] img { filter: brightness(0) saturate(100%); }
+html.lebron-mode .hover\:bg-\[\#4a9e1a\]:hover,
+html.lebron-mode .hover\:bg-\[\#4ea31a\]:hover { background-color: var(--lal-gold-hi) !important; }
+html.lebron-mode .bg-\[rgba\(62\,137\,20\,0\.15\)\] { background-color: rgba(253, 185, 39, 0.15) !important; }
+
+/* Top nav gets the purple jersey with a gold stripe */
+html.lebron-mode .top-nav-container {
+  background-color: var(--lal-purple-500) !important;
+  border-bottom: 2px solid var(--lal-gold) !important;
+}

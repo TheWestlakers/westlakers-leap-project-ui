@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Injectable, effect, inject, signal } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
@@ -6,16 +7,40 @@ import { Injectable, signal } from '@angular/core';
 export class ThemeService {
   readonly isDarkMode = signal<boolean>(this.loadThemePreference());
   readonly isPowerView = signal<boolean>(this.loadPowerViewPreference());
+  readonly isLebronMode = signal<boolean>(this.loadLebronModePreference());
+
+  private readonly document = inject(DOCUMENT);
+
+  constructor() {
+    // Lebron mode is applied globally via a class on <html> (see styles.css)
+    effect(() => {
+      this.document.documentElement.classList.toggle('lebron-mode', this.isLebronMode());
+    });
+  }
 
   toggleTheme(): void {
-    const newValue = !this.isDarkMode();
-    this.isDarkMode.set(newValue);
-    this.saveThemePreference(newValue);
+    this.setDarkMode(!this.isDarkMode());
   }
 
   setDarkMode(isDark: boolean): void {
     this.isDarkMode.set(isDark);
     this.saveThemePreference(isDark);
+    // Lebron mode is a dark-based palette, so switching to light turns it off
+    if (!isDark && this.isLebronMode()) {
+      this.setLebronMode(false);
+    }
+  }
+
+  toggleLebronMode(): void {
+    this.setLebronMode(!this.isLebronMode());
+  }
+
+  setLebronMode(isLebron: boolean): void {
+    this.isLebronMode.set(isLebron);
+    this.saveLebronModePreference(isLebron);
+    if (isLebron && !this.isDarkMode()) {
+      this.setDarkMode(true);
+    }
   }
 
   togglePowerView(): void {
@@ -52,5 +77,19 @@ export class ThemeService {
       return;
     }
     localStorage.setItem('paysprint-power-view', isPowerView.toString());
+  }
+
+  private loadLebronModePreference(): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return localStorage.getItem('paysprint-lebron-mode') === 'true';
+  }
+
+  private saveLebronModePreference(isLebron: boolean): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    localStorage.setItem('paysprint-lebron-mode', isLebron.toString());
   }
 }
