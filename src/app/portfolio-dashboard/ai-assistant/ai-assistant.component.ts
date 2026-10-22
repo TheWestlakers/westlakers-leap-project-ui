@@ -33,10 +33,6 @@ interface ChatMessage {
         <p class="font-semibold text-[14px] text-white" style="font-family: var(--font-sans); font-weight: 600">
           AI ASSISTANT
         </p>
-        <span class="ml-auto flex items-center gap-1.5">
-          <span class="size-1.5 rounded-full bg-[#10b981]"></span>
-          <span class="font-normal text-[#64748b] text-[11px]" style="font-family: var(--font-sans)">Online</span>
-        </span>
       </div>
 
       <div #scrollEl class="ai-chat-scroll flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
