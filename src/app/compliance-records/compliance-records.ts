@@ -12,7 +12,8 @@ export interface ComplianceRecord {
   orderReference: string;
   clientId: string;
   clientName: string;
-  timestamp: Date;
+  placementTime: Date;
+  executionTime: Date;
   orderDecision: {
     symbol: string;
     side: "BUY" | "SELL";
@@ -137,7 +138,8 @@ export class ComplianceRecordsComponent implements OnInit {
   }
 
   private toComplianceRecord(volume: TradingVolume): ComplianceRecord {
-    const timestamp = volume.executedAt ?? volume.createdAt;
+    const placementTime = volume.createdAt ? new Date(volume.createdAt) : new Date(0);
+    const executionTime = volume.executedAt ? new Date(volume.executedAt) : new Date(0);
     const price = volume.limitPrice;
     const quantity = Number(volume.quantity);
     const isMarketOrder = price === 0;
@@ -146,7 +148,8 @@ export class ComplianceRecordsComponent implements OnInit {
       orderReference: `${isMarketOrder ? "M" : "L"}-${volume.orderId}`,
       clientId: String(volume.accountId),
       clientName: [volume.firstName, volume.lastName].filter(Boolean).join(" ") || `Account ${volume.accountId}`,
-      timestamp: timestamp ? new Date(timestamp) : new Date(0),
+      placementTime,
+      executionTime,
       orderDecision: {
         symbol: volume.instrumentCode,
         side: volume.side,
@@ -164,7 +167,7 @@ export class ComplianceRecordsComponent implements OnInit {
         statusId: volume.orderStatusId,
         executedQuantity: quantity,
         executedPrice: volume.executionPrice,
-        executionTime: timestamp ? new Date(timestamp) : new Date(0),
+        executionTime,
       },
       cashAndHoldingChange: {
         cashImpact: volume.executionPrice === null || volume.executionPrice === 0
@@ -178,7 +181,7 @@ export class ComplianceRecordsComponent implements OnInit {
         holdingAveragePrice: price,
         marketValueImpact: price === null ? 0 : quantity * price,
       },
-      recordedAt: volume.createdAt ? new Date(volume.createdAt) : new Date(0),
+      recordedAt: placementTime,
     };
   }
 }

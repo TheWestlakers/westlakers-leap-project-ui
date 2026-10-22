@@ -64,7 +64,8 @@
       <div class="records-table-header bg-[#11161b] flex items-center px-4 py-2.5 font-['Instrument_Sans:SemiBold'] font-semibold text-[#64748b] text-[10px] shrink-0 border-b border-[#1e252b]" style="font-variation-settings: 'wdth' 100">
         <span class="w-[120px]">ORDER REF</span>
         <span class="w-[150px]">CLIENT</span>
-        <span class="w-[150px]">TIMESTAMP</span>
+        <span class="w-[150px]">TIME PLACED</span>
+        <span class="w-[150px]">TIME EXECUTED</span>
         <span class="w-[80px]">SYMBOL</span>
         <span class="w-[60px] text-center">SIDE</span>
         <span class="w-[70px] text-right">QTY</span>
@@ -88,7 +89,10 @@
               {{ record.clientName }}
             </p>
             <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] w-[150px]">
-              {{ record.timestamp | date: 'MM/dd HH:mm:ss.SSS' }}
+              {{ record.placementTime | date: 'MM/dd HH:mm:ss.SSS' }}
+            </p>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] w-[150px]">
+              {{ record.executionTime | date: 'MM/dd HH:mm:ss.SSS' }}
             </p>
             <p class="font-['Geist_Mono:Bold'] font-bold text-white w-[80px]">
               {{ record.orderDecision.symbol }}
@@ -179,10 +183,10 @@
     </div>
 
     <!-- Footer Note -->
-    <div class="compliance-note bg-[#161d24] border border-[#1e252b] rounded-[8px] p-4 text-center">
+    <!-- <div class="compliance-note bg-[#161d24] border border-[#1e252b] rounded-[8px] p-4 text-center">
       <p class="font-['Instrument_Sans:Regular'] font-normal text-[#64748b] text-[12px]" style="font-variation-settings: 'wdth' 100">
         Records are loaded from the trading volume staging data.
       </p>
-    </div>
+    </div> -->
   </div>
 </div>

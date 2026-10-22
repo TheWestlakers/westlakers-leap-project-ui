@@ -147,7 +147,7 @@
   font-size: 11px !important;
   letter-spacing: 0.06em;
   display: grid !important;
-  grid-template-columns: 1.1fr 1.35fr 1.45fr 0.8fr 0.65fr 0.7fr 1fr 1fr 1.1fr 1fr;
+  grid-template-columns: 1.1fr 1.35fr 1.45fr 1.45fr 0.8fr 0.65fr 0.7fr 1fr 1fr 1.1fr 1fr;
   column-gap: 8px;
 }
 
@@ -156,7 +156,7 @@
   padding: 13px 16px !important;
   font-size: 13px !important;
   display: grid !important;
-  grid-template-columns: 1.1fr 1.35fr 1.45fr 0.8fr 0.65fr 0.7fr 1fr 1fr 1.1fr 1fr;
+  grid-template-columns: 1.1fr 1.35fr 1.45fr 1.45fr 0.8fr 0.65fr 0.7fr 1fr 1fr 1.1fr 1fr;
   column-gap: 8px;
 }
 
@@ -229,7 +229,7 @@
   .records-panel-header,
   .records-table-header,
   .record-row {
-    min-width: 1166px;
+    min-width: 1316px;
   }
 }
 
