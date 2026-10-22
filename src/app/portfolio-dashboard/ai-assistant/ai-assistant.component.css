@@ -125,3 +125,42 @@
 :host.light-theme .animate-bounce {
   background-color: var(--ai-text-dim);
 }
+
+/* ─── Chat scrollbar ─── */
+.ai-chat-scroll {
+  scrollbar-color: #252b31 #050607;
+  scrollbar-width: thin;
+}
+
+.ai-chat-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ai-chat-scroll::-webkit-scrollbar-track {
+  background: #050607;
+}
+
+.ai-chat-scroll::-webkit-scrollbar-thumb {
+  background: #252b31;
+  border-radius: 4px;
+}
+
+.ai-chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: #343c44;
+}
+
+:host.light-theme .ai-chat-scroll {
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+:host.light-theme .ai-chat-scroll::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+:host.light-theme .ai-chat-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
+
+:host.light-theme .ai-chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

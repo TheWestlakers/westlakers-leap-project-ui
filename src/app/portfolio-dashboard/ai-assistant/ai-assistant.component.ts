@@ -18,6 +18,10 @@ interface ChatMessage {
   host: { '[class.light-theme]': '!themeService.isDarkMode()' },
   styles: `
     :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
       --font-mono:   'Geist Mono', 'Courier New', monospace;
       --font-sans:   'Instrument Sans', system-ui, sans-serif;
     }
@@ -35,7 +39,7 @@ interface ChatMessage {
         </span>
       </div>
 
-      <div #scrollEl class="flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
+      <div #scrollEl class="ai-chat-scroll flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
         @for (msg of messages(); track $index) {
           <div class="flex flex-col gap-1" [ngClass]="msg.sender === 'user' ? 'items-end' : 'items-start'">
             <div
