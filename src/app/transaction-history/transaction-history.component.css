@@ -550,6 +550,28 @@
 .status-completed { background: rgba(99, 102, 241, 0.12); color: #818cf8;      border: 1px solid rgba(99,102,241,0.25); }
 .status-pending   { background: rgba(234, 179, 8, 0.12);  color: #eab308;      border: 1px solid rgba(234,179,8,0.25); }
 .status-cancelled { background: rgba(239, 68, 68, 0.12);  color: var(--red);   border: 1px solid rgba(239,68,68,0.25); }
+.status-rejected  { background: var(--border);             color: var(--text-muted); border: 1px solid var(--border-mid); }
+
+.summary-value.negative-value { color: var(--red); }
+
+.cancel-order-btn {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(239,68,68,0.35);
+  background: transparent;
+  color: var(--red);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.cancel-order-btn:hover:not(:disabled) { background: rgba(239, 68, 68, 0.12); }
+.cancel-order-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.retry-btn { margin-left: 12px; }
+.export-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .empty-row {
   text-align: center;
