@@ -19,8 +19,12 @@ export interface Transaction {
   id: string;
   orderId: number;
   placedAt: Date | null;
-  date: string;
-  time: string;
+  executedAt: Date | null;
+  placedDate: string;
+  placedTime: string;
+  /** '–' until the order executes. */
+  executedDate: string;
+  executedTime: string;
   symbol: string;
   name: string;
   orderType: OrderType;
@@ -267,13 +271,15 @@ export class TransactionHistoryComponent implements OnInit, OnDestroy {
       const executed = order.status === 'EXECUTED' && order.executionPrice !== null;
       const notional = executed ? order.quantity * order.executionPrice! : null;
       const realized = realizedByOrderId.get(order.orderId);
-      const timestamp = order.executedAt ?? order.placedAt;
       return {
         id: String(order.orderId),
         orderId: order.orderId,
         placedAt: order.placedAt,
-        date: timestamp ? this.formatDate(timestamp) : '–',
-        time: timestamp ? this.formatTime(timestamp) : '',
+        executedAt: order.executedAt,
+        placedDate: order.placedAt ? this.formatDate(order.placedAt) : '–',
+        placedTime: order.placedAt ? this.formatTime(order.placedAt) : '',
+        executedDate: order.executedAt ? this.formatDate(order.executedAt) : '–',
+        executedTime: order.executedAt ? this.formatTime(order.executedAt) : '',
         symbol: order.symbol,
         name: order.name,
         orderType: order.orderType,
@@ -353,9 +359,9 @@ export class TransactionHistoryComponent implements OnInit, OnDestroy {
   }
 
   exportCsv(): void {
-    const header = 'Order ID,Date,Time,Symbol,Order Type,Side,Qty,Price,Total Amount,Status';
+    const header = 'Order ID,Placed Date,Placed Time,Executed Date,Executed Time,Symbol,Order Type,Side,Qty,Price,Total Amount,Status';
     const rows = this.filteredTransactions().map((t) =>
-      [t.orderId, t.date, t.time, t.symbol, t.orderType, t.side, t.qty, t.price ?? '', t.totalAmount ?? '', t.status].join(',')
+      [t.orderId, t.placedDate, t.placedTime, t.executedAt ? t.executedDate : '', t.executedTime, t.symbol, t.orderType, t.side, t.qty, t.price ?? '', t.totalAmount ?? '', t.status].join(',')
     );
     const csv  = [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
