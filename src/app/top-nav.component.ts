@@ -106,12 +106,12 @@ const assetPathPrefix = "/assets";
                 </button>
               </div>
               <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
-                <span>Lebron mode</span>
+                <span>Lakers mode</span>
                 <button
                   type="button"
                   role="switch"
                   [attr.aria-checked]="isLebronMode()"
-                  aria-label="Toggle Lebron mode"
+                  aria-label="Toggle Lakers mode"
                   (click)="toggleLebronMode()"
                   class="relative h-5 w-9 shrink-0 rounded-full transition-colors"
                   [class.bg-[#3e8914]]="isLebronMode()"
