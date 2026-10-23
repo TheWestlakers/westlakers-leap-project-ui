@@ -102,6 +102,9 @@ html.lebron-mode .hover\:bg-\[\#4a9e1a\]:hover,
 html.lebron-mode .hover\:bg-\[\#4ea31a\]:hover { background-color: var(--lal-gold-hi) !important; }
 html.lebron-mode .bg-\[rgba\(62\,137\,20\,0\.15\)\] { background-color: rgba(253, 185, 39, 0.15) !important; }
 
+/* Auth page links (Sign up / Sign in): blue → Lakers gold */
+html.lebron-mode .text-blue-600 { color: var(--lal-gold) !important; }
+
 /* Top nav gets the purple jersey with a gold stripe */
 html.lebron-mode .top-nav-container {
   background-color: var(--lal-purple-500) !important;
