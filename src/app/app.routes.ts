@@ -6,7 +6,7 @@ import { StockTickerComponent } from './stock-ticker/stock-ticker.component';
 import { adminGuard, userGuard } from './services/auth.guard';
 
 export const routes: Routes = [
-    { path: '', redirectTo: '/login', pathMatch: 'full' },
+    { path: '', pathMatch: 'full', loadComponent: () => import('./landing/landing').then((m) => m.Landing) },
     { path: 'portfolio', component: PortfolioDashboardComponent, canActivate: [userGuard] },
     { path: 'stock-ticker', component: StockTickerComponent, canActivate: [userGuard] },
     { path: 'open-positions', component: OpenPositionsComponent, canActivate: [userGuard] },

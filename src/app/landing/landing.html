@@ -1,0 +1,135 @@
+<div class="page">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a routerLink="/" class="brand" aria-label="Paysprint home">
+        <span class="brand-mark"><img alt="" [src]="imgLogo" /></span>
+        <span class="brand-text">
+          <span class="brand-name">PAYSPRINT</span>
+          <span class="brand-tag">ACTIVE TRADER</span>
+        </span>
+      </a>
+
+      <nav class="header-nav" aria-label="Main">
+        <a href="#features" class="nav-link hide-sm">Features</a>
+        <a href="#how-it-works" class="nav-link hide-sm">How it works</a>
+        @if (isSignedIn()) {
+          <a [routerLink]="dashboardUrl()" class="btn btn-primary btn-sm">Open dashboard</a>
+        } @else {
+          <a routerLink="/login" class="nav-link">Sign in</a>
+          <a routerLink="/register" class="btn btn-primary btn-sm">Get started</a>
+        }
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Live market data</p>
+          <h1>Trade at the speed of the&nbsp;market.</h1>
+          <p class="lede">
+            Paysprint puts live quotes, fast order entry and your whole portfolio on one screen,
+            so you can act the moment an opportunity appears.
+          </p>
+          <div class="hero-actions">
+            @if (isSignedIn()) {
+              <a [routerLink]="dashboardUrl()" class="btn btn-primary">Go to your dashboard</a>
+            } @else {
+              <a routerLink="/register" class="btn btn-primary">Open an account</a>
+              <a routerLink="/login" class="btn btn-ghost">Sign in</a>
+            }
+          </div>
+        </div>
+
+        <div class="preview" aria-hidden="true">
+          <div class="preview-head">
+            <div>
+              <p class="preview-symbol">PSPR</p>
+              <p class="preview-name">Sample instrument</p>
+            </div>
+            <div class="preview-price">
+              <p class="mono">142.87</p>
+              <p class="mono gain">+3.42 (2.45%)</p>
+            </div>
+          </div>
+          <svg class="preview-chart" viewBox="0 0 240 80" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="landing-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="currentColor" stop-opacity="0.35" />
+                <stop offset="1" stop-color="currentColor" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path [attr.d]="previewLine + ' L240 80 L0 80 Z'" fill="url(#landing-fill)" />
+            <path [attr.d]="previewLine" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" />
+          </svg>
+          <div class="preview-actions">
+            <span class="preview-btn buy">Buy</span>
+            <span class="preview-btn sell">Sell</span>
+          </div>
+          <p class="preview-note">Illustrative preview</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="container">
+        <p class="section-eyebrow">Features</p>
+        <h2>Everything an active trader needs</h2>
+        <div class="feature-grid">
+          @for (feature of features; track feature.title) {
+            <article class="card">
+              <span class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path [attr.d]="feature.icon" />
+                </svg>
+              </span>
+              <h3>{{ feature.title }}</h3>
+              <p>{{ feature.description }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="section section-alt">
+      <div class="container">
+        <p class="section-eyebrow">How it works</p>
+        <h2>From sign-up to first trade in minutes</h2>
+        <ol class="steps">
+          @for (step of steps; track step.title; let i = $index) {
+            <li class="step">
+              <span class="step-number mono">{{ i + 1 }}</span>
+              <h3>{{ step.title }}</h3>
+              <p>{{ step.description }}</p>
+            </li>
+          }
+        </ol>
+      </div>
+    </section>
+
+    @if (!isSignedIn()) {
+      <section class="section">
+        <div class="container">
+          <div class="cta">
+            <div>
+              <h2>Ready to start trading?</h2>
+              <p>Create your Paysprint account and place your first order today.</p>
+            </div>
+            <a routerLink="/register" class="btn btn-primary">Get started</a>
+          </div>
+        </div>
+      </section>
+    }
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; {{ year }} Paysprint</p>
+      <nav class="footer-nav" aria-label="Footer">
+        <a routerLink="/login">Sign in</a>
+        <a routerLink="/register">Create account</a>
+      </nav>
+    </div>
+  </footer>
+</div>
