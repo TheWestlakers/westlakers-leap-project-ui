@@ -22,8 +22,6 @@ export interface NavItem {
 export interface StatCard {
   label: string;
   value: string;
-  change: string;
-  changePositive: boolean;
   sub: string;
 }
 
@@ -86,11 +84,11 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   ];
 
   statCards: StatCard[] = [
-    { label: 'TOTAL ACCOUNTS', value: '142,851', change: '+12.4%', changePositive: true, sub: 'Active retail users YTD' },
-    { label: 'OPERATING TRADERS', value: '28,412', change: '96.1%', changePositive: true, sub: 'Live sessions today' },
-    { label: 'TOTAL VOLUME TODAY', value: '$14.2M', change: '+4.12%', changePositive: true, sub: 'Over 14,801 transactions' },
-    { label: 'REVENUE PROCESSED', value: '$48,512', change: '+8.51%', changePositive: true, sub: 'Platform commissions' },
-    { label: 'LATENCY SPREAD', value: '1.42ms', change: 'Nominal', changePositive: true, sub: 'Database response timing' },
+    { label: 'GROSS FUNDS PROCESSED', value: '—', sub: 'Absolute executed trade value' },
+    { label: 'AVERAGE TRADE SIZE', value: '—', sub: 'Executed units per trade' },
+    { label: 'OPERATING TRADERS', value: '—', sub: 'Distinct clients with executions' },
+    { label: 'DISTINCT INSTRUMENTS TRADED', value: '—', sub: 'Distinct instruments with executions' },
+    { label: 'AVG INSTRUMENTS PER CLIENT', value: '—', sub: 'Per active client' },
   ];
 
   systemHealth: SystemHealth[] = [
@@ -141,6 +139,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadTopAnalytics();
+    this.loadAllTimeSummary();
     this.loadComplianceRecords();
     this.tickInterval = setInterval(() => {
       const [h, m, s] = this.broadcastFeed[0].time.split(':').map(Number);
@@ -180,6 +179,25 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
           symbol: instrumentDisplayName(instrument),
           value: this.formatCurrency(instrument.totalValue),
         })));
+      },
+    });
+  }
+
+  private loadAllTimeSummary(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    this.topAnalyticsService.getAllTimeSummary().subscribe({
+      next: summary => {
+        const values: Record<string, string> = {
+          'GROSS FUNDS PROCESSED': this.formatCompactCurrency(summary.totalAbsoluteFundsProcessed),
+          'AVERAGE TRADE SIZE': this.formatNumber(summary.averageTradeSize),
+          'OPERATING TRADERS': this.formatCount(summary.operatingTraders),
+          'DISTINCT INSTRUMENTS TRADED': this.formatCount(summary.instrumentsTraded),
+          'AVG INSTRUMENTS PER CLIENT': this.formatNumber(summary.averageInstrumentsPerActiveClient),
+        };
+        this.statCards = this.statCards.map(card => ({ ...card, value: values[card.label] ?? card.value }));
       },
     });
   }
@@ -257,6 +275,26 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
+    }).format(Number(value));
+  }
+
+  private formatCount(value: number): string {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(value));
+  }
+
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(value));
+  }
+
+  private formatCompactCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 2,
     }).format(Number(value));
   }
 

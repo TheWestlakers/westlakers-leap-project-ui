@@ -295,7 +295,7 @@
 .stat-cards-vertical {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
 }
 
 /* ─── Center content ──────────────────────────────────── */
@@ -319,7 +319,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 14px;
+  padding: 18px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -342,16 +342,6 @@
   color: var(--text-primary);
   margin: 2px 0;
 }
-
-.stat-change {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.stat-change.positive { color: var(--green); }
-.stat-change.nominal  { color: var(--green); }
 
 .stat-sub {
   font-family: var(--font-sans);
@@ -513,6 +503,9 @@
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
+
+.queue-table th.centered { text-align: center; }
+.queue-table th.numeric { text-align: right; }
 
 .queue-table td {
   padding: 14px 16px;
