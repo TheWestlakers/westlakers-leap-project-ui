@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, takeUntil } from "rxjs";
-import { ThemeService } from "./services/theme.service";
+import { Theme, ThemeService } from "./services/theme.service";
 import { AuthService } from "./services/auth.service";
 import { Instrument, TradeService } from "./services/trade.service";
 
@@ -86,43 +86,25 @@ const assetPathPrefix = "/assets";
 
           @if (isMenuOpen()) {
             <div class="absolute right-0 top-11 z-10 w-48 rounded-[6px] border border-[#1e252b] bg-[#11161b] py-1 shadow-lg">
-              <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
-                <span>Dark mode</span>
-                <button
-                  type="button"
-                  role="switch"
-                  [attr.aria-checked]="isDarkMode()"
-                  aria-label="Toggle dark mode"
-                  (click)="toggleTheme()"
-                  class="relative h-5 w-9 shrink-0 rounded-full transition-colors"
-                  [class.bg-[#3e8914]]="isDarkMode()"
-                  [class.bg-[#4b5563]]="!isDarkMode()"
-                >
-                  <span
-                    class="absolute left-0.5 top-0.5 size-4 rounded-full bg-white transition-transform"
-                    [class.translate-x-4]="isDarkMode()"
-                    [class.translate-x-0]="!isDarkMode()"
-                  ></span>
-                </button>
-              </div>
-              <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
-                <span>Lakers mode</span>
-                <button
-                  type="button"
-                  role="switch"
-                  [attr.aria-checked]="isLebronMode()"
-                  aria-label="Toggle Lakers mode"
-                  (click)="toggleLebronMode()"
-                  class="relative h-5 w-9 shrink-0 rounded-full transition-colors"
-                  [class.bg-[#3e8914]]="isLebronMode()"
-                  [class.bg-[#4b5563]]="!isLebronMode()"
-                >
-                  <span
-                    class="absolute left-0.5 top-0.5 size-4 rounded-full bg-white transition-transform"
-                    [class.translate-x-4]="isLebronMode()"
-                    [class.translate-x-0]="!isLebronMode()"
-                  ></span>
-                </button>
+              <div class="px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
+                <span class="mb-1.5 block">Theme</span>
+                <div role="radiogroup" aria-label="Theme" class="flex rounded-[6px] border border-[#1e252b] p-0.5">
+                  @for (option of themeOptions; track option.value) {
+                    <button
+                      type="button"
+                      role="radio"
+                      [attr.aria-checked]="theme() === option.value"
+                      (click)="setTheme(option.value)"
+                      class="flex-1 rounded-[4px] px-1 py-1 text-[12px] font-semibold transition-colors"
+                      [class.bg-[#3e8914]]="theme() === option.value"
+                      [class.text-white]="theme() === option.value"
+                      [class.text-[#94a3b8]]="theme() !== option.value"
+                      [class.hover:bg-[#1e252b]]="theme() !== option.value"
+                    >
+                      {{ option.label }}
+                    </button>
+                  }
+                </div>
               </div>
               @if (showPowerView) {
                 <div class="flex w-full items-center justify-between px-3 py-2 font-['Instrument_Sans'] text-[13px] text-white" style="font-family: 'Instrument Sans', system-ui, sans-serif">
@@ -192,7 +174,12 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   protected readonly isMenuOpen = signal(false);
   protected readonly isDarkMode = this.themeService.isDarkMode;
-  protected readonly isLebronMode = this.themeService.isLebronMode;
+  protected readonly theme = this.themeService.theme;
+  protected readonly themeOptions: { value: Theme; label: string }[] = [
+    { value: 'dark', label: 'Dark' },
+    { value: 'light', label: 'Light' },
+    { value: 'lakers', label: 'Lakers' },
+  ];
   protected readonly isPowerView = this.themeService.isPowerView;
 
   imgCircleX = `${assetPathPrefix}/ed609.svg`;
@@ -240,12 +227,8 @@ export class TopNavComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected toggleTheme(): void {
-    this.themeService.toggleTheme();
-  }
-
-  protected toggleLebronMode(): void {
-    this.themeService.toggleLebronMode();
+  protected setTheme(theme: Theme): void {
+    this.themeService.setTheme(theme);
   }
 
   protected togglePowerView(): void {

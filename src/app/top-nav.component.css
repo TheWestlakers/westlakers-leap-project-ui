@@ -143,6 +143,21 @@
   background-color: #ffffff !important;
 }
 
+/* ─── Theme Picker Styling ─── */
+.top-nav-container.light-theme button[role="radio"] {
+  background-color: transparent !important;
+  color: var(--nav-text-muted) !important;
+}
+
+.top-nav-container.light-theme button[role="radio"]:hover {
+  background-color: var(--nav-menu-hover) !important;
+}
+
+.top-nav-container.light-theme button[role="radio"][aria-checked="true"] {
+  background-color: var(--nav-green) !important;
+  color: #ffffff !important;
+}
+
 /* ─── Search/Input Box Styling ─── */
 .top-nav-container.light-theme [class*="bg-\[\#080b0d\]"] {
   background-color: #ffffff !important;
