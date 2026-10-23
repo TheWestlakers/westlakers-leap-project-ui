@@ -11,9 +11,6 @@
       <div *ngFor="let card of statCards" class="stat-card">
         <p class="stat-label">{{ card.label }}</p>
         <p class="stat-value">{{ card.value }}</p>
-        <p class="stat-change" [class.positive]="card.changePositive" [class.nominal]="card.label === 'LATENCY SPREAD'">
-          {{ card.change }}
-        </p>
         <p class="stat-sub">{{ card.sub }}</p>
       </div>
     </div>

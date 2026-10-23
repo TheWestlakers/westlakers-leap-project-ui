@@ -22,6 +22,14 @@ export interface TopInstrument {
 	totalValue: number;
 }
 
+export interface AllTimeAnalyticsSummary {
+	averageTradeSize: number;
+	instrumentsTraded: number;
+	averageInstrumentsPerActiveClient: number;
+	operatingTraders: number;
+	totalAbsoluteFundsProcessed: number;
+}
+
 export interface RankingPage<T> {
 	content: T[];
 	page: number;
@@ -49,6 +57,10 @@ export class TopAnalyticsService {
 
 	getTopInstruments(limit = 5): Observable<TopInstrument[]> {
 		return this.getInstrumentRankings(0, limit).pipe(map(result => result.content));
+	}
+
+	getAllTimeSummary(): Observable<AllTimeAnalyticsSummary> {
+		return this.http.get<AllTimeAnalyticsSummary>(`${this.apiUrl}/summary`);
 	}
 
 	getInvestorRankings(page = 0, size = 20): Observable<RankingPage<TopInvestor>> {
