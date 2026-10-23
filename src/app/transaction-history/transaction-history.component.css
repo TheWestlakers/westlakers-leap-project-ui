@@ -554,22 +554,6 @@
 
 .summary-value.negative-value { color: var(--red); }
 
-.cancel-order-btn {
-  padding: 3px 10px;
-  border-radius: 4px;
-  border: 1px solid rgba(239,68,68,0.35);
-  background: transparent;
-  color: var(--red);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.cancel-order-btn:hover:not(:disabled) { background: rgba(239, 68, 68, 0.12); }
-.cancel-order-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .retry-btn { margin-left: 12px; }
 .export-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

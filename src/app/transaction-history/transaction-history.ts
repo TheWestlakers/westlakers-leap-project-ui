@@ -36,7 +36,6 @@ export interface Transaction {
   status: TransactionStatus;
 }
 
-export type HistoryTab = 'Transactions' | 'Open Orders' | 'Statements';
 export type DateRangeOption = 'Last 7 Days' | 'Last 30 Days' | 'Last 90 Days' | 'This Year' | 'All Time';
 export type OrderTypeOption = 'All Types' | 'Market' | 'Limit';
 export type StatusOption = 'All Statuses' | TransactionStatus;
@@ -84,7 +83,6 @@ export class TransactionHistoryComponent implements OnInit, OnDestroy {
   readonly transactions = signal<Transaction[]>([]);
   readonly isLoading    = signal(false);
   readonly loadError    = signal<string | null>(null);
-  readonly cancellingIds = signal<ReadonlySet<number>>(new Set());
   readonly netLiqValue  = signal(0);
 
   symbolFilter = signal('');
@@ -92,24 +90,17 @@ export class TransactionHistoryComponent implements OnInit, OnDestroy {
   orderType    = signal<OrderTypeOption>('All Types');
   statusFilter = signal<StatusOption>('All Statuses');
   currentPage  = signal(1);
-  activeTab    = signal<HistoryTab>('Transactions');
 
   /* ── Filter options ── */
-  readonly tabs: HistoryTab[] = ['Transactions', 'Open Orders', 'Statements'];
   dateRangeOptions: DateRangeOption[] = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
   orderTypeOptions: OrderTypeOption[] = ['All Types', 'Market', 'Limit'];
   statusOptions:    StatusOption[]    = ['All Statuses', 'Executed', 'Pending', 'Cancelled', 'Rejected'];
 
   /* ── Derived state ── */
-  readonly openOrderCount = computed(() => this.transactions().filter(tx => tx.status === 'Pending').length);
-
   readonly filteredTransactions = computed(() => {
-    const tab = this.activeTab();
-    if (tab === 'Statements') return [];
-
     const sym = this.symbolFilter().trim().toUpperCase();
     const type = this.orderType();
-    const status = tab === 'Open Orders' ? 'Pending' : this.statusFilter();
+    const status = this.statusFilter();
     const period = this.currentPeriod();
 
     return this.transactions().filter(tx => {
@@ -328,11 +319,6 @@ export class TransactionHistoryComponent implements OnInit, OnDestroy {
   }
 
   /* ── Actions ── */
-  setTab(tab: HistoryTab): void {
-    this.activeTab.set(tab);
-    this.currentPage.set(1);
-  }
-
   setPage(page: number | '...'): void {
     if (typeof page === 'number') this.currentPage.set(page);
   }
@@ -363,39 +349,6 @@ export class TransactionHistoryComponent implements OnInit, OnDestroy {
   onStatusChange(value: string): void {
     this.statusFilter.set(value as StatusOption);
     this.currentPage.set(1);
-  }
-
-  isCancelling(orderId: number): boolean {
-    return this.cancellingIds().has(orderId);
-  }
-
-  cancelOrder(tx: Transaction): void {
-    if (tx.status !== 'Pending' || this.isCancelling(tx.orderId)) return;
-    if (!confirm(`Cancel ${tx.side} ${tx.qty} ${tx.symbol} ${tx.orderType.toLowerCase()} order?`)) return;
-
-    this.cancellingIds.update(ids => new Set(ids).add(tx.orderId));
-    this.orderService.cancelOrder(tx.orderId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.clearCancelling(tx.orderId);
-          this.loadOrders();
-        },
-        error: error => {
-          console.error('Error cancelling order:', error);
-          this.clearCancelling(tx.orderId);
-          alert(error?.error?.message ?? 'Unable to cancel this order. It may have already been executed.');
-          this.loadOrders();
-        },
-      });
-  }
-
-  private clearCancelling(orderId: number): void {
-    this.cancellingIds.update(ids => {
-      const next = new Set(ids);
-      next.delete(orderId);
-      return next;
-    });
   }
 
   exportCsv(): void {

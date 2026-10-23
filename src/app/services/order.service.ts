@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { TradeExecutionResponse } from './trade.service';
 
 export type OrderSide = 'BUY' | 'SELL';
 export type OrderType = 'MARKET' | 'LIMIT';
@@ -81,9 +80,5 @@ export class OrderService {
           .sort((a, b) => (b.placedAt?.getTime() ?? 0) - (a.placedAt?.getTime() ?? 0));
       }),
     );
-  }
-
-  cancelOrder(orderId: number): Observable<TradeExecutionResponse> {
-    return this.http.patch<TradeExecutionResponse>(`${this.apiUrl}/trades/${orderId}/cancel`, {});
   }
 }
