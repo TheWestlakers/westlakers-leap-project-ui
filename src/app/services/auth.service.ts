@@ -1,6 +1,8 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { DestroyRef, Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { EMPTY, Observable, catchError, finalize, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import { Router } from '@angular/router';
+import { Observable, Subject, catchError, finalize, map, of, shareReplay, switchMap, takeUntil, tap, throwError } from 'rxjs';
 import { Account, AccountService } from './account.service';
 
 export const TOKEN_STORAGE_KEY = 'token';
@@ -50,7 +52,22 @@ export class AuthService {
   private readonly refreshBufferMs = 5_000;
   private readonly http = inject(HttpClient);
   private readonly accountService = inject(AccountService);
-  private refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly inactivityMs = 60_000;
+  private readonly activityEvents = ['mousemove', 'mousedown', 'keydown'] as const;
+  private readonly sessionEnded = new Subject<void>();
+  private idleTimer: ReturnType<typeof setTimeout> | undefined;
+  private idleDeadline: number | undefined;
+  private readonly onActivity = () => {
+    if (this.idleDeadline === undefined) return;
+    if (Date.now() >= this.idleDeadline) {
+      this.expireIdleSession();
+      return;
+    }
+    this.resetIdleTimer();
+  };
 
   readonly currentUser = signal<CurrentUser | null>(null);
   readonly activeAccount = computed(() => this.currentUser()?.accounts[0] ?? null);
@@ -72,19 +89,29 @@ export class AuthService {
   private refreshRequest: Observable<AuthTokens> | undefined;
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      this.stopIdleTracking();
+      this.sessionEnded.next();
+      this.sessionEnded.complete();
+    });
     if (this.getToken() && this.getRefreshToken()) {
-      this.scheduleProactiveRefresh();
+      this.startIdleTracking();
     }
   }
 
   login(email: string, password: string): Observable<CurrentUser> {
     return this.http.post<AuthTokens>('/api/auth/login', { email, password }).pipe(
       tap(tokens => this.storeTokens(tokens)),
+      tap(() => this.startIdleTracking()),
       switchMap(() => this.loadCurrentUser()),
     );
   }
 
   refresh(): Observable<AuthTokens> {
+    if (this.idleDeadline !== undefined && Date.now() >= this.idleDeadline) {
+      this.expireIdleSession();
+      return throwError(() => new Error('Session expired due to inactivity'));
+    }
     if (this.refreshRequest) {
       return this.refreshRequest;
     }
@@ -95,6 +122,7 @@ export class AuthService {
     }
 
     this.refreshRequest = this.http.post<AuthTokens>('/api/auth/refresh', { refreshToken }).pipe(
+      takeUntil(this.sessionEnded),
       tap(tokens => this.storeTokens(tokens)),
       finalize(() => this.refreshRequest = undefined),
       shareReplay({ bufferSize: 1, refCount: false }),
@@ -128,7 +156,8 @@ export class AuthService {
   }
 
   logout(): void {
-    this.clearRefreshTimer();
+    this.stopIdleTracking();
+    this.sessionEnded.next();
 
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -153,35 +182,42 @@ export class AuthService {
 
     sessionStorage.setItem(TOKEN_STORAGE_KEY, tokens.token);
     sessionStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, tokens.refreshToken);
-    this.scheduleProactiveRefresh();
   }
 
-  private scheduleProactiveRefresh(): void {
-    this.clearRefreshTimer();
+  private startIdleTracking(): void {
+    this.stopIdleTracking();
+    if (!this.isBrowser) return;
+    for (const event of this.activityEvents) {
+      this.document.addEventListener(event, this.onActivity, { passive: true });
+    }
+    this.resetIdleTimer();
+  }
 
+  private resetIdleTimer(): void {
+    if (this.idleTimer !== undefined) clearTimeout(this.idleTimer);
+    this.idleDeadline = Date.now() + this.inactivityMs;
+    this.idleTimer = setTimeout(() => this.expireIdleSession(), this.inactivityMs);
+  }
+
+  private stopIdleTracking(): void {
+    if (this.idleTimer !== undefined) clearTimeout(this.idleTimer);
+    this.idleTimer = undefined;
+    this.idleDeadline = undefined;
+    if (!this.isBrowser) return;
+    for (const event of this.activityEvents) {
+      this.document.removeEventListener(event, this.onActivity);
+    }
+  }
+
+  private expireIdleSession(): void {
+    this.logout();
+    void this.router.navigate(['/login']);
+  }
+
+  needsTokenRefresh(): boolean {
     const token = this.getToken();
     const expiresAt = token ? this.getTokenExpiry(token) : null;
-    if (expiresAt === null) {
-      return;
-    }
-
-    const delay = Math.max(0, expiresAt * 1000 - Date.now() - this.refreshBufferMs);
-    this.refreshTimer = setTimeout(() => {
-      this.refreshTimer = undefined;
-      this.refresh().pipe(
-        catchError(() => {
-          this.logout();
-          return EMPTY;
-        }),
-      ).subscribe();
-    }, delay);
-  }
-
-  private clearRefreshTimer(): void {
-    if (this.refreshTimer !== undefined) {
-      clearTimeout(this.refreshTimer);
-      this.refreshTimer = undefined;
-    }
+    return expiresAt !== null && expiresAt * 1000 - Date.now() <= this.refreshBufferMs;
   }
 
   private getTokenExpiry(token: string): number | null {

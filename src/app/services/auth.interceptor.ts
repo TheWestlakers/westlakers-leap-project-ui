@@ -17,6 +17,30 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const isBffApiRequest = request.url.startsWith('/api/');
   const token = auth.getToken();
 
+  // Public auth and non-BFF requests must never start token refresh.
+  if (isPublicAuthRequest || !isBffApiRequest) {
+    return next(request);
+  }
+
+  const refreshAndSend = () => auth.refresh().pipe(
+    catchError((refreshError: unknown) => {
+      auth.logout();
+      void router.navigate(['/login'], {
+        queryParams: { returnUrl: router.url },
+      });
+      return throwError(() => refreshError);
+    }),
+    switchMap(tokens => next(request.clone({
+      context: request.context.set(hasRetried, true),
+      setHeaders: { Authorization: `Bearer ${tokens.token}` },
+    }))),
+  );
+
+  // Refresh only on demand, never merely because time has passed.
+  if (!request.context.get(hasRetried) && auth.needsTokenRefresh()) {
+    return refreshAndSend();
+  }
+
   const authenticatedRequest = isBffApiRequest && !isPublicAuthRequest && token
     ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
     : request;
@@ -33,26 +57,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         return throwError(() => error);
       }
 
-      return auth.refresh().pipe(
-        switchMap(() => {
-          const refreshedToken = auth.getToken();
-          if (!refreshedToken) {
-            return throwError(() => error);
-          }
-
-          return next(request.clone({
-            context: request.context.set(hasRetried, true),
-            setHeaders: { Authorization: `Bearer ${refreshedToken}` },
-          }));
-        }),
-        catchError((refreshError: unknown) => {
-          auth.logout();
-          void router.navigate(['/login'], {
-            queryParams: { returnUrl: router.url },
-          });
-          return throwError(() => refreshError);
-        }),
-      );
+      return refreshAndSend();
     }),
   );
 };
