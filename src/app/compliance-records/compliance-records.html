@@ -22,17 +22,17 @@
         <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
           TOTAL RECORDS
         </p>
-        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-white">{{ allRecords().length }}</p>
+        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-white">{{ totalRecords() }}</p>
       </div>
       <div class="compliance-stat bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex flex-col gap-1">
         <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
-          ACCEPTED ORDERS
+          TRADING VOLUME ROWS
         </p>
         <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-[#10b981]">{{ getAcceptedCount() }}</p>
       </div>
       <div class="compliance-stat bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex flex-col gap-1">
         <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
-          TOTAL CASH IMPACT
+          EST. CASH IMPACT (PRICED ROWS)
         </p>
         <p class="font-['Geist_Mono:Bold'] font-bold text-[22px]" [ngClass]="getTotalCashImpact() >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'">
           {{ getTotalCashImpact() >= 0 ? "+" : "" }}{{ '$' + (getTotalCashImpact() | number: '1.2-2') }}
@@ -40,9 +40,9 @@
       </div>
       <div class="compliance-stat bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex flex-col gap-1">
         <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[11px]" style="font-variation-settings: 'wdth' 100">
-          IMMUTABLE RECORDS
+          TOTAL PAGES
         </p>
-        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-[#10b981]">✓ {{ allRecords().length }}</p>
+        <p class="font-['Geist_Mono:Bold'] font-bold text-[22px] text-[#10b981]">{{ totalPages() }}</p>
       </div>
     </div>
 
@@ -51,7 +51,7 @@
       <div class="records-panel-header border-b border-[#1e252b] flex items-center px-4 py-3 gap-3 shrink-0">
         <img alt="" class="size-4" [src]="imgFileText" />
         <p class="font-['Instrument_Sans:SemiBold'] font-semibold text-[14px] text-white" style="font-variation-settings: 'wdth' 100">
-          ACCEPTED ORDER RECORDS
+          TRADING VOLUME RECORDS
         </p>
         <div class="bg-[#1e252b] px-2 py-1 rounded-full ml-auto">
           <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] text-[11px]">
@@ -64,14 +64,15 @@
       <div class="records-table-header bg-[#11161b] flex items-center px-4 py-2.5 font-['Instrument_Sans:SemiBold'] font-semibold text-[#64748b] text-[10px] shrink-0 border-b border-[#1e252b]" style="font-variation-settings: 'wdth' 100">
         <span class="w-[120px]">ORDER REF</span>
         <span class="w-[150px]">CLIENT</span>
-        <span class="w-[100px]">TIMESTAMP</span>
+        <span class="w-[150px]">TIME PLACED</span>
+        <span class="w-[150px]">TIME EXECUTED</span>
         <span class="w-[80px]">SYMBOL</span>
-        <span class="w-[60px] text-right">SIDE</span>
+        <span class="w-[60px] text-center">SIDE</span>
         <span class="w-[70px] text-right">QTY</span>
-        <span class="w-[80px] text-right">EXEC PRICE</span>
-        <span class="cash-impact-column w-[100px] text-right">CASH IMPACT</span>
+        <span class="w-[80px] text-right">LIMIT PRICE</span>
         <span class="status-column w-[120px] text-center">STATUS</span>
-        <span class="audit-hash-column w-[220px] shrink-0 text-center">AUDIT HASH</span>
+        <span class="w-[90px] text-left">EXECUTION PRICE</span>
+        <span class="cash-impact-column w-[100px] text-right">EST. CASH IMPACT</span>
       </div>
 
       <!-- Table Body -->
@@ -82,27 +83,23 @@
             [ngClass]="idx % 2 === 0 ? 'bg-[#11161b]' : 'bg-[#080b0d]'"
           >
             <p class="font-['Geist_Mono:Bold'] font-bold text-white w-[120px] truncate" title="{{ record.orderReference }}">
-              {{ record.orderReference.substring(0, 12) }}...
+              {{ record.orderReference.substring(0, 12) }}
             </p>
             <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] w-[150px] truncate" style="font-variation-settings: 'wdth' 100">
               {{ record.clientName }}
             </p>
-            <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] w-[100px]">
-              {{ record.timestamp | date: 'MM/dd HH:mm' }}
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] w-[150px]">
+              {{ record.placementTime | date: 'MM/dd HH:mm:ss.SSS' }}
+            </p>
+            <p class="font-['Geist_Mono:Regular'] font-normal text-[#94a3b8] w-[150px]">
+              {{ record.executionTime | date: 'MM/dd HH:mm:ss.SSS' }}
             </p>
             <p class="font-['Geist_Mono:Bold'] font-bold text-white w-[80px]">
               {{ record.orderDecision.symbol }}
             </p>
-            <div class="w-[60px] text-right">
+            <div class="w-[60px] text-center">
               <span
-                class="status-badge px-2 py-1 rounded text-[10px] font-semibold inline-block"
-                [ngClass]="
-                  record.orderDecision.side === 'BUY'
-                    ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]'
-                    : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
-                "
-                [class.side-buy-badge]="record.orderDecision.side === 'BUY'"
-                [class.side-sell-badge]="record.orderDecision.side === 'SELL'"
+                class="side-badge text-[10px] font-semibold text-[#94a3b8]"
               >
                 {{ record.orderDecision.side }}
               </span>
@@ -110,33 +107,43 @@
             <p class="font-['Geist_Mono:Regular'] font-normal text-white w-[70px] text-right">
               {{ record.executionResult.executedQuantity }}
             </p>
-            <p class="font-['Geist_Mono:Regular'] font-normal text-white w-[80px] text-right">
-              {{ '$' + record.executionResult.executedPrice.toFixed(2) }}
-            </p>
             <p
-              class="cash-impact-column font-['Geist_Mono:SemiBold'] font-semibold w-[100px] text-right"
-              [ngClass]="record.cashAndHoldingChange.cashImpact >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'"
+              class="font-['Geist_Mono:Regular'] font-normal text-white w-[80px] text-right"
+              [class.limit-price-na]="record.orderDecision.limitPrice === undefined || record.orderDecision.limitPrice === 0"
             >
-              {{ record.cashAndHoldingChange.cashImpact >= 0 ? "+" : "" }}{{ '$' + (record.cashAndHoldingChange.cashImpact | number: '1.2-2') }}
+              {{ record.orderDecision.limitPrice === undefined || record.orderDecision.limitPrice === 0 ? "N/A" : ('$' + record.orderDecision.limitPrice.toFixed(4)) }}
             </p>
             <div class="status-column w-[120px] text-center">
               <span
                 class="status-badge px-2 py-1 rounded text-[10px] font-semibold inline-block"
                 [ngClass]="
-                  record.executionResult.status === 'FILLED'
+                    record.executionResult.status === 'EXECUTED'
                     ? 'bg-[rgba(16,185,129,0.1)] text-[#10b981]'
-                    : record.executionResult.status === 'PARTIALLY_FILLED'
+                      : record.executionResult.status === 'PENDING'
                       ? 'bg-[rgba(245,158,11,0.1)] text-[#fbbf24]'
+                      : record.executionResult.status === 'CANCELLED'
+                      ? 'bg-[rgba(100,116,139,0.1)] text-[#94a3b8]'
                       : 'bg-[rgba(239,68,68,0.1)] text-[#ef4444]'
                 "
-                        [class.status-partially-filled]="record.executionResult.status === 'PARTIALLY_FILLED'"
-                        [class.status-rejected]="record.executionResult.status === 'REJECTED'"
+                [class.status-rejected]="record.executionResult.status === 'REJECTED'"
+                [class.status-pending]="record.executionResult.status === 'PENDING'"
+                [class.status-cancelled]="record.executionResult.status === 'CANCELLED'"
               >
                 {{ record.executionResult.status }}
               </span>
             </div>
-            <p class="audit-hash-column font-['Geist_Mono:Regular'] font-normal text-[#3e8914] w-[220px] shrink-0 text-center truncate text-[10px]" title="{{ record.immutableHash }}">
-              {{ record.immutableHash }}
+            <p
+              class="font-['Geist_Mono:Regular'] font-normal text-white w-[90px] text-left"
+              [class.execution-price-na]="record.pricingDecision.executionPrice === null || record.pricingDecision.executionPrice === 0"
+            >
+              {{ record.pricingDecision.executionPrice === null || record.pricingDecision.executionPrice === 0 ? "N/A" : ('$' + record.pricingDecision.executionPrice.toFixed(4)) }}
+            </p>
+            <p
+              class="cash-impact-column font-['Geist_Mono:SemiBold'] font-semibold w-[100px] text-right"
+              [ngClass]="(record.cashAndHoldingChange.cashImpact ?? 0) >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'"
+              [class.cash-impact-na]="isCashImpactUnavailable(record)"
+            >
+              {{ (record.cashAndHoldingChange.cashImpact ?? 0) >= 0 ? "+" : "" }}${{ (record.cashAndHoldingChange.cashImpact ?? 0) | number: '1.2-2' }}
             </p>
           </div>
         }
@@ -147,7 +154,7 @@
     <div class="compliance-pagination bg-[#11161b] border border-[#1e252b] rounded-[8px] p-4 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <p class="font-['Instrument_Sans:Regular'] font-normal text-[#94a3b8] text-[12px]" style="font-variation-settings: 'wdth' 100">
-          Showing {{ (currentPage() - 1) * 20 + 1 }} to {{ Math.min(currentPage() * 20, allRecords().length) }} of {{ allRecords().length }} records
+          Showing {{ totalRecords() === 0 ? 0 : (currentPage() - 1) * 20 + 1 }} to {{ Math.min(currentPage() * 20, totalRecords()) }} of {{ totalRecords() }} records
         </p>
       </div>
       <div class="flex gap-2 items-center">
@@ -176,10 +183,10 @@
     </div>
 
     <!-- Footer Note -->
-    <div class="compliance-note bg-[#161d24] border border-[#1e252b] rounded-[8px] p-4 text-center">
+    <!-- <div class="compliance-note bg-[#161d24] border border-[#1e252b] rounded-[8px] p-4 text-center">
       <p class="font-['Instrument_Sans:Regular'] font-normal text-[#64748b] text-[12px]" style="font-variation-settings: 'wdth' 100">
-        All records are immutable and permanently recorded.
+        Records are loaded from the trading volume staging data.
       </p>
-    </div>
+    </div> -->
   </div>
 </div>

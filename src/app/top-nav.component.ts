@@ -148,6 +148,13 @@ const assetPathPrefix = "/assets";
               <div class="mx-2 my-1 h-px bg-[#1e252b]"></div>
               <button
                 type="button"
+                (click)="goToOrderHistory()"
+                class="w-full px-3 py-2 text-left font-['Instrument_Sans'] text-[13px] text-white hover:bg-[#1e252b] transition-colors" style="font-family: 'Instrument Sans', system-ui, sans-serif"
+              >
+                Order history
+              </button>
+              <button
+                type="button"
                 (click)="logout()"
                 class="w-full px-3 py-2 text-left font-['Instrument_Sans'] text-[13px] text-red-500 hover:bg-[#1e252b] transition-colors" style="font-family: 'Instrument Sans', system-ui, sans-serif"
               >
@@ -243,6 +250,11 @@ export class TopNavComponent implements OnInit, OnDestroy {
 
   protected togglePowerView(): void {
     this.themeService.togglePowerView();
+  }
+
+  protected goToOrderHistory(): void {
+    this.isMenuOpen.set(false);
+    this.router.navigateByUrl('/transaction-history');
   }
 
   protected logout(): void {

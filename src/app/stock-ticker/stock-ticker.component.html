@@ -47,6 +47,7 @@
     </div>
 
     <app-watchlist
+      #watchlist
       [accountId]="accountId"
       [allPrices]="allPrices()"
       [isSelectable]="true"
@@ -65,12 +66,19 @@
     <div class="chart-widget">
       <div class="chart-header">
         <div class="chart-left">
-          <span class="chart-title">{{ stockSymbol() }}</span>
-          <span class="chart-desc">{{ stockName() }} — Stock price over time</span>
-          <span class="chart-system-time">{{ formatSystemTime(systemTime()) }}</span>
-          <span class="chart-range-pill">{{ activeRange() }}</span>
+          <div class="chart-identity">
+            <span class="chart-title">{{ stockSymbol() }}</span>
+            <span class="chart-desc">{{ stockName() }} — Stock price over time</span>
+            <span class="chart-system-time">{{ formatSystemTime(systemTime()) }}</span>
+            <span class="chart-range-pill">{{ activeRange() }}</span>
+          </div>
+          <button
+            type="button"
+            class="chart-watchlist-btn"
+            [class.chart-watchlist-btn-remove]="watchlistSymbols().includes(stockSymbol())"
+            (click)="watchlistSymbols().includes(stockSymbol()) ? watchlist.removeWatchlistItem(stockSymbol()) : watchlist.addWatchlistItem(stockSymbol(), stockName())"
+          >{{ watchlistSymbols().includes(stockSymbol()) ? '− Remove from watchlist' : '+ Add to watchlist' }}</button>
         </div>
-        <div class="chart-right">
           <!-- Range filters -->
           <div class="range-tabs">
             <button
@@ -95,7 +103,6 @@
               <span class="chart-period">{{ activeRange() === '1D' ? 'TODAY' : 'OVER ' + activeRange() }}</span>
             </div>
           </div>
-        </div>
       </div>
 
       <div class="chart-body">
@@ -241,7 +248,8 @@
                 [value]="formatPrice(orderPrice())"
                 placeholder="-"
                 (input)="setOrderPrice(+$any($event.target).value || 0)"
-                step="0.01"
+                min="0.0001"
+                step="0.0001"
                 [disabled]="orderType() === 'MARKET'"
               />
               <span class="price-suffix">$</span>

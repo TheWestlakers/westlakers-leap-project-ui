@@ -131,16 +131,16 @@ export class WatchlistComponent implements OnInit, OnDestroy {
     this.emitWatchlistSymbols();
   }
 
-  addWatchlistItem(): void {
-    const sym = (this.selectedInstrument?.ticker ?? this.newSymbol).trim().toUpperCase();
-    if (!sym) return;
+  addWatchlistItem(symbol?: string, name?: string): void {
+    const sym = (symbol ?? this.selectedInstrument?.ticker ?? this.newSymbol).trim().toUpperCase();
+    if (!sym || this.watchlist().some(item => item.symbol === sym)) return;
     const price   = Math.round((100 + Math.random() * 400) * 100) / 100;
     const change  = Math.round((Math.random() * 6 - 3) * 100) / 100;
     const keys    = Object.keys(SPARKLINE_PATHS) as WatchlistItem['sparkKey'][];
     const sparkKey = keys[Math.floor(Math.random() * keys.length)];
     this.watchlist.update(list => [
       ...list,
-      { symbol: sym, name: this.selectedInstrument?.name ?? (this.newName.trim() || sym), price, change, positive: change >= 0, sparkKey },
+      { symbol: sym, name: name ?? this.selectedInstrument?.name ?? (this.newName.trim() || sym), price, change, positive: change >= 0, sparkKey },
     ]);
     this.emitWatchlistSymbols();
     this.newSymbol = '';

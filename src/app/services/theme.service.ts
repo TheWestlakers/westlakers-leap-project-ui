@@ -16,6 +16,7 @@ export class ThemeService {
     effect(() => {
       this.document.documentElement.classList.toggle('lebron-mode', this.isLebronMode());
     });
+    this.syncDocumentTheme();
   }
 
   toggleTheme(): void {
@@ -25,6 +26,7 @@ export class ThemeService {
   setDarkMode(isDark: boolean): void {
     this.isDarkMode.set(isDark);
     this.saveThemePreference(isDark);
+    this.syncDocumentTheme();
     // Lebron mode is a dark-based palette, so switching to light turns it off
     if (!isDark && this.isLebronMode()) {
       this.setLebronMode(false);
@@ -62,6 +64,13 @@ export class ThemeService {
       return; // Can't save on server
     }
     localStorage.setItem('paysprint-theme-dark', isDark.toString());
+  }
+
+  private syncDocumentTheme(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    document.documentElement.classList.toggle('light-theme', !this.isDarkMode());
   }
 
   private loadPowerViewPreference(): boolean {
