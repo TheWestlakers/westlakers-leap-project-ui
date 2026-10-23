@@ -111,9 +111,10 @@ html.lebron-mode .top-nav-container {
   border-bottom: 2px solid var(--lal-gold) !important;
 }
 
-/* Admin dashboard "View all" buttons: gold outline at rest, green on hover */
+/* Admin dashboard "View all" buttons: gold with dark text at rest, green on hover */
 html.lebron-mode .view-all-btn:not(:hover) {
   border-color: var(--lal-gold) !important;
+  color: var(--lal-on-gold) !important;
 }
 
 :root {
