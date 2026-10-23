@@ -1,5 +1,10 @@
 <!-- TOP NAV -->
-<app-top-nav [netLiqValue]="netLiqValue" />
+<app-top-nav [netLiqValue]="netLiqValue()" [showPowerView]="true" />
+
+<!-- SUB NAV -->
+<div class="sub-nav">
+  <a class="sub-nav-back" routerLink="/portfolio">← DASHBOARD</a>
+</div>
 
 <!-- PAGE CONTENT -->
 <div class="page-content">
@@ -8,41 +13,49 @@
   <div class="page-header-row">
     <div class="page-title-group">
       <h1 class="page-title">Order &amp; Transaction History</h1>
-      <span class="secure-badge">SECURE</span>
-    </div>
-    <div class="tab-group">
-      <button
-        *ngFor="let tab of ['Transactions', 'Open Orders', 'Statements']"
-        class="tab-btn"
-        [class.tab-active]="activeTab() === tab"
-        (click)="activeTab.set($any(tab))"
-      >
-        {{ tab }}
-      </button>
     </div>
   </div>
 
   <!-- SUMMARY CARDS -->
   <div class="summary-cards">
     <div class="summary-card">
-      <p class="summary-label">TOTAL TRADES (30D)</p>
+      <p class="summary-label">TOTAL TRADES ({{ periodLabel() }})</p>
       <div class="summary-value-row">
-        <span class="summary-value">{{ totalTrades }} Trades</span>
-        <span class="summary-change positive">{{ tradeChangePct }} vs prev.</span>
+        <span class="summary-value">{{ totalTrades() }} {{ totalTrades() === 1 ? 'Trade' : 'Trades' }}</span>
+        <span
+          *ngIf="tradeChangePct() !== null"
+          class="summary-change"
+          [class.positive]="tradeChangePct()! >= 0"
+          [class.negative]="tradeChangePct()! < 0"
+        >{{ formatSignedPct(tradeChangePct()!) }} vs prev.</span>
       </div>
     </div>
     <div class="summary-card">
-      <p class="summary-label">TOTAL VOLUME</p>
+      <p class="summary-label">TOTAL VOLUME ({{ periodLabel() }})</p>
       <div class="summary-value-row">
-        <span class="summary-value">${{ totalVolume | number:'1.2-2' }}</span>
-        <span class="summary-change negative">{{ volumeChange }} vs prev.</span>
+        <span class="summary-value">${{ totalVolume() | number:'1.2-2' }}</span>
+        <span
+          *ngIf="volumeChange() !== null"
+          class="summary-change"
+          [class.positive]="volumeChange()! >= 0"
+          [class.negative]="volumeChange()! < 0"
+        >{{ formatSignedCurrency(volumeChange()!) }} vs prev.</span>
       </div>
     </div>
     <div class="summary-card">
-      <p class="summary-label">REALIZED P&amp;L</p>
+      <p class="summary-label">REALIZED P&amp;L ({{ periodLabel() }})</p>
       <div class="summary-value-row">
-        <span class="summary-value positive-value">+${{ realizedPnl | number:'1.2-2' }}</span>
-        <span class="summary-change positive">{{ pnlYield }} yield</span>
+        <span
+          class="summary-value"
+          [class.positive-value]="realizedPnl() >= 0"
+          [class.negative-value]="realizedPnl() < 0"
+        >{{ realizedPnl() >= 0 ? '+' : '-' }}${{ (realizedPnl() < 0 ? -realizedPnl() : realizedPnl()) | number:'1.2-2' }}</span>
+        <span
+          *ngIf="pnlYield() !== null"
+          class="summary-change"
+          [class.positive]="pnlYield()! >= 0"
+          [class.negative]="pnlYield()! < 0"
+        >{{ formatSignedPct(pnlYield()!) }} yield</span>
       </div>
     </div>
   </div>
@@ -66,18 +79,18 @@
         [value]="dateRange()"
         (change)="onDateRangeChange($any($event.target).value)"
       >
-        <option *ngFor="let opt of dateRangeOptions" [value]="opt">{{ opt }}</option>
+        <option *ngFor="let opt of dateRangeOptions" [value]="opt" [selected]="opt === dateRange()">{{ opt }}</option>
       </select>
     </div>
 
     <div class="filter-select-group">
-      <label class="filter-label">Type:</label>
+      <label class="filter-label">Order Type:</label>
       <select
         class="filter-select"
-        [value]="assetType()"
-        (change)="onAssetTypeChange($any($event.target).value)"
+        [value]="orderType()"
+        (change)="onOrderTypeChange($any($event.target).value)"
       >
-        <option *ngFor="let opt of assetTypeOptions" [value]="opt">{{ opt }}</option>
+        <option *ngFor="let opt of orderTypeOptions" [value]="opt" [selected]="opt === orderType()">{{ opt }}</option>
       </select>
     </div>
 
@@ -88,13 +101,13 @@
         [value]="statusFilter()"
         (change)="onStatusChange($any($event.target).value)"
       >
-        <option *ngFor="let opt of statusOptions" [value]="opt">{{ opt }}</option>
+        <option *ngFor="let opt of statusOptions" [value]="opt" [selected]="opt === statusFilter()">{{ opt }}</option>
       </select>
     </div>
 
     <div class="filter-spacer"></div>
 
-    <button class="export-btn" (click)="exportCsv()">
+    <button class="export-btn" (click)="exportCsv()" [disabled]="filteredTransactions().length === 0">
       <span class="export-dot">●</span>
       Export CSV
     </button>
@@ -105,40 +118,60 @@
     <table class="tx-table">
       <thead>
         <tr>
-          <th>DATE &amp; TIME</th>
+          <th>PLACED AT</th>
+          <th>EXECUTED AT</th>
           <th>SYMBOL</th>
-          <th>TYPE</th>
+          <th>ORDER TYPE</th>
           <th>SIDE</th>
           <th class="col-right">QTY</th>
           <th class="col-right">PRICE</th>
           <th class="col-right">TOTAL AMOUNT</th>
-          <th class="col-right">FEES</th>
           <th class="col-right">STATUS</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let tx of pagedTransactions" class="tx-row">
-          <td class="col-datetime">
-            <span class="tx-date">{{ tx.date }}</span>
-            <span class="tx-time">{{ tx.time }}</span>
-          </td>
-          <td class="tx-symbol">{{ tx.symbol }}</td>
-          <td class="tx-type">{{ tx.type }}</td>
-          <td>
-            <span class="side-pill" [ngClass]="sideClass(tx.side)">{{ tx.side }}</span>
-          </td>
-          <td class="col-right tx-mono">{{ tx.qty !== null ? tx.qty : '–' }}</td>
-          <td class="col-right tx-mono">{{ tx.price !== null ? ('$' + tx.price.toFixed(2)) : '–' }}</td>
-          <td class="col-right tx-mono" [ngClass]="amountClass(tx.totalAmount)">
-            {{ formatAmount(tx.totalAmount) }}
-          </td>
-          <td class="col-right tx-mono fees-cell">{{ formatFees(tx.fees) }}</td>
-          <td class="col-right">
-            <span class="status-pill" [ngClass]="statusClass(tx.status)">{{ tx.status }}</span>
+        <ng-container *ngIf="!isLoading() && !loadError()">
+          <tr *ngFor="let tx of pagedTransactions(); trackBy: trackByOrderId" class="tx-row">
+            <td>
+              <div class="col-datetime">
+                <span class="tx-date">{{ tx.placedDate }}</span>
+                <span class="tx-time">{{ tx.placedTime }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="col-datetime">
+                <span class="tx-date">{{ tx.executedDate }}</span>
+                <span class="tx-time">{{ tx.executedTime }}</span>
+              </div>
+            </td>
+            <td class="tx-symbol" [title]="tx.name">{{ tx.symbol }}</td>
+            <td class="tx-type">{{ tx.orderType }}</td>
+            <td>
+              <span class="side-pill" [ngClass]="sideClass(tx.side)">{{ tx.side }}</span>
+            </td>
+            <td class="col-right tx-mono">{{ tx.qty | number:'1.0-4' }}</td>
+            <td class="col-right tx-mono">{{ formatPrice(tx.price, tx.orderType) }}</td>
+            <td class="col-right tx-mono" [ngClass]="amountClass(tx.totalAmount)">
+              {{ formatAmount(tx.totalAmount) }}
+            </td>
+            <td class="col-right">
+              <span class="status-pill" [ngClass]="statusClass(tx.status)">{{ tx.status }}</span>
+            </td>
+          </tr>
+        </ng-container>
+        <tr *ngIf="isLoading()">
+          <td colspan="9" class="empty-row">Loading order history…</td>
+        </tr>
+        <tr *ngIf="!isLoading() && loadError()">
+          <td colspan="9" class="empty-row">
+            {{ loadError() }}
+            <button class="page-btn retry-btn" (click)="loadOrders()">Retry</button>
           </td>
         </tr>
-        <tr *ngIf="pagedTransactions.length === 0">
-          <td colspan="9" class="empty-row">No transactions match your filters.</td>
+        <tr *ngIf="!isLoading() && !loadError() && pagedTransactions().length === 0">
+          <td colspan="9" class="empty-row">
+            {{ transactions().length === 0 ? 'You have not placed any orders yet.' : 'No transactions match your filters.' }}
+          </td>
         </tr>
       </tbody>
     </table>
@@ -147,12 +180,12 @@
   <!-- PAGINATION -->
   <div class="pagination-row">
     <span class="pagination-info">
-      Showing <strong>{{ (currentPage() - 1) * 8 + 1 }}–{{ minOf(currentPage() * 8, filteredTransactions.length) }}</strong>
-      of <strong>{{ filteredTransactions.length }}</strong> transactions
+      Showing <strong>{{ showingStart() }}–{{ showingEnd() }}</strong>
+      of <strong>{{ filteredTransactions().length }}</strong> transactions
     </span>
     <div class="pagination-controls">
       <button class="page-btn" [disabled]="currentPage() === 1" (click)="prevPage()">Previous</button>
-      <ng-container *ngFor="let p of pageNumbers">
+      <ng-container *ngFor="let p of pageNumbers()">
         <button
           *ngIf="p !== '...'"
           class="page-btn page-num"
@@ -161,7 +194,7 @@
         >{{ p }}</button>
         <span *ngIf="p === '...'" class="page-ellipsis">...</span>
       </ng-container>
-      <button class="page-btn" [disabled]="currentPage() === totalPages" (click)="nextPage()">Next</button>
+      <button class="page-btn" [disabled]="currentPage() === totalPages()" (click)="nextPage()">Next</button>
     </div>
   </div>
 
