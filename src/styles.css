@@ -107,6 +107,12 @@ html.lebron-mode .top-nav-container {
   background-color: var(--lal-purple-500) !important;
   border-bottom: 2px solid var(--lal-gold) !important;
 }
+
+/* Admin dashboard "View all" buttons: gold outline at rest, green on hover */
+html.lebron-mode .view-all-btn:not(:hover) {
+  border-color: var(--lal-gold) !important;
+}
+
 :root {
 	--app-scrollbar-track: #050607;
 	--app-scrollbar-thumb: #252b31;
