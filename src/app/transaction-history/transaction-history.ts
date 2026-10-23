@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, PLATFORM_ID, computed, signal, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap, takeUntil } from 'rxjs/operators';
 import { TopNavComponent } from '../top-nav.component';
@@ -58,7 +59,7 @@ interface Period {
 @Component({
   selector: 'app-transaction-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopNavComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent],
   templateUrl: './transaction-history.component.html',
   styleUrls: ['./transaction-history.component.css'],
   host: { '[class.light-theme]': '!themeService.isDarkMode()' }
