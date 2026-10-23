@@ -73,6 +73,10 @@ export class TradeService {
     });
   }
 
+  createInstrument(instrument: Omit<Instrument, 'instrumentId'>): Observable<Instrument> {
+    return this.http.post<Instrument>(`${this.apiUrl}/instruments`, instrument);
+  }
+
   createMarketTrade(request: MarketOrderRequest): Observable<TradeExecutionResponse> {
     return this.http.post<TradeExecutionResponse>(`${this.apiUrl}/trades/market`, request);
   }
