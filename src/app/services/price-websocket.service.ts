@@ -5,6 +5,7 @@ import { Subject, Observable } from 'rxjs';
 export interface PriceUpdate {
   type: string;
   ticker?: string;
+  tickers?: string[];
   data?: any;
   timestamp?: number;
   message?: string;

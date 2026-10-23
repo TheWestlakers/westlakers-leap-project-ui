@@ -17,7 +17,7 @@ import { PriceHistoryPoint, StockDataService, StockPrice } from '../services/sto
 import { PriceWebsocketService, PriceUpdate } from '../services/price-websocket.service';
 import { TradeService } from '../services/trade.service';
 import { Subject, concatMap, interval, timer } from 'rxjs';
-import { switchMap, takeUntil } from 'rxjs/operators';
+import { catchError, switchMap, takeUntil } from 'rxjs/operators';
 
 interface ChartPoint {
   price: number;
@@ -233,6 +233,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   private clientId = '';
   private focusedTransientTicker: string | null = null;
   private websocketSymbols = new Set<string>();
+  private readonly pendingInstrumentRegistration = new Set<string>();
 
   /* ── Account ── */
   get accountSummary() {
@@ -390,6 +391,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     if (initialTicker) {
       this.selectedTicker.set(initialTicker);
       this.orderSymbol.set(initialTicker);
+      this.pendingInstrumentRegistration.add(initialTicker);
 
       if (isPlatformBrowser(this.platformId) && !this.watchlistSymbols().includes(initialTicker)) {
         this.focusedTransientTicker = initialTicker;
@@ -631,11 +633,11 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     }
 
     this.focusedTransientTicker = symbol;
+    this.pendingInstrumentRegistration.add(symbol);
+    this.selectTicker(symbol);
     this.stockDataService.focusTicker(this.clientId, symbol)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.selectTicker(symbol);
-      });
+      .subscribe({ error: error => console.error(`Error focusing ${symbol}:`, error) });
 
     this.symbolLookup = '';
   }
@@ -679,6 +681,9 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   private applyPriceUpdate(update: PriceUpdate): void {
     if (update.type === 'subscription_confirmed') {
       this.isLoadingPrices.set(false);
+      for (const ticker of update.tickers ?? []) {
+        this.registerFocusedInstrument(ticker);
+      }
       return;
     }
 
@@ -704,6 +709,37 @@ export class StockTickerComponent implements OnInit, OnDestroy {
         (this.orderType() === 'MARKET' || shouldSetInitialLimitPrice)) {
       this.orderPrice.set(Number(price.currentPrice));
     }
+  }
+
+  private registerFocusedInstrument(ticker: string): void {
+    const normalizedTicker = ticker.trim().toUpperCase();
+    if (!this.pendingInstrumentRegistration.delete(normalizedTicker)) {
+      return;
+    }
+
+    this.tradeService.getInstrumentByTicker(normalizedTicker).pipe(
+      catchError(() => this.tradeService.createInstrument({
+        marketId: this.marketIdForTicker(normalizedTicker),
+        assetClassId: this.assetClassIdForTicker(normalizedTicker),
+        ticker: normalizedTicker,
+        name: normalizedTicker,
+      })),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      error: error => console.error(`Error registering ${normalizedTicker}:`, error),
+    });
+  }
+
+  private marketIdForTicker(ticker: string): number {
+    if (ticker.endsWith('=X') || ticker.includes('/')) return 5;
+    if (/(?:-USD|-USDT|-USDC)$/.test(ticker)) return 6;
+    return 2;
+  }
+
+  private assetClassIdForTicker(ticker: string): number {
+    if (ticker.endsWith('=X') || ticker.includes('/')) return 2;
+    if (/(?:-USD|-USDT|-USDC)$/.test(ticker)) return 3;
+    return 1;
   }
 
   private mergeLiveChartPoint(price: number, timestamp: string): void {
