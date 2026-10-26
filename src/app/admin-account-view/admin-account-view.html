@@ -1,0 +1,179 @@
+<app-top-nav />
+
+<main class="admin-account-page">
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow">ADMIN OPERATIONS</p>
+      <h1>Account viewer</h1>
+      <p class="page-description">Inspect a customer account without entering a trading session.</p>
+    </div>
+  </header>
+
+  <section class="account-toolbar" aria-label="Account controls">
+    <div class="selector-field">
+      <label for="account-select">ACCOUNT</label>
+      <select
+        id="account-select"
+        [ngModel]="selectedAccountId()"
+        (ngModelChange)="selectAccount($event)"
+        [disabled]="isLoadingDirectory()"
+      >
+        <option [ngValue]="null">Select an account</option>
+        <option *ngFor="let option of accountOptions()" [ngValue]="option.account.accountId">
+          {{ accountName(option) }}
+        </option>
+      </select>
+    </div>
+
+    <div *ngIf="selectedAccount() as account" class="account-toolbar-right">
+      <div class="account-identity">
+        <span class="identity-name">{{ selectedUser()?.firstName }} {{ selectedUser()?.lastName }}</span>
+        <span class="identity-meta">ACCOUNT #{{ account.accountId }} · USER #{{ account.userId }}</span>
+      </div>
+      <span class="status-pill" [class.status-frozen]="account.statusName === 'FROZEN'">
+        {{ account.statusName }}
+      </span>
+      <button
+        type="button"
+        class="freeze-button"
+        [class.unfreeze-button]="account.statusName === 'FROZEN'"
+        [disabled]="isUpdatingStatus()"
+        (click)="toggleFreeze()"
+      >
+        {{ isUpdatingStatus() ? 'UPDATING...' : account.statusName === 'FROZEN' ? 'UNFREEZE TRADING' : 'FREEZE TRADING' }}
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="isLoadingDirectory()" class="empty-state">Loading account directory...</div>
+  <div *ngIf="loadError()" class="error-banner">{{ loadError() }}</div>
+
+  <ng-container *ngIf="selectedAccount() as account">
+    <section class="account-summary">
+      <div class="summary-heading">
+        <div>
+          <span class="eyebrow">READ-ONLY SNAPSHOT</span>
+          <h2>{{ selectedUser()?.firstName }} {{ selectedUser()?.lastName }}</h2>
+        </div>
+        <span class="read-only-label">VIEW ONLY</span>
+      </div>
+      <div class="metric-grid">
+        <div class="metric">
+          <span>NET ACCOUNT VALUE</span>
+          <strong>${{ formatCurrency(summary().totalAccountValue) }}</strong>
+        </div>
+        <div class="metric">
+          <span>SETTLED CASH</span>
+          <strong>${{ formatCurrency(summary().settledCash) }}</strong>
+        </div>
+        <div class="metric">
+          <span>EQUITY VALUE</span>
+          <strong>${{ formatCurrency(summary().holdingsValue) }}</strong>
+        </div>
+        <div class="metric">
+          <span>ACCOUNT STATUS</span>
+          <strong [class.metric-frozen]="account.statusName === 'FROZEN'">{{ account.statusName }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <div *ngIf="isLoadingAccount()" class="empty-state">Loading account data...</div>
+
+    <section *ngIf="!isLoadingAccount()" class="account-grid">
+      <article class="panel positions-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">PORTFOLIO</span>
+            <h2>Open positions</h2>
+          </div>
+          <span class="count-label">{{ holdings().length }} ACTIVE</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>SYMBOL</th>
+                <th class="numeric">SHARES</th>
+                <th class="numeric">AVG COST</th>
+                <th class="numeric">LAST PRICE</th>
+                <th class="numeric">MARKET VALUE</th>
+                <th class="numeric">UNREALIZED P&amp;L</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let holding of holdings()">
+                <td><strong>{{ holding.symbol }}</strong><small>{{ holding.name }}</small></td>
+                <td class="numeric">{{ holding.shares }}</td>
+                <td class="numeric">${{ formatCurrency(holding.avgCost) }}</td>
+                <td class="numeric">${{ formatCurrency(positionPrice(holding)) }}</td>
+                <td class="numeric">${{ formatCurrency(positionValue(holding)) }}</td>
+                <td class="numeric" [class]="pnlClass(positionPnl(holding))">
+                  {{ positionPnl(holding) >= 0 ? '+' : '' }}${{ formatCurrency(positionPnl(holding)) }}
+                </td>
+              </tr>
+              <tr *ngIf="holdings().length === 0">
+                <td colspan="6" class="table-empty">No open positions.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel watchlist-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">TRACKED INSTRUMENTS</span>
+            <h2>Watchlist</h2>
+          </div>
+          <span class="count-label">{{ watchlist().length }} TICKERS</span>
+        </div>
+        <div class="watchlist-items">
+          <div *ngFor="let ticker of watchlist()" class="watchlist-row">
+            <strong>{{ ticker }}</strong>
+            <span>{{ watchlistPrice(ticker) === null ? '--' : ('$' + formatCurrency(watchlistPrice(ticker)!)) }}</span>
+          </div>
+          <div *ngIf="watchlist().length === 0" class="table-empty">No watchlist instruments.</div>
+        </div>
+      </article>
+
+      <article class="panel orders-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">ACTIVITY</span>
+            <h2>Order history</h2>
+          </div>
+          <span class="count-label">{{ orders().length }} ORDERS</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>DATE</th>
+                <th>SYMBOL</th>
+                <th>SIDE</th>
+                <th>TYPE</th>
+                <th class="numeric">QTY</th>
+                <th class="numeric">PRICE</th>
+                <th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of orders()">
+                <td>{{ formatDate(order.placedAt) }}</td>
+                <td><strong>{{ order.symbol }}</strong><small>{{ order.name }}</small></td>
+                <td [class.buy-side]="order.side === 'BUY'" [class.sell-side]="order.side === 'SELL'">{{ order.side }}</td>
+                <td>{{ order.orderType }}</td>
+                <td class="numeric">{{ order.quantity }}</td>
+                <td class="numeric">{{ orderPrice(order) === null ? '--' : ('$' + formatCurrency(orderPrice(order)!)) }}</td>
+                <td><span class="order-status" [class]="'order-' + order.status.toLowerCase()">{{ order.status }}</span></td>
+              </tr>
+              <tr *ngIf="orders().length === 0">
+                <td colspan="7" class="table-empty">No order history.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+</main>

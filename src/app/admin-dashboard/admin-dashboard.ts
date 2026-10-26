@@ -74,7 +74,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   navItems: NavItem[] = [
     { label: 'Operator Console', icon: 'home', active: true },
-    { label: 'User Accounts', icon: 'people', badge: '24.1k', badgeType: 'count' },
     { label: 'Trade Transactions', icon: 'credit_card' },
     { label: 'Revenue Reports', icon: 'schedule' },
     { label: 'Risk & KYC', icon: 'terminal', badge: '5 alert', badgeType: 'alert' },

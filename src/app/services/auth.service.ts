@@ -11,6 +11,7 @@ export const REFRESH_TOKEN_STORAGE_KEY = 'refreshToken';
 export enum Role {
   Admin = 1,
   User = 2,
+  Analyst = 3,
 }
 
 export interface CurrentUser {
@@ -72,8 +73,13 @@ export class AuthService {
   readonly currentUser = signal<CurrentUser | null>(null);
   readonly activeAccount = computed(() => this.currentUser()?.accounts[0] ?? null);
   readonly isAdmin = computed(() => this.currentUser()?.roleId === Role.Admin);
+  readonly isAnalyst = computed(() => this.currentUser()?.roleId === Role.Analyst);
   /** Landing page for the signed-in user's role. */
-  readonly homeUrl = computed(() => this.isAdmin() ? '/admin-dashboard' : '/portfolio');
+  readonly homeUrl = computed(() => {
+    if (this.isAdmin()) return '/admin-account-view';
+    if (this.isAnalyst()) return '/analyst-dashboard';
+    return '/portfolio';
+  });
   readonly displayName = computed(() => {
     const user = this.currentUser();
     if (!user) return '';

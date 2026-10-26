@@ -359,6 +359,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     this.holdings().find(holding => holding.symbol === this.selectedTicker())?.shares ?? 0
   );
   canSell = computed(() => this.ownedShares() > 0);
+  isAccountFrozen = computed(() => this.accountService.account()?.statusName?.toUpperCase() === 'FROZEN');
   isMarketOpen = computed(() =>
     isWeekdayAndWithinHours(this.systemTime(), marketForTicker(this.selectedTicker()))
   );
@@ -828,6 +829,10 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   submitOrder(): void {
     this.clearOrderError();
     this.clearOrderSuccessTimer();
+    if (this.isAccountFrozen()) {
+      this.showOrderError('Trading is frozen for this account.');
+      return;
+    }
     if (!this.isMarketOpen()) {
       return;
     }
