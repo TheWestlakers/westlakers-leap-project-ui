@@ -3,6 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { TopNavComponent } from '../top-nav.component';
+import { NewsFeedComponent } from '../news-feed.component';
 import { AiAssistantComponent } from './ai-assistant/ai-assistant.component';
 import { TradeHereComponent } from './trade-here/trade-here.component';
 import { WatchlistComponent } from './watchlist/watchlist.component';
@@ -131,7 +132,7 @@ export const SPARKLINE_PATHS: Record<WatchlistItem['sparkKey'], string> = {
 @Component({
   selector: 'app-portfolio-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, AiAssistantComponent, TradeHereComponent, WatchlistComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopNavComponent, NewsFeedComponent, AiAssistantComponent, TradeHereComponent, WatchlistComponent],
   templateUrl: './portfolio-dashboard.component.html',
   styleUrls: ['./portfolio-dashboard.component.css'],
   host: { '[class.light-theme]': '!themeService.isDarkMode()' }
