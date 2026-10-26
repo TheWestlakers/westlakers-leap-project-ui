@@ -1,0 +1,48 @@
+<section class="news-feed" aria-labelledby="market-news-heading">
+  <header class="news-feed-header">
+    <div class="news-feed-title">
+      <span class="news-mark" aria-hidden="true">N</span>
+      <div>
+        <span class="news-eyebrow">MARKET INTELLIGENCE</span>
+        <h2 id="market-news-heading">TOP MARKET NEWS</h2>
+      </div>
+    </div>
+    <span class="news-count">{{ articles().length }} STORIES</span>
+  </header>
+
+  <div *ngIf="isLoading()" class="news-scroller" aria-label="Loading news" aria-busy="true">
+    <div *ngFor="let card of skeletonCards" class="news-card news-card-skeleton" aria-hidden="true">
+      <div class="skeleton-media"></div>
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line skeleton-line-short"></div>
+    </div>
+  </div>
+
+  <div *ngIf="!isLoading() && articles().length > 0" class="news-scroller" aria-label="Top market news stories" tabindex="0">
+    <article *ngFor="let article of articles(); trackBy: trackArticle" class="news-card">
+      <a
+        class="news-card-link"
+        [href]="article.url || '#'"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <div class="news-card-media">
+          <img *ngIf="article.imageUrl" [src]="article.imageUrl" [alt]="article.title" loading="lazy" />
+          <span class="news-media-fallback" aria-hidden="true">NEWS</span>
+        </div>
+        <div class="news-card-body">
+          <div class="news-card-meta">
+            <span>{{ article.sourceName || 'Market Desk' }}</span>
+            <time [attr.datetime]="article.publishedAt">{{ article.publishedAt | date: 'MMM d' }}</time>
+          </div>
+          <h3>{{ article.title }}</h3>
+          <p *ngIf="article.description">{{ article.description }}</p>
+        </div>
+      </a>
+    </article>
+  </div>
+
+  <p *ngIf="!isLoading() && (hasError() || articles().length === 0)" class="news-empty" role="status">
+    {{ hasError() ? 'News is unavailable right now.' : 'No market news is available.' }}
+  </p>
+</section>
