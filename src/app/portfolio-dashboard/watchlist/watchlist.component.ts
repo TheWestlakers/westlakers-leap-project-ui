@@ -46,7 +46,7 @@ export class WatchlistComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.searchQuery$
       .pipe(
-        debounceTime(250),
+        debounceTime(150),
         distinctUntilChanged(),
         switchMap((query) => {
           if (!query) {

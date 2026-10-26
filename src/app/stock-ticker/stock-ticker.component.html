@@ -191,6 +191,11 @@
         <span class="order-ref" style="font-size:14px;color:#fff;font-weight:600">{{ stockSymbol() }}</span>
       </div>
 
+      <div *ngIf="isAccountFrozen()" class="frozen-account-notice" role="status">
+        <strong>ACCOUNT FROZEN</strong>
+        <span>Trading is disabled for this account.</span>
+      </div>
+
       <!-- BUY / SELL tabs -->
       <div class="side-tabs">
         <button
@@ -270,10 +275,11 @@
           class="submit-btn"
           [ngClass]="submitClass"
           (click)="submitOrder()"
-          [disabled]="isSubmittingOrder() || !isMarketOpen()"
-          [style.filter]="!isMarketOpen() ? 'grayscale(1)' : null"
-          [style.opacity]="!isMarketOpen() ? 0.5 : null"
-          [title]="!isMarketOpen() ? 'The market for ' + stockSymbol() + ' is closed' : ''"
+          [class.frozen-order-button]="isAccountFrozen()"
+          [disabled]="isSubmittingOrder() || !isMarketOpen() || isAccountFrozen()"
+          [style.filter]="!isMarketOpen() || isAccountFrozen() ? 'grayscale(1)' : null"
+          [style.opacity]="!isMarketOpen() || isAccountFrozen() ? 0.5 : null"
+          [title]="isAccountFrozen() ? 'Trading is frozen for this account' : !isMarketOpen() ? 'The market for ' + stockSymbol() + ' is closed' : ''"
         >{{ isSubmittingOrder() ? 'SUBMITTING...' : submitLabel }}</button>
 
         <p *ngIf="orderError()" class="order-error">{{ orderError() }}</p>

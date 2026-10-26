@@ -38,4 +38,5 @@ const roleGuard = (role: Role): CanActivateFn => (_route, state) => {
 };
 
 export const adminGuard = roleGuard(Role.Admin);
+export const analystGuard = roleGuard(Role.Analyst);
 export const userGuard = roleGuard(Role.User);

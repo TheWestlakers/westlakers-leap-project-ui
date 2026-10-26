@@ -551,6 +551,25 @@
 .order-title { font-weight: 600; font-size: 14px; letter-spacing: 0.04em; }
 .order-ref   { font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
 
+.frozen-account-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 10px 12px 2px;
+  padding: 9px 10px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.frozen-account-notice strong {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
 /* Side tabs */
 .side-tabs {
   display: flex;
@@ -837,6 +856,7 @@
 .btn-sell      { background: #dc2626; }
 .btn-sell:hover { background: var(--red); }
 .btn-submitted { background: var(--border); color: var(--green); }
+.submit-btn.frozen-order-button { background: var(--border-mid); color: var(--muted); cursor: not-allowed; }
 
 /* ─── AI Assistant Widget ──────────────────────────────── */
 .ai-assistant-widget {
