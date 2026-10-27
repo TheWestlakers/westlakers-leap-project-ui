@@ -109,12 +109,12 @@
             <div class="chart-primary-val">
               <span class="chart-price">${{ formatCurrency(currentValue) }}</span>
               <span class="chart-pct" [class.positive]="isPositive" [class.negative]="!isPositive">
-                {{ pnlPrefix(rangeData.deltaValue) }}{{ rangeData.deltaPct.toFixed(2) }}%
+                {{ pnlPrefix(rangeData().deltaValue) }}{{ rangeData().deltaPct.toFixed(2) }}%
               </span>
             </div>
             <div class="chart-secondary-val">
               <span class="chart-delta" [class.positive]="isPositive" [class.negative]="!isPositive">
-                {{ pnlPrefix(rangeData.deltaValue) }}${{ formatCurrency(Math.abs(rangeData.deltaValue)) }}
+                {{ pnlPrefix(rangeData().deltaValue) }}${{ formatCurrency(Math.abs(rangeData().deltaValue)) }}
               </span>
               <span class="chart-period">{{ activeRange() === '1D' ? 'TODAY' : 'OVER ' + activeRange() }}</span>
             </div>
@@ -124,28 +124,68 @@
 
       <div class="chart-body">
         <div class="chart-y-labels">
-          <span *ngFor="let y of rangeData.yLabels" class="axis-label">{{ y }}</span>
+          <span *ngFor="let y of rangeData().yLabels" class="axis-label">{{ y }}</span>
         </div>
         <div class="chart-svg-wrap">
-          <svg viewBox="0 0 680 200" preserveAspectRatio="none" class="chart-svg">
+          <div class="chart-plot-area">
+          <svg
+            viewBox="0 0 680 200"
+            preserveAspectRatio="none"
+            class="chart-svg"
+            (mouseleave)="hoveredPointIndex.set(null)"
+          >
             <defs>
               <linearGradient id="pgGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   [attr.stop-color]="chartColor" stop-opacity="0.18"/>
                 <stop offset="100%" [attr.stop-color]="chartColor" stop-opacity="0"/>
               </linearGradient>
             </defs>
-            <path [attr.d]="rangeData.fillPath" fill="url(#pgGrad)"/>
+            <path [attr.d]="rangeData().fillPath" fill="url(#pgGrad)"/>
             <path
-              [attr.d]="rangeData.linePath"
+              [attr.d]="rangeData().linePath"
               fill="none"
               [attr.stroke]="chartColor"
               stroke-width="1.5"
               stroke-linejoin="round"
               stroke-linecap="round"
             />
+            <line
+              *ngIf="hoveredChartPoint as point"
+              [attr.x1]="point.x"
+              [attr.x2]="point.x"
+              y1="0"
+              y2="200"
+              class="chart-hover-line"
+            />
+            <rect
+              *ngFor="let point of rangeData().plotPoints; let i = index"
+              [attr.x]="getChartHoverZoneX(i)"
+              [attr.width]="getChartHoverZoneWidth(i)"
+              y="0"
+              height="200"
+              fill="transparent"
+              class="chart-hover-target"
+              (mouseenter)="hoveredPointIndex.set(i)"
+            />
           </svg>
+          <span
+            *ngIf="rangeData().plotPoints.length"
+            class="chart-end-dot-overlay"
+            [style.left.%]="rangeData().plotPoints[rangeData().plotPoints.length - 1].x / 680 * 100"
+            [style.top.%]="rangeData().plotPoints[rangeData().plotPoints.length - 1].y / 200 * 100"
+            [style.background-color]="chartColor"
+          ></span>
+          <div
+            *ngIf="hoveredChartPoint as point"
+            class="chart-tooltip-overlay"
+            [style.left.%]="Math.min(Math.max(point.x, 46), 634) / 680 * 100"
+          >
+            <strong>${{ formatCurrency(point.value) }}</strong>
+            <span>{{ formatTooltipDate(point.timestamp) }}</span>
+          </div>
+          </div>
           <div class="chart-x-labels">
-            <span *ngFor="let x of rangeData.xLabels" class="axis-label">{{ x }}</span>
+            <span *ngFor="let x of rangeData().xLabels" class="axis-label">{{ x }}</span>
           </div>
         </div>
       </div>

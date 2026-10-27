@@ -14,6 +14,7 @@ import { PortfolioValueService } from '../services/portfolio-value.service';
 import { StockDataService, StockPrice } from '../services/stock-data.service';
 import { HoldingService } from '../services/holding.service';
 import { TradeService } from '../services/trade.service';
+import { AccountOrder, OrderService } from '../services/order.service';
 import { PriceUpdate, PriceWebsocketService } from '../services/price-websocket.service';
 import { forkJoin, interval, of, Subject, timer } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
@@ -83,6 +84,20 @@ interface ChartSnapshot {
   value: number;
 }
 
+interface ExecutedTrade {
+  orderId: number;
+  timestamp: number;
+  side: OrderSide;
+  symbol: string;
+  quantity: number;
+  price: number;
+}
+
+interface ChartPlotPoint extends ChartSnapshot {
+  x: number;
+  y: number;
+}
+
 const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; limit: number; refreshMs: number }> = {
   '1D': { period: '1d', interval: '1m', limit: 390, refreshMs: 60_000 },
   '5D': { period: '5d', interval: '15m', limit: 260, refreshMs: 300_000 },
@@ -92,9 +107,19 @@ const RANGE_OPTIONS: Record<PortfolioRange, { period: string; interval: string; 
   '3Y': { period: '3y', interval: '1wk', limit: 260, refreshMs: 3_600_000 },
 };
 
+const RANGE_DURATIONS: Record<PortfolioRange, number> = {
+  '1D': 24 * 60 * 60 * 1000,
+  '5D': 5 * 24 * 60 * 60 * 1000,
+  '1M': 30 * 24 * 60 * 60 * 1000,
+  '6M': 182 * 24 * 60 * 60 * 1000,
+  '1Y': 365 * 24 * 60 * 60 * 1000,
+  '3Y': 3 * 365 * 24 * 60 * 60 * 1000,
+};
+
 interface RangeConfig {
   linePath: string;
   fillPath: string;
+  plotPoints: ChartPlotPoint[];
   xLabels: string[];
   yLabels: string[];
   deltaValue: number;
@@ -149,6 +174,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   private readonly holdingService = inject(HoldingService);
   private readonly authService = inject(AuthService);
   private readonly tradeService = inject(TradeService);
+  private readonly orderService = inject(OrderService);
   private readonly destroy$ = new Subject<void>();
   private readonly websocketSymbols = new Set<string>();
   private readonly positionSymbols = new Set<string>();
@@ -201,26 +227,24 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   readonly RANGES: PortfolioRange[] = ['1D', '5D', '1M', '6M', '1Y', '3Y'];
   activeRange = signal<PortfolioRange>('5D');
   private readonly holdingValueHistory = signal<ChartSnapshot[]>([]);
+  private readonly accountOrders = signal<AccountOrder[]>([]);
+  hoveredPointIndex = signal<number | null>(null);
 
   /* ── Order form ── */
   orderSide = signal<OrderSide>('BUY');
   orderType = signal<OrderType>('LIMIT');
 
-  get rangeData(): RangeConfig {
+  readonly rangeData = computed<RangeConfig>(() => {
     const now = Date.now();
-    const rangeMs: Record<PortfolioRange, number> = {
-      '1D': 24 * 60 * 60 * 1000,
-      '5D': 5 * 24 * 60 * 60 * 1000,
-      '1M': 30 * 24 * 60 * 60 * 1000,
-      '6M': 182 * 24 * 60 * 60 * 1000,
-      '1Y': 365 * 24 * 60 * 60 * 1000,
-      '3Y': 3 * 365 * 24 * 60 * 60 * 1000,
-    };
-    const snapshots = this.holdingValueHistory().filter(snapshot => snapshot.timestamp >= now - rangeMs[this.activeRange()]);
+    const activeRange = this.activeRange();
+    const snapshots = this.holdingValueHistory().filter(snapshot => snapshot.timestamp >= now - RANGE_DURATIONS[activeRange]);
     const currentValue = this.holdingsValue;
     const chartSnapshots = snapshots.length > 0
-      ? snapshots
+      ? [...snapshots]
       : [{ timestamp: now, value: currentValue }];
+    if (chartSnapshots[chartSnapshots.length - 1].timestamp < now) {
+      chartSnapshots.push({ timestamp: now, value: currentValue });
+    }
     const values = chartSnapshots.map(snapshot => snapshot.value);
     const minValue = Math.min(...values);
     const maxValue = Math.max(...values);
@@ -228,25 +252,29 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
     const chartMin = Math.max(0, minValue - padding);
     const chartMax = maxValue + padding;
     const valueRange = Math.max(chartMax - chartMin, 1);
-    const line = chartSnapshots.map((snapshot, index) => {
-      const x = chartSnapshots.length === 1 ? 340 : (index / (chartSnapshots.length - 1)) * 680;
-      const y = 200 - ((snapshot.value - chartMin) / valueRange) * 200;
-      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
+    const plotPoints = chartSnapshots.map((snapshot, index): ChartPlotPoint => ({
+      ...snapshot,
+      x: chartSnapshots.length === 1 ? 340 : 4 + (index / (chartSnapshots.length - 1)) * 672,
+      y: 196 - ((snapshot.value - chartMin) / valueRange) * 192,
+    }));
+    const line = plotPoints.map((point, index) =>
+      `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`
+    ).join(' ');
     const firstValue = chartSnapshots[0].value;
     const lastValue = chartSnapshots[chartSnapshots.length - 1].value;
     const deltaValue = lastValue - firstValue;
-    const xLabels = this.chartLabels(this.activeRange(), chartSnapshots[0].timestamp, chartSnapshots[chartSnapshots.length - 1].timestamp);
+    const xLabels = this.chartLabels(activeRange, chartSnapshots[0].timestamp, chartSnapshots[chartSnapshots.length - 1].timestamp);
     const yLabels = [0, 0.25, 0.5, 0.75, 1].map(fraction => this.formatChartValue(chartMax - valueRange * fraction));
     return {
       linePath: line,
       fillPath: generateFillPath(line),
+      plotPoints,
       xLabels,
       yLabels,
       deltaValue,
       deltaPct: firstValue ? deltaValue / firstValue * 100 : 0,
     };
-  }
+  });
 
   get holdingsValue(): number {
     return this.positions().reduce((total, position) => total + position.marketValue, 0);
@@ -299,9 +327,42 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
 
   get currentValue(): number { return this.holdingsValue; }
 
-  get isPositive(): boolean { return this.rangeData.deltaValue >= 0; }
+  get isPositive(): boolean { return this.rangeData().deltaValue >= 0; }
 
   get chartColor(): string { return this.isPositive ? '#10b981' : '#ef4444'; }
+
+  get hoveredChartPoint(): ChartPlotPoint | null {
+    const index = this.hoveredPointIndex();
+    return index == null ? null : this.rangeData().plotPoints[index] ?? null;
+  }
+
+  getChartHoverZoneX(index: number): number {
+    const points = this.rangeData().plotPoints;
+    return index === 0 ? 0 : (points[index - 1].x + points[index].x) / 2;
+  }
+
+  getChartHoverZoneWidth(index: number): number {
+    const points = this.rangeData().plotPoints;
+    const rightEdge = index === points.length - 1 ? 680 : (points[index].x + points[index + 1].x) / 2;
+    return rightEdge - this.getChartHoverZoneX(index);
+  }
+
+  formatTooltipDate(timestamp: number): string {
+    const date = new Date(timestamp);
+    if (this.activeRange() === '1D') {
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    }
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
 
   submitTickerSearch(): void {
     const ticker = this.searchValue.trim().toUpperCase();
@@ -328,6 +389,19 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
         error: (error) => console.error('Error loading account:', error)
       });
 
+    this.orderService.getOrdersByAccountId(accountId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: orders => {
+          this.accountOrders.set(orders);
+          const symbols = this.chartSymbols();
+          if (symbols.length > 0) {
+            this.startHistoryPolling(symbols);
+          }
+        },
+        error: error => console.error('Error loading order history:', error),
+      });
+
     this.holdingService.getHoldingsByAccountId(accountId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -343,8 +417,11 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
           this.recordHoldingValueSnapshot();
 
           const symbols = positions.map(position => position.symbol);
+          const chartSymbols = this.chartSymbols();
+          if (chartSymbols.length > 0) {
+            this.startHistoryPolling(chartSymbols);
+          }
           if (symbols.length === 0) return;
-          this.startHistoryPolling(symbols);
 
           if (isPlatformBrowser(this.platformId)) {
             const normalizedSymbols = symbols.map(symbol => symbol.toUpperCase());
@@ -452,6 +529,16 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
     this.holdingValueHistory.update(history => [...history, snapshot].slice(-500));
   }
 
+  private chartSymbols(): string[] {
+    const currentSymbols = this.positions().map(position => position.symbol);
+    const tradedSymbols = this.accountOrders()
+      .filter(order => order.status === 'EXECUTED' && order.executedAt && order.executionPrice !== null)
+      .map(order => order.symbol);
+    return Array.from(new Set([...currentSymbols, ...tradedSymbols]
+      .map(symbol => symbol.toUpperCase())
+      .filter(Boolean)));
+  }
+
   private startHistoryPolling(symbols: string[]): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
@@ -473,21 +560,76 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
     symbols: string[],
     options: { period: string; interval: string; limit: number },
   ) {
+    const executedOrders: ExecutedTrade[] = this.accountOrders()
+      .filter(order => order.status === 'EXECUTED' && order.executedAt && order.executionPrice !== null)
+      .map(order => ({
+        orderId: order.orderId,
+        timestamp: order.executedAt!.getTime(),
+        side: order.side,
+        symbol: order.symbol.toUpperCase(),
+        quantity: order.quantity,
+        price: order.executionPrice!,
+      }))
+      .filter(event => Number.isFinite(event.timestamp) && event.timestamp > 0)
+      .sort((left, right) => left.timestamp - right.timestamp || left.orderId - right.orderId);
+    const currentShares = new Map(this.positions().map(position => [position.symbol.toUpperCase(), position.shares]));
+
     return forkJoin(symbols.map(symbol => this.stockDataService.getPriceHistory(
       symbol, options.period, options.interval, options.limit,
     ).pipe(catchError(() => of([]))))).pipe(
       map(histories => {
-        const timestamps = Array.from(new Set(
-          histories.flatMap(history => history.map(point => Date.parse(point.timestamp))),
-        )).filter(timestamp => Number.isFinite(timestamp)).sort((left, right) => left - right);
-        return timestamps.map(timestamp => ({
-          timestamp,
-          value: histories.reduce((total, history, index) => {
-            const point = history.filter(candidate => Date.parse(candidate.timestamp) <= timestamp).at(-1);
-            const shares = this.positions().find(position => position.symbol === symbols[index])?.shares ?? 0;
+        const sortedHistories = histories.map(history => history
+          .filter(point => Number.isFinite(Date.parse(point.timestamp)) && Number.isFinite(point.price))
+          .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)));
+        const rangeStart = Date.now() - RANGE_DURATIONS[this.activeRange()];
+        const timestamps = new Set(
+          sortedHistories.flatMap(history => history.map(point => Date.parse(point.timestamp))),
+        );
+        executedOrders
+          .filter(event => event.timestamp >= rangeStart && event.timestamp <= Date.now())
+          .forEach(event => {
+            timestamps.add(event.timestamp);
+          });
+
+        const sortedTimestamps = Array.from(timestamps)
+          .filter(timestamp => Number.isFinite(timestamp))
+          .sort((left, right) => left - right);
+        const historyIndexes = sortedHistories.map(() => -1);
+        const sharesBySymbol = new Map<string, number>();
+        let nextOrderIndex = 0;
+        const hasExecutedOrderHistory = executedOrders.length > 0;
+
+        return sortedTimestamps.map(timestamp => {
+          while (nextOrderIndex < executedOrders.length && executedOrders[nextOrderIndex].timestamp <= timestamp) {
+            const event = executedOrders[nextOrderIndex];
+            const currentQuantity = sharesBySymbol.get(event.symbol) ?? 0;
+            sharesBySymbol.set(event.symbol, event.side === 'BUY'
+              ? currentQuantity + event.quantity
+              : Math.max(0, currentQuantity - event.quantity));
+            nextOrderIndex++;
+          }
+
+          const value = sortedHistories.reduce((total, history, index) => {
+            while (
+              historyIndexes[index] + 1 < history.length &&
+              Date.parse(history[historyIndexes[index] + 1].timestamp) <= timestamp
+            ) {
+              historyIndexes[index]++;
+            }
+            const historyIndex = historyIndexes[index];
+            const point = historyIndex >= 0 ? history[historyIndex] : history[0];
+            const symbol = symbols[index].toUpperCase();
+            const shares = hasExecutedOrderHistory
+              ? sharesBySymbol.get(symbol) ?? 0
+              : currentShares.get(symbol) ?? 0;
             return total + (point?.price ?? 0) * shares;
-          }, 0),
-        })).filter(snapshot => snapshot.value > 0);
+          }, 0);
+
+          return {
+            timestamp,
+            value,
+          };
+        });
       }),
     );
   }
@@ -576,7 +718,7 @@ export class PortfolioDashboardComponent implements OnInit, OnDestroy {
   setActiveRange(range: PortfolioRange): void {
     if (this.activeRange() === range) return;
     this.activeRange.set(range);
-    const symbols = this.positions().map(position => position.symbol);
+    const symbols = this.chartSymbols();
     if (symbols.length > 0) {
       this.startHistoryPolling(symbols);
     }
