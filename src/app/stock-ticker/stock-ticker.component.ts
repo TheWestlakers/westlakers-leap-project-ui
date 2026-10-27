@@ -347,6 +347,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   orderSymbol    = signal(this.stockSymbol());
   orderShares    = signal(100);
   orderPrice     = signal<number | null>(null);
+  orderPriceInput = signal('');
   private limitPriceEdited = false;
   orderExtHours  = signal(true);
   orderSubmitted = signal(false);
@@ -443,7 +444,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
           const tickerPrice = prices[currentTicker];
           if (tickerPrice && tickerPrice.currentPrice &&
               (this.orderType() === 'MARKET' || !this.limitPriceEdited)) {
-            this.orderPrice.set(Number(tickerPrice.currentPrice));
+            this.setSuggestedOrderPrice(Number(tickerPrice.currentPrice));
           }
         },
         error: (error) => {
@@ -492,7 +493,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
           const tickerPrice = prices[currentTicker];
           if (tickerPrice && tickerPrice.currentPrice &&
               (this.orderType() === 'MARKET' || !this.limitPriceEdited)) {
-            this.orderPrice.set(Number(tickerPrice.currentPrice));
+            this.setSuggestedOrderPrice(Number(tickerPrice.currentPrice));
           }
           this.isLoadingPrices.set(false);
         },
@@ -559,7 +560,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     
     // Update order price to the current price of the selected ticker
     const tickerPrice = this.allPrices()[upperTicker];
-    this.orderPrice.set(tickerPrice?.currentPrice != null ? Number(tickerPrice.currentPrice) : null);
+    this.setSuggestedOrderPrice(tickerPrice?.currentPrice != null ? Number(tickerPrice.currentPrice) : null);
     this.startHistoryPolling();
   }
 
@@ -705,10 +706,11 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     if (ticker === this.selectedTicker() && price.currentPrice != null) {
       this.mergeLiveChartPoint(Number(price.currentPrice), price.timestamp || new Date().toISOString());
     }
-    const shouldSetInitialLimitPrice = this.orderType() === 'LIMIT' && this.orderPrice() === null;
+    const shouldSetInitialLimitPrice = this.orderType() === 'LIMIT' &&
+      this.orderPrice() === null && !this.limitPriceEdited;
     if (ticker === this.selectedTicker() && price.currentPrice != null &&
         (this.orderType() === 'MARKET' || shouldSetInitialLimitPrice)) {
-      this.orderPrice.set(Number(price.currentPrice));
+      this.setSuggestedOrderPrice(Number(price.currentPrice));
     }
   }
 
@@ -773,16 +775,21 @@ export class StockTickerComponent implements OnInit, OnDestroy {
     if (type === 'LIMIT') {
       this.limitPriceEdited = false;
       const tickerPrice = this.allPrices()[this.selectedTicker()];
-      if (tickerPrice?.currentPrice) {
-        this.orderPrice.set(Number(tickerPrice.currentPrice));
-      }
+      this.setSuggestedOrderPrice(tickerPrice?.currentPrice != null ? Number(tickerPrice.currentPrice) : null);
     }
   }
-  setOrderPrice(price: number): void {
-    this.orderPrice.set(price);
+  setOrderPriceInput(value: string): void {
+    this.orderPriceInput.set(value);
+    const parsedPrice = value.trim() === '' ? null : Number(value);
+    this.orderPrice.set(parsedPrice !== null && Number.isFinite(parsedPrice) ? parsedPrice : null);
     if (this.orderType() === 'LIMIT') {
       this.limitPriceEdited = true;
     }
+  }
+
+  private setSuggestedOrderPrice(price: number | null): void {
+    this.orderPrice.set(price);
+    this.orderPriceInput.set(this.formatPrice(price));
   }
   incrementShares(): void { this.orderShares.update(n => n + 1); }
   decrementShares(): void { this.orderShares.update(n => Math.max(1, n - 1)); }
@@ -916,6 +923,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
           error.error?.details || error.error?.message || error.message ||
           `Unable to create the ${orderType.toLowerCase()} order.`
         );
+        this.scheduleOrderSuccessReset();
       },
     });
   }
@@ -943,6 +951,7 @@ export class StockTickerComponent implements OnInit, OnDestroy {
   }
 
   formatPrice(val: number | null): string {
-    return val == null ? '' : val.toFixed(2);
+    if (val == null || !Number.isFinite(val)) return '';
+    return val.toFixed(4).replace(/\.?0+$/, '');
   }
 }
